@@ -86,7 +86,7 @@ export default function App(){
     <div className="container">
       <div className="header">
         <div>
-          <h1>Tableau de bord – Résultats de Trading</h1>
+          <h1>Zooprojectvision</h1>
           <div style={{color:'var(--muted)'}}>Démo prête à déployer. Vous pourrez brancher vos données plus tard.</div>
         </div>
         <div className="btns">
