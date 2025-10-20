@@ -1,3 +1,4 @@
+// Preview build - test du 21 octobre 2025
 import React, { useMemo, useState } from 'react'
 import {
   ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend,
