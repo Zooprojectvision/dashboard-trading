@@ -1,116 +1,136 @@
-/* ===== Thème Dark Luxe – Noir / Doré / Bleu canard / Blanc ===== */
+/* === Thème Noir & Or Minimaliste – ZooProject Vision === */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
 :root {
-  --bg: #0a0a0a;          /* fond noir profond */
-  --bg-grad: #0a0a0a;
-  --card: #111317;        /* cartes sombre */
-  --muted: #b9c2cf;       /* texte secondaire (gris bleuté) */
-  --text: #f3f6fb;        /* texte principal (blanc doux) */
-
-  /* Accents */
-  --gold: #d4af37;        /* doré principal */
-  --gold-soft: #b8962e;
-  --teal: #0fb9b1;        /* bleu canard (accent secondaire) */
-  --teal-soft: #0aa39c;
-
-  /* Etats */
-  --good: #2dd4bf;        /* vert/teal gain */
-  --bad: #ff6b6b;         /* rouge perte */
-
-  /* Traits & ombres */
-  --line: #1f2633;
-  --ring: rgba(212, 175, 55, .28); /* lueur dorée */
+  --bg: #000000;              /* noir profond */
+  --card: #0d0d0d;            /* panneaux légèrement distincts */
+  --gold: #d4af37;            /* doré principal */
+  --gold-soft: #b8962e;       /* doré adouci */
+  --text: #ffffff;            /* blanc pur */
+  --muted: #aaaaaa;           /* gris clair */
+  --line: #1a1a1a;            /* séparateurs */
+  --good: #00d9a6;
+  --bad: #ff5f5f;
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
-body{
+body {
   margin:0;
-  background:
-    radial-gradient(1200px 800px at 10% -10%, rgba(15,185,177,.08), transparent 60%),
-    radial-gradient(1000px 600px at 90% 10%, rgba(212,175,55,.10), transparent 60%),
-    linear-gradient(180deg, var(--bg) 0%, #0c0d0f 100%);
-  color:var(--text);
-  font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Poppins", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  letter-spacing: 0.3px;
 }
 
-/* Layout */
-.container{max-width:1200px;margin:0 auto;padding:28px 20px}
-.header{
-  display:flex;gap:16px;align-items:end;justify-content:space-between;flex-wrap:wrap;
-  margin-bottom:18px;border-bottom:1px solid var(--line);padding-bottom:14px;
+/* --- Structure --- */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px;
 }
-h1{margin:0;font-size:28px;letter-spacing:.2px}
-.header .tagline{color:var(--muted);font-size:14px}
-
-/* Boutons */
-.btns{display:flex;gap:10px}
-.btn{
-  background:linear-gradient(180deg, rgba(212,175,55,.12), rgba(212,175,55,.06));
-  border:1px solid var(--gold);
-  color:var(--text);
-  padding:10px 14px;border-radius:12px;cursor:pointer;
-  box-shadow:0 0 0 2px var(--ring);
-  transition:transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+h1 {
+  font-size: 34px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--gold);
+  letter-spacing: 1px;
 }
-.btn:hover{
-  transform:translateY(-1px);
-  box-shadow:0 0 0 3px var(--ring);
-  border-color:#f0c94c;
+h2, h3 {
+  color: var(--text);
+  font-weight: 400;
+}
+p {
+  color: var(--muted);
+  margin: 0 0 16px;
 }
 
-/* Cartes & contrôles */
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px}
-.controls{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
-.controls .item{padding:12px}
-label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-select,input[type=date],input[type=range]{
-  width:100%;background:#0f1318;border:1px solid #273144;color:var(--text);
-  border-radius:10px;padding:10px;outline:none;
+/* --- Cartes & sections --- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px;
+  transition: border-color .2s ease, transform .2s ease;
 }
-select:focus,input[type=date]:focus,input[type=range]:focus{
-  border-color:var(--teal); box-shadow:0 0 0 2px rgba(15,185,177,.25);
-}
-
-/* KPI */
-.kpi{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin:14px 0}
-.kpi .item{padding:14px; position:relative; overflow:hidden}
-.kpi .item::after{
-  content:""; position:absolute; inset:0;
-  background:radial-gradient(500px 300px at 110% -10%, rgba(212,175,55,.10), transparent 60%);
-  pointer-events:none;
-}
-.kpi h3{margin:0;font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
-.kpi .val{font-size:22px;font-weight:800;margin-top:8px; color:#fff}
-
-/* Tabs */
-.tabs{display:flex;gap:8px;margin-top:12px}
-.tab{
-  padding:8px 12px;border:1px solid #273144;border-radius:999px;background:#0f1318;color:#e8f4f6;cursor:pointer;
-}
-.tab.active{
-  border-color:var(--teal);
-  box-shadow:0 0 0 2px rgba(15,185,177,.18) inset, 0 0 0 2px rgba(15,185,177,.10);
+.card:hover {
+  border-color: var(--gold);
+  transform: translateY(-2px);
 }
 
-/* Graphiques & tableaux */
-.grid{display:grid;gap:12px;margin-top:12px}
-@media (min-width:1000px){ .grid{grid-template-columns:1fr 1fr} }
-.chart-card{padding:14px; height:380px}
-.table-wrap{overflow:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
-th{color:var(--muted);font-weight:600}
-
-/* Badges & couleurs */
-.tag{
-  display:inline-block;padding:2px 8px;border-radius:999px;
-  background:#0f1318;border:1px solid #273144;color:#dfe8f2;font-size:11px
+/* --- Tableaux & données --- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
 }
-.good{color:var(--good)} .bad{color:var(--bad)}
+th, td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+th {
+  color: var(--muted);
+  font-weight: 400;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+tr:hover td {
+  background: rgba(212,175,55,0.05);
+}
 
-/* Liens & accents */
-a{color:var(--teal);text-decoration:none}
-a:hover{color:#12cec5}
+/* --- Boutons --- */
+.btn {
+  display: inline-block;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  border-radius: 30px;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+  transition: all .2s ease;
+  cursor: pointer;
+}
+.btn:hover {
+  background: var(--gold);
+  color: var(--bg);
+}
 
-/* Pied de page */
-.footer{color:#9fb0c6;text-align:center;margin:20px 0 8px;font-size:12px;opacity:.95}
+/* --- KPI & chiffres --- */
+.kpi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin: 30px 0;
+}
+.kpi .item {
+  background: var(--card);
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-align: center;
+}
+.kpi h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+.kpi .val {
+  margin-top: 8px;
+  font-size: 20px;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* --- Footer --- */
+.footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 40px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
