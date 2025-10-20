@@ -118,7 +118,7 @@ function calcLast12M(equity){
   return end/start - 1;
 }
 
-/** Calendrier */
+/** Calendrier utils */
 function monthDays(year, monthIndex){
   const days = [];
   const end = new Date(year, monthIndex+1, 0);
@@ -146,9 +146,8 @@ function inlineStyle(cssText){
 }
 
 /** =========================
- *   Groupes d'actifs (≥10% majors, <10% Autres)
+ *   Groupes d'actifs (≥X% majors, <X% Autres)
  *   ========================= */
-/** Part des actifs (sur trades filtrés) et découpe ≥10% / <10% (par nb de trades) */
 function splitSymbolsByShare(trades, threshold = 0.10) {
   const count = new Map();
   for (const t of trades) count.set(t.symbol, (count.get(t.symbol) || 0) + 1);
@@ -160,7 +159,7 @@ function splitSymbolsByShare(trades, threshold = 0.10) {
 }
 
 /** Multi-courbes par actif (base 10'000) + regroupement "Autres" + courbe globale */
-function buildSymbolEquitiesGrouped(dates, trades, displayCcy, majorSet, dateToGlobal) {
+function buildSymbolEquitiesGrouped(dates, trades, displayCcy, majorSet, dateToGlobal, othersLabel = 'Autres') {
   const symbols = Array.from(new Set(trades.map(t=>t.symbol))).sort();
   const base = 10000;
 
@@ -192,13 +191,13 @@ function buildSymbolEquitiesGrouped(dates, trades, displayCcy, majorSet, dateToG
       .filter(s => !majorSet.has(s))
       .reduce((acc, s) => acc + (byDay.get(`${d}__${s}`) || 0), 0);
     cumOthers = Number((cumOthers + othersAdd).toFixed(2));
-    if (symbols.some(s => !majorSet.has(s))) row['Autres'] = cumOthers;
+    if (symbols.some(s => !majorSet.has(s))) row[othersLabel] = cumOthers;
 
     rows.push(row);
   }
 
   const plotSymbols = [...majors];
-  if (symbols.some(s => !majorSet.has(s))) plotSymbols.push('Autres');
+  if (symbols.some(s => !majorSet.has(s))) plotSymbols.push(othersLabel);
   return { rows, plotSymbols };
 }
 
@@ -209,7 +208,7 @@ export default function App(){
   const [equity] = useState(demoEquity)
   const [trades] = useState(demoTrades)
 
-  // Filtres de base (sans filtre “Actif”)
+  // Filtres
   const [account, setAccount] = useState('ALL')
   const [broker, setBroker]   = useState('ALL')
   const [strategy, setStrategy] = useState('ALL')
@@ -217,6 +216,7 @@ export default function App(){
   const [dateTo, setDateTo]     = useState('')
   const [minPnL, setMinPnL]     = useState(-1000)
   const [displayCcy, setDisplayCcy] = useState('USD')
+  const [minShare, setMinShare] = useState(10) // seuil en %
 
   const accounts = useMemo(()=>Array.from(new Set(trades.map(t=>t.account))),[trades])
   const brokers  = useMemo(()=>Array.from(new Set(trades.map(t=>t.broker || ''))).filter(Boolean),[trades])
@@ -271,26 +271,29 @@ export default function App(){
   const ytd = calcYTD(equityFiltered)
   const ann = calcLast12M(equityFiltered)
 
-  // Part des actifs : ≥10% (majors) / <10% (minors), basé sur nb de trades filtrés
+  // Seuil & labels dynamiques
+  const othersLabel = useMemo(() => `Autres (<${minShare}%)`, [minShare])
+
+  // Part des actifs : majors (≥ seuil)
   const { major: majorSet } = useMemo(
-    () => splitSymbolsByShare(filteredTrades, 0.10),
-    [filteredTrades]
-  );
+    () => splitSymbolsByShare(filteredTrades, minShare/100),
+    [filteredTrades, minShare]
+  )
 
   // Dates & map date -> équité globale (pour injecter "__GLOBAL__")
-  const allDates = useMemo(() => equityFiltered.map(p => p.date), [equityFiltered]);
-  const dateToGlobal = useMemo(() => new Map(equityFiltered.map(p => [p.date, p.equity])), [equityFiltered]);
+  const allDates = useMemo(() => equityFiltered.map(p => p.date), [equityFiltered])
+  const dateToGlobal = useMemo(() => new Map(equityFiltered.map(p => [p.date, p.equity])), [equityFiltered])
 
   // Séries multi-actifs groupées + courbe globale
   const { rows: equityBySymbolRows, plotSymbols } = useMemo(
-    () => buildSymbolEquitiesGrouped(allDates, filteredTrades, displayCcy, majorSet, dateToGlobal),
-    [allDates, filteredTrades, displayCcy, majorSet, dateToGlobal]
-  );
+    () => buildSymbolEquitiesGrouped(allDates, filteredTrades, displayCcy, majorSet, dateToGlobal, othersLabel),
+    [allDates, filteredTrades, displayCcy, majorSet, dateToGlobal, othersLabel]
+  )
 
   // Couleurs pour lignes d'actifs
   const lineColors = ['#7bd88f','#6aa6ff','#ff8a65','#c792ea','#ffd166','#0fb9b1','#9bb6ff','#ff6b6b','#8bd3dd']
 
-  // Répartition des actifs (≥10% + "Autres")
+  // Répartition des actifs (≥ seuil + "Autres")
   const assetSplit = useMemo(() => {
     const counts = new Map();
     filteredTrades.forEach(t => counts.set(t.symbol, (counts.get(t.symbol)||0)+1));
@@ -300,12 +303,12 @@ export default function App(){
     let othersSum = 0;
     for (const [name, value] of counts) {
       const share = value / total;
-      if (share >= 0.10) majors.push({ name, value });
+      if (share >= (minShare/100)) majors.push({ name, value });
       else othersSum += value;
     }
-    if (othersSum > 0) majors.push({ name: 'Autres', value: othersSum });
+    if (othersSum > 0) majors.push({ name: othersLabel, value: othersSum });
     return majors.sort((a,b)=>b.value-a.value);
-  }, [filteredTrades]);
+  }, [filteredTrades, minShare, othersLabel]);
 
   // Calendrier (mois courant par défaut)
   const lastDate = equityFiltered.at(-1)?.date
@@ -378,6 +381,17 @@ export default function App(){
             {DISPLAY_CURRENCIES.map(c=> <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
+
+        {/* Nouveau : seuil d'affichage (5/10/15%) */}
+        <div className="item">
+          <label>Seuil actifs (≥%)</label>
+          <select value={minShare} onChange={e=>setMinShare(Number(e.target.value))}>
+            <option value={5}>5%</option>
+            <option value={10}>10%</option>
+            <option value={15}>15%</option>
+          </select>
+        </div>
+
         <div className="item" style={{gridColumn:'span 2'}}>
           <label>Filtre PnL minimum: <span className="tag">{minPnL.toFixed(2)}</span></label>
           <input type="range" min="-8000" max="2000" step="50" value={minPnL} onChange={e=>setMinPnL(Number(e.target.value))} />
@@ -523,13 +537,17 @@ export default function App(){
           </div>
         </div>
 
-        {/* Répartition des actifs (≥10% + Autres) */}
+        {/* Répartition des actifs (≥ seuil + Autres) */}
         <div className="card chart-card" style={{height:320}}>
           <h3>Répartition des actifs</h3>
           <ResponsiveContainer width="100%" height="85%">
             <PieChart>
               <Pie data={assetSplit} dataKey="value" nameKey="name" outerRadius={100}>
-                {assetSplit.map((_, i) => <Cell key={i} fill={['#d4af37','#0fb9b1','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166','#9bb6ff'][i % 8]} />)}
+                {assetSplit.map((seg, i) => {
+                  const palette = ['#d4af37','#0fb9b1','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166','#9bb6ff'];
+                  const color = seg.name.startsWith('Autres') ? '#808080' : palette[i % palette.length];
+                  return <Cell key={i} fill={color} />;
+                })}
               </Pie>
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -606,8 +624,11 @@ function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
     const dd = info?.dd ?? null
     const style = colorForRet(ret)
     return (
-      <div key={dt} title={`${dt}\nRet: ${ret!=null?(ret*100).toFixed(2)+'%':'-'}\nDD: ${dd!=null?(dd*100).toFixed(2)}%:'-'}`}
-           style={{padding:'10px 8px', borderRadius:8, ...inlineStyle(style)}}>
+      <div
+        key={dt}
+        title={`${dt}\nRet: ${ret!=null ? (ret*100).toFixed(2)+'%' : '-'}\nDD: ${dd!=null ? (dd*100).toFixed(2)+'%' : '-'}`}
+        style={{padding:'10px 8px', borderRadius:8, ...inlineStyle(style)}}
+      >
         <div style={{fontSize:11, opacity:.9}}>{Number(dt.slice(8,10))}</div>
         <div style={{fontSize:12, fontWeight:600}} className={ret<0?'bad':''}>
           {ret!=null ? `${(ret*100).toFixed(2)}%` : '—'}
