@@ -1,190 +1,139 @@
 /* === Thème Noir & Or Minimaliste – ZooProject Vision === */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 
-:root {
-  --bg: #000000;              /* noir profond */
-  --card: #0d0d0d;            /* panneaux légèrement distincts */
-  --gold: #d4af37;            /* doré principal */
-  --gold-soft: #b8962e;       /* doré adouci */
-  --text: #ffffff;            /* blanc pur */
-  --muted: #aaaaaa;           /* gris clair */
-  --line: #1a1a1a;            /* séparateurs */
-  --good: #00d9a6;
-  --bad: #ff5f5f;
+:root{
+  --bg:#000000;
+  --card:#0d0d0d;
+  --line:#1a1a1a;
+  --text:#ffffff;
+  --muted:#a8b0b8;
+  --gold:#d4af37;
+  --gold-weak:#b8962e;
+  --good:#2dd4bf;
+  --bad:#ff6b6b;
 }
 
 *{box-sizing:border-box}
-body {
+html,body{height:100%}
+body{
   margin:0;
-  font-family: "Poppins", system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  letter-spacing: 0.3px;
+  font-family:"Poppins",system-ui,Segoe UI,Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  letter-spacing:.2px;
 }
 
-/* --- Structure --- */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 40px 24px;
-}
-h1 {
-  font-size: 34px;
-  font-weight: 600;
-  margin: 0 0 10px;
-  color: var(--gold);
-  letter-spacing: 1px;
-}
-h2, h3 {
-  color: var(--text);
-  font-weight: 400;
-}
-p {
-  color: var(--muted);
-  margin: 0 0 16px;
-}
+/* Layout */
+.container{max-width:1120px;margin:0 auto;padding:36px 18px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px}
+h1{margin:0;color:var(--gold);font-size:32px;font-weight:600;letter-spacing:.5px}
+.tagline{color:var(--muted);font-size:12px;margin-top:6px}
 
-/* --- Cartes & sections --- */
-.card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 24px;
-  transition: border-color .2s ease, transform .2s ease;
+/* Cards */
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px;
+  transition:transform .15s ease,border-color .15s ease;
 }
-.card:hover {
-  border-color: var(--gold);
-  transform: translateY(-2px);
-}
+.card:hover{transform:translateY(-1px);border-color:#2a2a2a}
 
-/* --- Tableaux & données --- */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+/* Buttons */
+.btn{
+  border:1px solid var(--gold);
+  color:var(--gold);
+  background:transparent;
+  padding:10px 16px;
+  border-radius:999px;
+  font-size:12px;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:all .15s ease;
 }
-th, td {
-  padding: 12px 10px;
-  text-align: left;
-  border-bottom: 1px solid var(--line);
-}
-th {
-  color: var(--muted);
-  font-weight: 400;
-  text-transform: uppercase;
-  font-size: 12px;
-}
-tr:hover td {
-  background: rgba(212,175,55,0.05);
-}
+.btn:hover{background:var(--gold);color:#000}
 
-/* --- Boutons --- */
-.btn {
-  display: inline-block;
-  padding: 10px 18px;
-  background: transparent;
-  border: 1px solid var(--gold);
-  color: var(--gold);
-  border-radius: 30px;
-  text-transform: uppercase;
-  font-size: 12px;
-  letter-spacing: 1px;
-  transition: all .2s ease;
-  cursor: pointer;
+/* Controls (filtres) */
+.controls{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:12px;
+  margin:16px 0 18px;
 }
-.btn:hover {
-  background: var(--gold);
-  color: var(--bg);
+.controls .item label{
+  display:block;color:var(--muted);font-size:12px;margin:0 0 6px 2px
 }
-
-/* --- KPI & chiffres --- */
-.kpi {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 16px;
-  margin: 30px 0;
-}
-.kpi .item {
-  background: var(--card);
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  text-align: center;
-}
-.kpi h3 {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  text-transform: uppercase;
-}
-.kpi .val {
-  margin-top: 8px;
-  font-size: 20px;
-  color: var(--gold);
-  font-weight: 600;
-}
-
-/* --- Footer --- */
-.footer {
-  text-align: center;
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 40px;
-  border-top: 1px solid var(--line);
-  padding-top: 16px;
-}
-/* ========== STYLISATION DES FILTRES – THEME DARK PRO ========== */
-select, input[type=date], input[type=range] {
-  width: 100%;
-  background: #0d0d0d;
-  border: 1px solid #2a2a2a;
-  color: #f2f2f2;
-  border-radius: 10px;
-  padding: 8px 10px;
-  font-size: 14px;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-select:hover, input[type=date]:hover, input[type=range]:hover {
-  border-color: #d4af37;
-}
-
-select:focus, input[type=date]:focus, input[type=range]:focus {
-  border-color: #d4af37;
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25);
-}
-
-option {
-  background: #121212;
-  color: #ffffff;
-}
-
-input[type=range] {
-  accent-color: #d4af37;
-}
-
-/* Filtres Dark Pro */
-select, input[type=date], input[type=range]{
+select,input[type=date],input[type=text],input[type=number]{
   width:100%;
   background:#0d0d0d;
   border:1px solid #2a2a2a;
   color:#f2f2f2;
   border-radius:10px;
-  padding:8px 10px;
+  padding:10px 12px;
   font-size:14px;
-  appearance:none;
-  -webkit-appearance:none;
-  -moz-appearance:none;
-  outline:none;
-  transition:all .2s ease;
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  outline:none; transition:all .2s ease;
 }
-select:hover, input[type=date]:hover, input[type=range]:hover{ border-color:#d4af37; }
-select:focus, input[type=date]:focus, input[type=range]:focus{
-  border-color:#d4af37; box-shadow:0 0 0 2px rgba(212,175,55,.25);
+select:hover,input[type=date]:hover{border-color:var(--gold)}
+select:focus,input[type=date]:focus{
+  border-color:var(--gold); box-shadow:0 0 0 2px rgba(212,175,55,.25)
 }
-option{ background:#121212; color:#ffffff; }
-input[type=range]{ accent-color:#d4af37; }
+option{background:#121212;color:#fff}
+input[type=range]{width:100%;accent-color:var(--gold)}
+/* Slider track for WebKit */
+input[type=range]::-webkit-slider-runnable-track{height:6px;background:#1b1b1b;border-radius:6px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:14px;height:14px;margin-top:-4px;
+  background:var(--gold);border-radius:50%;border:1px solid #6e5a16
+}
+
+/* KPI grid */
+.kpi{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:12px;
+  margin:12px 0 18px;
+}
+.kpi .item h3{margin:0 0 8px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.8px}
+.kpi .val{font-size:20px;font-weight:600;color:var(--gold)}
+.kpi .val.bad{color:var(--bad)} /* négatifs en rouge */
+
+/* Charts & grids */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}
+.chart-card{height:360px;display:flex;flex-direction:column}
+.chart-card h3{margin:0 0 8px;color:#e9edf2;font-weight:500}
+
+/* Tableau trades */
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:400;text-transform:uppercase;font-size:11px;letter-spacing:.6px}
+tbody tr:hover td{background:rgba(212,175,55,.05)}
+td.bad{color:var(--bad);font-weight:600}
+
+/* Footer */
+.footer{margin:22px 0 6px;text-align:center;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+
+/* Recharts tweaks (axes, tooltip) */
+.recharts-default-tooltip{background:#0e0e0f!important;border:1px solid #232323!important;color:#fff!important;border-radius:10px;padding:8px 10px!important}
+.recharts-legend-item-text{color:#d6d9de!important}
+
+/* Scrollbar (discret) */
+*::-webkit-scrollbar{height:8px;width:8px}
+*::-webkit-scrollbar-track{background:#0c0c0c}
+*::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:10px}
+*::-webkit-scrollbar-thumb:hover{background:#3a3a3a}
+
+/* Responsive */
+@media (max-width:1100px){
+  .controls{grid-template-columns:repeat(3,1fr)}
+  .grid{grid-template-columns:1fr}
+  .kpi{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:640px){
+  .controls{grid-template-columns:1fr}
+  .kpi{grid-template-columns:1fr}
+}
