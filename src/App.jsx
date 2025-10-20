@@ -179,7 +179,7 @@ export default function App(){
   const [equity] = useState(demoEquity)
   const [trades] = useState(demoTrades)
 
-  // Filtres de base (on retire le filtre “Actif” car multi-courbes)
+  // Filtres de base (sans filtre “Actif”)
   const [account, setAccount] = useState('ALL')
   const [broker, setBroker]   = useState('ALL')
   const [strategy, setStrategy] = useState('ALL')
@@ -192,7 +192,7 @@ export default function App(){
   const brokers  = useMemo(()=>Array.from(new Set(trades.map(t=>t.broker || ''))).filter(Boolean),[trades])
   const strategies = useMemo(()=>Array.from(new Set(trades.map(t=>t.strategy))),[trades])
 
-  // Filtre trades (sans filtre par actif)
+  // Filtre trades
   const filteredTrades = useMemo(()=>trades.filter(t=>{
     if(account!=='ALL' && t.account!==account) return false
     if(broker!=='ALL' && t.broker!==broker) return false
@@ -203,7 +203,7 @@ export default function App(){
     return true
   }),[trades,account,broker,strategy,dateFrom,dateTo,minPnL])
 
-  // Équité filtrée + conversion
+  // Équité filtrée + conversion (courbe globale)
   const equityFiltered = useMemo(()=>{
     return equity.filter(p=>{
       if(dateFrom && p.date < dateFrom) return false
@@ -241,47 +241,14 @@ export default function App(){
   const ytd = calcYTD(equityFiltered)
   const ann = calcLast12M(equityFiltered)
 
-  // Histogramme PnL
-  const bins = 12
-  const histogram = useMemo(()=>{
-    const list = tradesConverted.map(t=>t.pnl_disp)
-    if(!list.length) return []
-    const min = Math.min(...list)
-    const max = Math.max(...list)
-    const step = (max-min)/bins || 1
-    const arr = Array.from({length:bins}).map((_,i)=>({bin:String(Number(min+i*step).toFixed(2)), count:0}))
-    for(const v of list){
-      const idx = Math.min(bins-1, Math.max(0, Math.floor((v-min)/step)))
-      arr[idx].count += 1
-    }
-    return arr
-  },[tradesConverted])
-
-  // Win rate / RR / répartition actifs
-  const winLoss = useMemo(()=>{
-    const arr = tradesConverted.map(t=>t.pnl_disp);
-    const wins = arr.filter(v=>v>0);
-    const losses = arr.filter(v=>v<0);
-    const wr = arr.length ? wins.length/arr.length : 0;
-    const avgWin = wins.length ? wins.reduce((a,b)=>a+b,0)/wins.length : 0;
-    const avgLoss = losses.length ? Math.abs(losses.reduce((a,b)=>a+b,0))/losses.length : 0;
-    const rr = avgLoss ? avgWin/avgLoss : 0;
-    return { wr, avgWin, avgLoss, rr, wins:wins.length, losses:losses.length };
-  }, [tradesConverted])
-
-  const assetSplit = useMemo(()=>{
-    const m = new Map();
-    filteredTrades.forEach(t => m.set(t.symbol, (m.get(t.symbol)||0)+1));
-    return Array.from(m, ([name, value]) => ({ name, value }));
-  }, [filteredTrades])
-
-  // Multi-courbes par actif
+  // Multi-courbes par actif POUR LE MÊME GRAPHE D’ÉQUITÉ
   const allDates = useMemo(()=>equityFiltered.map(p=>p.date),[equityFiltered])
   const { rows: equityBySymbolRows, symbols: allSymbols } = useMemo(
     ()=> buildSymbolEquities(allDates, filteredTrades, displayCcy),
     [allDates, filteredTrades, displayCcy]
   )
-  const topSymbols = allSymbols.slice(0, 6) // pour lisibilité
+  const topSymbols = allSymbols.slice(0, 8) // max 8 lignes pour la lisibilité
+  const lineColors = ['#7bd88f','#6aa6ff','#ff8a65','#c792ea','#ffd166','#0fb9b1','#9bb6ff','#ff6b6b']
 
   // Calendrier (mois courant par défaut)
   const lastDate = equityFiltered.at(-1)?.date
@@ -373,17 +340,28 @@ export default function App(){
 
       {/* Graphiques principaux — XL */}
       <div className="grid">
-        {/* Courbe d'équité */}
+        {/* Courbe d'équité (globale + lignes par actif) */}
         <div className="card chart-card chart-xl">
-          <h3>Courbe d'équité</h3>
+          <h3>Courbe d'équité (globale + actifs)</h3>
           <ResponsiveContainer width="100%" height="90%">
-            <LineChart data={equityFiltered} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+            <LineChart data={equityBySymbolRows} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis tickFormatter={fmtShort2} />
-              <Tooltip formatter={(v)=>fmtCCY(v, displayCcy)} />
-              <Legend />
-              <Line type="monotone" dataKey="equity" dot={false} name="Équité" />
+              <XAxis dataKey="date" stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} />
+              <YAxis stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} tickFormatter={fmtShort2} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              {/* Équité globale (ligne plus épaisse et mise en avant) */}
+              <Line type="monotone" dataKey="__GLOBAL__" name="Équité globale" dot={false} stroke="#d4af37" strokeWidth={3}
+                isAnimationActive={false}
+              />
+              {/* Injecter la série globale via data transform */}
+              {equityFiltered.length ? null : null}
+              {/* Lignes par actif (plus fines, couleurs distinctes) */}
+              {topSymbols.map((s, i)=>(
+                <Line key={s} type="monotone" dataKey={s} name={s} dot={false} stroke={lineColors[i % lineColors.length]}
+                  strokeWidth={1.5} opacity={0.9} isAnimationActive={false}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -394,25 +372,11 @@ export default function App(){
           <ResponsiveContainer width="100%" height="90%">
             <AreaChart data={ddSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis tickFormatter={(v)=>`${(v*100).toFixed(2)}%`} />
+              <XAxis dataKey="date" stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} />
+              <YAxis stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} tickFormatter={(v)=>`${(v*100).toFixed(2)}%`} />
               <Tooltip formatter={(v)=>`${(v*100).toFixed(2)}%`} />
               <Area type="monotone" dataKey="dd" name="DD" />
             </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Distribution PnL */}
-        <div className="card chart-card">
-          <h3>Distribution du PnL (trades filtrés)</h3>
-          <ResponsiveContainer width="100%" height="90%">
-            <BarChart data={histogram} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="bin" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" name="Nombre de trades" />
-            </BarChart>
           </ResponsiveContainer>
         </div>
 
@@ -441,23 +405,6 @@ export default function App(){
             <span>🟥 perte</span>
           </div>
         </div>
-
-        {/* Équités par actif (multi-courbes) */}
-        <div className="card chart-card chart-xl">
-          <h3>Équités par actif</h3>
-          <ResponsiveContainer width="100%" height="90%">
-            <LineChart data={equityBySymbolRows} margin={{ left:8, right:8, top:8, bottom:8 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis tickFormatter={(v)=>Number(v).toFixed(2)} />
-              <Tooltip />
-              <Legend />
-              {topSymbols.map((s)=>(
-                <Line key={s} type="monotone" dataKey={s} name={s} dot={false} />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
       </div>
 
       {/* Mini-dash : Win Rate, RR, Répartition actifs */}
@@ -469,8 +416,8 @@ export default function App(){
             <PieChart>
               <Pie
                 data={[
-                  { name:'Gagnants', value: winLoss.wins },
-                  { name:'Perdants', value: winLoss.losses }
+                  { name:'Gagnants', value: filteredTrades.filter(t=>t.pnl>0).length },
+                  { name:'Perdants', value: filteredTrades.filter(t=>t.pnl<0).length }
                 ]}
                 innerRadius={70}
                 outerRadius={100}
@@ -480,11 +427,15 @@ export default function App(){
                 <Cell fill="#ff6b6b" />
               </Pie>
               <Tooltip />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
             </PieChart>
           </ResponsiveContainer>
           <div style={{textAlign:'center', marginTop:-12, fontWeight:700}}>
-            {(winLoss.wr*100).toFixed(2)}%
+            {(() => {
+              const wins = filteredTrades.filter(t=>t.pnl>0).length;
+              const total = filteredTrades.length || 1;
+              return ((wins/total)*100).toFixed(2)
+            })()}%
           </div>
         </div>
 
@@ -493,12 +444,12 @@ export default function App(){
           <h3>Risk–Reward</h3>
           <ResponsiveContainer width="100%" height="85%">
             <BarChart data={[
-              { name:'Gain moyen', value: Number(winLoss.avgWin.toFixed(2)) },
-              { name:'Perte moyenne', value: Number((-winLoss.avgLoss).toFixed(2)) }
+              { name:'Gain moyen', value: Number((filteredTrades.filter(t=>t.pnl>0).reduce((a,t)=>a+t.pnl,0)/(filteredTrades.filter(t=>t.pnl>0).length||1)).toFixed(2)) },
+              { name:'Perte moyenne', value: Number((-Math.abs(filteredTrades.filter(t=>t.pnl<0).reduce((a,t)=>a+t.pnl,0))/(filteredTrades.filter(t=>t.pnl<0).length||1)).toFixed(2)) }
             ]} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis tickFormatter={(v)=>fmtCCY(v, displayCcy)} />
+              <XAxis dataKey="name" stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} />
+              <YAxis stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} tickFormatter={(v)=>fmtCCY(v, displayCcy)} />
               <Tooltip formatter={(v)=>fmtCCY(v, displayCcy)} />
               <Bar dataKey="value">
                 <Cell fill="#2dd4bf" />
@@ -507,7 +458,14 @@ export default function App(){
             </BarChart>
           </ResponsiveContainer>
           <div style={{textAlign:'center', marginTop:-12}}>
-            R:R ≈ <b>{winLoss.rr.toFixed(2)}</b>
+            {(() => {
+              const wins = filteredTrades.filter(t=>t.pnl>0).map(t=>t.pnl);
+              const losses = filteredTrades.filter(t=>t.pnl<0).map(t=>t.pnl);
+              const avgWin = wins.length ? wins.reduce((a,b)=>a+b,0)/wins.length : 0;
+              const avgLoss = losses.length ? Math.abs(losses.reduce((a,b)=>a+b,0))/losses.length : 0;
+              const rr = avgLoss ? avgWin/avgLoss : 0;
+              return <>R:R ≈ <b>{rr.toFixed(2)}</b></>
+            })()}
           </div>
         </div>
 
@@ -516,11 +474,17 @@ export default function App(){
           <h3>Répartition des actifs</h3>
           <ResponsiveContainer width="100%" height="85%">
             <PieChart>
-              <Pie data={assetSplit} dataKey="value" nameKey="name" outerRadius={100}>
-                {assetSplit.map((_, i) => <Cell key={i} fill={['#d4af37','#0fb9b1','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166'][i % 7]} />)}
+              <Pie data={
+                (() => {
+                  const m = new Map();
+                  filteredTrades.forEach(t => m.set(t.symbol, (m.get(t.symbol)||0)+1));
+                  return Array.from(m, ([name, value]) => ({ name, value }))
+                })()
+              } dataKey="value" nameKey="name" outerRadius={100}>
+                {topSymbols.map((_, i) => <Cell key={i} fill={['#d4af37','#0fb9b1','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166','#9bb6ff'][i % 8]} />)}
               </Pie>
               <Tooltip />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -608,4 +572,5 @@ function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
   })
   return [...blanks, ...cells]
 }
+
 
