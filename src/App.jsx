@@ -145,31 +145,61 @@ function inlineStyle(cssText){
   return out
 }
 
-/** === Multi-courbes par actif (index base 10'000) === */
-function buildSymbolEquities(dates, trades, displayCcy='USD'){
-  const symbols = Array.from(new Set(trades.map(t=>t.symbol))).sort()
-  const base = 10000
-  const byDay = new Map()
+/** =========================
+ *   Groupes d'actifs (≥10% majors, <10% Autres)
+ *   ========================= */
+/** Part des actifs (sur trades filtrés) et découpe ≥10% / <10% (par nb de trades) */
+function splitSymbolsByShare(trades, threshold = 0.10) {
+  const count = new Map();
+  for (const t of trades) count.set(t.symbol, (count.get(t.symbol) || 0) + 1);
+  const total = Array.from(count.values()).reduce((a,b)=>a+b,0) || 1;
+  const share = new Map(Array.from(count, ([s,v]) => [s, v/total]));
+  const major = new Set(Array.from(share).filter(([,p]) => p >= threshold).map(([s]) => s));
+  const minor = new Set(Array.from(share).filter(([,p]) => p < threshold).map(([s]) => s));
+  return { major, minor, share };
+}
+
+/** Multi-courbes par actif (base 10'000) + regroupement "Autres" + courbe globale */
+function buildSymbolEquitiesGrouped(dates, trades, displayCcy, majorSet, dateToGlobal) {
+  const symbols = Array.from(new Set(trades.map(t=>t.symbol))).sort();
+  const base = 10000;
+
   // agrège PnL par date & symbole (converti)
-  for(const t of trades){
-    const k = `${t.date}__${t.symbol}`
-    const v = convertAmount(t.pnl, t.instrument_ccy || 'USD', displayCcy)
-    byDay.set(k, (byDay.get(k)||0)+v)
+  const byDay = new Map(); // key: date__symbol -> pnl
+  for (const t of trades) {
+    const k = `${t.date}__${t.symbol}`;
+    const v = convertAmount(t.pnl, t.instrument_ccy || 'USD', displayCcy);
+    byDay.set(k, (byDay.get(k) || 0) + v);
   }
-  // cumuls
-  const cum = new Map(symbols.map(s=>[s, base]))
-  const rows = []
-  for(const d of dates){
-    const row = { date: d }
-    for(const s of symbols){
-      const k = `${d}__${s}`
-      const add = byDay.get(k) || 0
-      cum.set(s, Number((cum.get(s) + add).toFixed(2)))
-      row[s] = cum.get(s)
+
+  // cumuls par symbole majeur + cumuls "Autres"
+  const majors = Array.from(majorSet);
+  const cumMaj = new Map(majors.map(s => [s, base]));
+  let cumOthers = base;
+
+  const rows = [];
+  for (const d of dates) {
+    const row = { date: d, __GLOBAL__: Number((dateToGlobal.get(d) || 0).toFixed(2)) };
+
+    // majors
+    for (const s of majors) {
+      const add = byDay.get(`${d}__${s}`) || 0;
+      cumMaj.set(s, Number((cumMaj.get(s) + add).toFixed(2)));
+      row[s] = cumMaj.get(s);
     }
-    rows.push(row)
+    // others
+    const othersAdd = symbols
+      .filter(s => !majorSet.has(s))
+      .reduce((acc, s) => acc + (byDay.get(`${d}__${s}`) || 0), 0);
+    cumOthers = Number((cumOthers + othersAdd).toFixed(2));
+    if (symbols.some(s => !majorSet.has(s))) row['Autres'] = cumOthers;
+
+    rows.push(row);
   }
-  return { rows, symbols }
+
+  const plotSymbols = [...majors];
+  if (symbols.some(s => !majorSet.has(s))) plotSymbols.push('Autres');
+  return { rows, plotSymbols };
 }
 
 /** =========================
@@ -241,14 +271,41 @@ export default function App(){
   const ytd = calcYTD(equityFiltered)
   const ann = calcLast12M(equityFiltered)
 
-  // Multi-courbes par actif POUR LE MÊME GRAPHE D’ÉQUITÉ
-  const allDates = useMemo(()=>equityFiltered.map(p=>p.date),[equityFiltered])
-  const { rows: equityBySymbolRows, symbols: allSymbols } = useMemo(
-    ()=> buildSymbolEquities(allDates, filteredTrades, displayCcy),
-    [allDates, filteredTrades, displayCcy]
-  )
-  const topSymbols = allSymbols.slice(0, 8) // max 8 lignes pour la lisibilité
-  const lineColors = ['#7bd88f','#6aa6ff','#ff8a65','#c792ea','#ffd166','#0fb9b1','#9bb6ff','#ff6b6b']
+  // Part des actifs : ≥10% (majors) / <10% (minors), basé sur nb de trades filtrés
+  const { major: majorSet } = useMemo(
+    () => splitSymbolsByShare(filteredTrades, 0.10),
+    [filteredTrades]
+  );
+
+  // Dates & map date -> équité globale (pour injecter "__GLOBAL__")
+  const allDates = useMemo(() => equityFiltered.map(p => p.date), [equityFiltered]);
+  const dateToGlobal = useMemo(() => new Map(equityFiltered.map(p => [p.date, p.equity])), [equityFiltered]);
+
+  // Séries multi-actifs groupées + courbe globale
+  const { rows: equityBySymbolRows, plotSymbols } = useMemo(
+    () => buildSymbolEquitiesGrouped(allDates, filteredTrades, displayCcy, majorSet, dateToGlobal),
+    [allDates, filteredTrades, displayCcy, majorSet, dateToGlobal]
+  );
+
+  // Couleurs pour lignes d'actifs
+  const lineColors = ['#7bd88f','#6aa6ff','#ff8a65','#c792ea','#ffd166','#0fb9b1','#9bb6ff','#ff6b6b','#8bd3dd']
+
+  // Répartition des actifs (≥10% + "Autres")
+  const assetSplit = useMemo(() => {
+    const counts = new Map();
+    filteredTrades.forEach(t => counts.set(t.symbol, (counts.get(t.symbol)||0)+1));
+    const total = Array.from(counts.values()).reduce((a,b)=>a+b,0) || 1;
+
+    const majors = [];
+    let othersSum = 0;
+    for (const [name, value] of counts) {
+      const share = value / total;
+      if (share >= 0.10) majors.push({ name, value });
+      else othersSum += value;
+    }
+    if (othersSum > 0) majors.push({ name: 'Autres', value: othersSum });
+    return majors.sort((a,b)=>b.value-a.value);
+  }, [filteredTrades]);
 
   // Calendrier (mois courant par défaut)
   const lastDate = equityFiltered.at(-1)?.date
@@ -340,7 +397,7 @@ export default function App(){
 
       {/* Graphiques principaux — XL */}
       <div className="grid">
-        {/* Courbe d'équité (globale + lignes par actif) */}
+        {/* Courbe d'équité (globale blanche + lignes par actif) */}
         <div className="card chart-card chart-xl">
           <h3>Courbe d'équité (globale + actifs)</h3>
           <ResponsiveContainer width="100%" height="90%">
@@ -350,17 +407,14 @@ export default function App(){
               <YAxis stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} tickFormatter={fmtShort2} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              {/* Équité globale (ligne plus épaisse et mise en avant) */}
-              <Line type="monotone" dataKey="__GLOBAL__" name="Équité globale" dot={false} stroke="#d4af37" strokeWidth={3}
-                isAnimationActive={false}
-              />
-              {/* Injecter la série globale via data transform */}
-              {equityFiltered.length ? null : null}
-              {/* Lignes par actif (plus fines, couleurs distinctes) */}
-              {topSymbols.map((s, i)=>(
-                <Line key={s} type="monotone" dataKey={s} name={s} dot={false} stroke={lineColors[i % lineColors.length]}
-                  strokeWidth={1.5} opacity={0.9} isAnimationActive={false}
-                />
+              {/* Équité globale (BLANCHE & ÉPAISSE) */}
+              <Line type="monotone" dataKey="__GLOBAL__" name="Équité globale" dot={false}
+                    stroke="#ffffff" strokeWidth={3.5} isAnimationActive={false} />
+              {/* Lignes par actif (majors + 'Autres' si présent), fines */}
+              {plotSymbols.map((s, i)=>(
+                <Line key={s} type="monotone" dataKey={s} name={s} dot={false}
+                      stroke={lineColors[i % lineColors.length]} strokeWidth={1.25} opacity={0.95}
+                      isAnimationActive={false} />
               ))}
             </LineChart>
           </ResponsiveContainer>
@@ -469,19 +523,13 @@ export default function App(){
           </div>
         </div>
 
-        {/* Répartition des actifs */}
+        {/* Répartition des actifs (≥10% + Autres) */}
         <div className="card chart-card" style={{height:320}}>
           <h3>Répartition des actifs</h3>
           <ResponsiveContainer width="100%" height="85%">
             <PieChart>
-              <Pie data={
-                (() => {
-                  const m = new Map();
-                  filteredTrades.forEach(t => m.set(t.symbol, (m.get(t.symbol)||0)+1));
-                  return Array.from(m, ([name, value]) => ({ name, value }))
-                })()
-              } dataKey="value" nameKey="name" outerRadius={100}>
-                {topSymbols.map((_, i) => <Cell key={i} fill={['#d4af37','#0fb9b1','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166','#9bb6ff'][i % 8]} />)}
+              <Pie data={assetSplit} dataKey="value" nameKey="name" outerRadius={100}>
+                {assetSplit.map((_, i) => <Cell key={i} fill={['#d4af37','#0fb9b1','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166','#9bb6ff'][i % 8]} />)}
               </Pie>
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -558,7 +606,7 @@ function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
     const dd = info?.dd ?? null
     const style = colorForRet(ret)
     return (
-      <div key={dt} title={`${dt}\nRet: ${ret!=null?(ret*100).toFixed(2)+'%':'-'}\nDD: ${dd!=null?(dd*100).toFixed(2)+'%':'-'}`}
+      <div key={dt} title={`${dt}\nRet: ${ret!=null?(ret*100).toFixed(2)+'%':'-'}\nDD: ${dd!=null?(dd*100).toFixed(2)}%:'-'}`}
            style={{padding:'10px 8px', borderRadius:8, ...inlineStyle(style)}}>
         <div style={{fontSize:11, opacity:.9}}>{Number(dt.slice(8,10))}</div>
         <div style={{fontSize:12, fontWeight:600}} className={ret<0?'bad':''}>
@@ -572,5 +620,6 @@ function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
   })
   return [...blanks, ...cells]
 }
+
 
 
