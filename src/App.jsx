@@ -9,6 +9,7 @@ import {
  *   ========================= */
 const symbolsFXCFD = ['EURUSD','GBPUSD','USDJPY','USDCHF','XAUUSD','DAX40','US30','US500','USTEC','USOIL'];
 const brokersCFD  = ['ICMarkets','Pepperstone','Eightcap','InteractiveBrokers','MetaTrader5'];
+const strategiesAll = ['Breakout','MeanRevert','Swing','News','Scalp']
 
 function randBetween(min, max){ return min + Math.random()*(max-min) }
 function pick(a){ return a[Math.floor(Math.random()*a.length)] }
@@ -29,23 +30,28 @@ const demoEquity = (() => {
   return out;
 })();
 
-// Trades plus “violents” (PnL en USD) avec dispersion large
-const demoTrades = Array.from({ length: 400 }).map((_, i) => {
+// Trades démo avec heure d'ouverture (00..23).
+// NB: la stat "par heure" s'appuie exclusivement sur l'heure d'OUVERTURE.
+const demoTrades = Array.from({ length: 450 }).map((_, i) => {
   const d = new Date(); d.setDate(d.getDate() - Math.floor(Math.random()*220));
+  const openHour = Math.floor(randBetween(7, 22)); // 7h -> 21h
   const side = Math.random()>0.5?'BUY':'SELL';
   const qty  = Number(randBetween(1, 5).toFixed(2));
   const price= Number(randBetween(10, 250).toFixed(2));
-  // Amplitude ±1.5k à ±3k, 10% des cas ±3k à ±8k
+  // Amplitude ±1.5k à ±3k, 12% des cas ±3k à ±9k
   let pnl = (Math.random()-0.5) * randBetween(1500, 3000);
-  if (Math.random() < 0.10) pnl = (Math.random()>0.5?1:-1) * randBetween(3000, 8000);
+  if (Math.random() < 0.12) pnl = (Math.random()>0.5?1:-1) * randBetween(3000, 9000);
   pnl = Number(pnl.toFixed(2));
+  const openISO = new Date(d.getFullYear(), d.getMonth(), d.getDate(), openHour).toISOString();
 
   return {
     trade_id: `T${10000+i}`,
-    date: d.toISOString().slice(0,10),
+    date: d.toISOString().slice(0,10),               // date de clôture (pour la démo)
+    open_time: openISO,                              // date+heure d'ouverture
+    open_hour: openHour,                             // heure (0..23)
     account: pick(['ACC-Alpha','ACC-Beta','ACC-Gamma']),
     broker: pick(brokersCFD),
-    strategy: pick(['Breakout','MeanRevert','Swing','News','Scalp']),
+    strategy: pick(strategiesAll),
     symbol: pick(symbolsFXCFD),
     instrument_ccy: 'USD',
     side, qty, price,
@@ -129,10 +135,11 @@ function monthDays(year, monthIndex){
   return days;
 }
 function colorForRet(ret){
-  if(ret == null) return 'background:#111317;border:1px solid #1a1a1a;';
+  // Palette sombre : turquoise/rose "stabilo" sur fond noir
+  if(ret == null) return 'background:#0a0a0a;border:1px solid #191919;';
   const mag = Math.min(1, Math.abs(ret)*10);
-  if(ret >= 0) return `background: rgba(15,185,177,${0.08+0.25*mag}); border:1px solid rgba(15,185,177,.35);`;
-  return `background: rgba(255,95,95,${0.10+0.25*mag}); border:1px solid rgba(255,95,95,.35);`;
+  if(ret >= 0) return `background: rgba(32,227,214,${0.10+0.25*mag}); border:1px solid rgba(32,227,214,.35);`;
+  return `background: rgba(255,95,162,${0.10+0.25*mag}); border:1px solid rgba(255,95,162,.35);`;
 }
 function inlineStyle(cssText){
   const out = {}
@@ -208,13 +215,12 @@ export default function App(){
   const [equity] = useState(demoEquity)
   const [trades] = useState(demoTrades)
 
-  // Filtres
+  // Filtres (sans filtre PnL)
   const [account, setAccount] = useState('ALL')
   const [broker, setBroker]   = useState('ALL')
   const [strategy, setStrategy] = useState('ALL')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState('')
-  const [minPnL, setMinPnL]     = useState(-1000)
   const [displayCcy, setDisplayCcy] = useState('USD')
   const [minShare, setMinShare] = useState(10) // seuil en %
 
@@ -222,16 +228,15 @@ export default function App(){
   const brokers  = useMemo(()=>Array.from(new Set(trades.map(t=>t.broker || ''))).filter(Boolean),[trades])
   const strategies = useMemo(()=>Array.from(new Set(trades.map(t=>t.strategy))),[trades])
 
-  // Filtre trades
+  // Filtre trades (sans PnL)
   const filteredTrades = useMemo(()=>trades.filter(t=>{
     if(account!=='ALL' && t.account!==account) return false
     if(broker!=='ALL' && t.broker!==broker) return false
     if(strategy!=='ALL' && t.strategy!==strategy) return false
     if(dateFrom && t.date < dateFrom) return false
     if(dateTo && t.date > dateTo) return false
-    if(t.pnl < minPnL) return false
     return true
-  }),[trades,account,broker,strategy,dateFrom,dateTo,minPnL])
+  }),[trades,account,broker,strategy,dateFrom,dateTo])
 
   // Équité filtrée + conversion (courbe globale)
   const equityFiltered = useMemo(()=>{
@@ -290,8 +295,8 @@ export default function App(){
     [allDates, filteredTrades, displayCcy, majorSet, dateToGlobal, othersLabel]
   )
 
-  // Couleurs pour lignes d'actifs
-  const lineColors = ['#7bd88f','#6aa6ff','#ff8a65','#c792ea','#ffd166','#0fb9b1','#9bb6ff','#ff6b6b','#8bd3dd']
+  // Couleurs pour lignes d'actifs (sur noir)
+  const lineColors = ['#20e3d6','#5aa9ff','#ffd166','#c792ea','#7bd88f','#ff8a65','#9bb6ff','#f472b6','#8bd3dd']
 
   // Répartition des actifs (≥ seuil + "Autres")
   const assetSplit = useMemo(() => {
@@ -309,6 +314,46 @@ export default function App(){
     if (othersSum > 0) majors.push({ name: othersLabel, value: othersSum });
     return majors.sort((a,b)=>b.value-a.value);
   }, [filteredTrades, minShare, othersLabel]);
+
+  // ==== Top / Flop mensuels (actifs & stratégies) ====
+  const monthKey = useMemo(()=>{
+    const last = filteredTrades.map(t=>t.date).sort().pop() || new Date().toISOString().slice(0,10);
+    return last.slice(0,7); // YYYY-MM
+  },[filteredTrades])
+
+  const monthTrades = useMemo(
+    () => filteredTrades.filter(t => t.date.startsWith(monthKey)),
+    [filteredTrades, monthKey]
+  )
+
+  function topFlop(list, key){
+    const map = new Map();
+    for(const t of list){
+      const k = t[key];
+      map.set(k, (map.get(k)||0) + t.pnl_disp);
+    }
+    const arr = Array.from(map, ([name, value]) => ({ name, value }));
+    const best = [...arr].sort((a,b)=>b.value-a.value).slice(0,3);
+    const worst = [...arr].sort((a,b)=>a.value-b.value).slice(0,3);
+    return { best, worst };
+  }
+
+  const tfSymbols = useMemo(()=>topFlop(monthTrades.map(t=>({...t, pnl_disp: convertAmount(t.pnl,'USD',displayCcy)})),'symbol'),[monthTrades,displayCcy])
+  const tfStrats  = useMemo(()=>topFlop(monthTrades.map(t=>({...t, pnl_disp: convertAmount(t.pnl,'USD',displayCcy)})),'strategy'),[monthTrades,displayCcy])
+
+  // ==== Histogramme gains/pertes par HEURE d'ouverture ====
+  const hourlyBars = useMemo(()=>{
+    const base = Array.from({length:24}, (_,h)=>({ hour: `${String(h).padStart(2,'0')}:00`, gains:0, losses:0 }))
+    for(const t of filteredTrades){
+      const h = typeof t.open_hour === 'number' ? t.open_hour : new Date(t.open_time||`${t.date}T00:00:00Z`).getHours()
+      if(h>=0 && h<24){
+        if(t.pnl > 0) base[h].gains += convertAmount(t.pnl,'USD',displayCcy);
+        else if(t.pnl < 0) base[h].losses += Math.abs(convertAmount(t.pnl,'USD',displayCcy));
+      }
+    }
+    // arrondis 2 décimales
+    return base.map(r=>({ ...r, gains:Number(r.gains.toFixed(2)), losses:Number(r.losses.toFixed(2)) }))
+  },[filteredTrades, displayCcy])
 
   // Calendrier (mois courant par défaut)
   const lastDate = equityFiltered.at(-1)?.date
@@ -336,7 +381,7 @@ export default function App(){
       <div className="header">
         <div>
           <h1>ZooProject Vision</h1>
-          <div className="tagline">Multi-comptes • Multi-brokers • Conversion {displayCcy} • Calendrier P&L</div>
+          <div className="tagline">Multi-comptes • Multi-brokers • {displayCcy} • Calendrier P&L • Heures d’ouverture</div>
         </div>
         <div className="btns">
           <button className="btn" onClick={()=>window.location.reload()}>Actualiser</button>
@@ -344,7 +389,7 @@ export default function App(){
         </div>
       </div>
 
-      {/* Filtres (sans "Actif") */}
+      {/* Filtres */}
       <div className="card controls">
         <div className="item">
           <label>Compte</label>
@@ -381,8 +426,6 @@ export default function App(){
             {DISPLAY_CURRENCIES.map(c=> <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-
-        {/* Nouveau : seuil d'affichage (5/10/15%) */}
         <div className="item">
           <label>Seuil actifs (≥%)</label>
           <select value={minShare} onChange={e=>setMinShare(Number(e.target.value))}>
@@ -390,11 +433,6 @@ export default function App(){
             <option value={10}>10%</option>
             <option value={15}>15%</option>
           </select>
-        </div>
-
-        <div className="item" style={{gridColumn:'span 2'}}>
-          <label>Filtre PnL minimum: <span className="tag">{minPnL.toFixed(2)}</span></label>
-          <input type="range" min="-8000" max="2000" step="50" value={minPnL} onChange={e=>setMinPnL(Number(e.target.value))} />
         </div>
       </div>
 
@@ -464,94 +502,82 @@ export default function App(){
 
           <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:8}}>
             {['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>(
-              <div key={d} style={{textAlign:'center', color:'#b9c2cf', fontSize:12}}>{d}</div>
+              <div key={d} style={{textAlign:'center', color:'#20e3d6cc', fontSize:12}}>{d}</div>
             ))}
             {renderMonthGrid(calYear, calMonth, monthDates, calendarMap)}
           </div>
-          <div style={{marginTop:8, color:'#b9c2cf', fontSize:12}}>
+          <div style={{marginTop:8, color:'#20e3d6b0', fontSize:12}}>
             <span style={{marginRight:12}}>🟩 gain</span>
             <span>🟥 perte</span>
           </div>
         </div>
       </div>
 
-      {/* Mini-dash : Win Rate, RR, Répartition actifs */}
+      {/* Top/Flop mensuels + Histogramme par heure */}
       <div className="grid">
-        {/* Win Rate (donut) */}
-        <div className="card chart-card" style={{height:320}}>
-          <h3>Win Rate</h3>
-          <ResponsiveContainer width="100%" height="85%">
-            <PieChart>
-              <Pie
-                data={[
-                  { name:'Gagnants', value: filteredTrades.filter(t=>t.pnl>0).length },
-                  { name:'Perdants', value: filteredTrades.filter(t=>t.pnl<0).length }
-                ]}
-                innerRadius={70}
-                outerRadius={100}
-                dataKey="value"
-              >
-                <Cell fill="#2dd4bf" />
-                <Cell fill="#ff6b6b" />
-              </Pie>
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{textAlign:'center', marginTop:-12, fontWeight:700}}>
-            {(() => {
-              const wins = filteredTrades.filter(t=>t.pnl>0).length;
-              const total = filteredTrades.length || 1;
-              return ((wins/total)*100).toFixed(2)
-            })()}%
+        {/* Top/Flop Actifs */}
+        <div className="card" style={{height:360}}>
+          <h3>Top / Flop du mois – Actifs ({monthKey})</h3>
+          <div className="two-cols">
+            <div>
+              <div className="pill good">Top</div>
+              {tfSymbols.best.map(x=>(
+                <div key={'b'+x.name} className="row-kv">
+                  <span>{x.name}</span>
+                  <b className="turq">{fmtCCY(x.value, displayCcy)}</b>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div className="pill bad">Flop</div>
+              {tfSymbols.worst.map(x=>(
+                <div key={'w'+x.name} className="row-kv">
+                  <span>{x.name}</span>
+                  <b className="pink">{fmtCCY(x.value, displayCcy)}</b>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Risk-Reward */}
-        <div className="card chart-card" style={{height:320}}>
-          <h3>Risk–Reward</h3>
+        {/* Top/Flop Stratégies */}
+        <div className="card" style={{height:360}}>
+          <h3>Top / Flop du mois – Stratégies ({monthKey})</h3>
+          <div className="two-cols">
+            <div>
+              <div className="pill good">Top</div>
+              {tfStrats.best.map(x=>(
+                <div key={'sb'+x.name} className="row-kv">
+                  <span>{x.name}</span>
+                  <b className="turq">{fmtCCY(x.value, displayCcy)}</b>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div className="pill bad">Flop</div>
+              {tfStrats.worst.map(x=>(
+                <div key={'sw'+x.name} className="row-kv">
+                  <span>{x.name}</span>
+                  <b className="pink">{fmtCCY(x.value, displayCcy)}</b>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Gains / Pertes par heure d'ouverture */}
+        <div className="card chart-card" style={{height:360}}>
+          <h3>Gains / Pertes par heure d’ouverture</h3>
           <ResponsiveContainer width="100%" height="85%">
-            <BarChart data={[
-              { name:'Gain moyen', value: Number((filteredTrades.filter(t=>t.pnl>0).reduce((a,t)=>a+t.pnl,0)/(filteredTrades.filter(t=>t.pnl>0).length||1)).toFixed(2)) },
-              { name:'Perte moyenne', value: Number((-Math.abs(filteredTrades.filter(t=>t.pnl<0).reduce((a,t)=>a+t.pnl,0))/(filteredTrades.filter(t=>t.pnl<0).length||1)).toFixed(2)) }
-            ]} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+            <BarChart data={hourlyBars} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} />
+              <XAxis dataKey="hour" stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} />
               <YAxis stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} tickFormatter={(v)=>fmtCCY(v, displayCcy)} />
               <Tooltip formatter={(v)=>fmtCCY(v, displayCcy)} />
-              <Bar dataKey="value">
-                <Cell fill="#2dd4bf" />
-                <Cell fill="#ff6b6b" />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          <div style={{textAlign:'center', marginTop:-12}}>
-            {(() => {
-              const wins = filteredTrades.filter(t=>t.pnl>0).map(t=>t.pnl);
-              const losses = filteredTrades.filter(t=>t.pnl<0).map(t=>t.pnl);
-              const avgWin = wins.length ? wins.reduce((a,b)=>a+b,0)/wins.length : 0;
-              const avgLoss = losses.length ? Math.abs(losses.reduce((a,b)=>a+b,0))/losses.length : 0;
-              const rr = avgLoss ? avgWin/avgLoss : 0;
-              return <>R:R ≈ <b>{rr.toFixed(2)}</b></>
-            })()}
-          </div>
-        </div>
-
-        {/* Répartition des actifs (≥ seuil + Autres) */}
-        <div className="card chart-card" style={{height:320}}>
-          <h3>Répartition des actifs</h3>
-          <ResponsiveContainer width="100%" height="85%">
-            <PieChart>
-              <Pie data={assetSplit} dataKey="value" nameKey="name" outerRadius={100}>
-                {assetSplit.map((seg, i) => {
-                  const palette = ['#d4af37','#0fb9b1','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166','#9bb6ff'];
-                  const color = seg.name.startsWith('Autres') ? '#808080' : palette[i % palette.length];
-                  return <Cell key={i} fill={color} />;
-                })}
-              </Pie>
-              <Tooltip />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-            </PieChart>
+              <Bar dataKey="gains" name="Gains" />
+              <Bar dataKey="losses" name="Pertes" />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
@@ -562,16 +588,20 @@ export default function App(){
         <table>
           <thead>
             <tr>
-              <th>Date</th><th>Compte</th><th>Broker</th><th>Stratégie</th><th>Symbole</th>
+              <th>Date</th><th>Heure Ouv.</th><th>Compte</th><th>Broker</th><th>Stratégie</th><th>Symbole</th>
               <th>Sens</th><th>Qté</th><th>Prix</th><th>Frais</th><th>PnL ({displayCcy})</th><th>Notes</th>
             </tr>
           </thead>
           <tbody>
             {filteredTrades.slice(0, 500).map(t=>{
               const pnlDisp = convertAmount(t.pnl, t.instrument_ccy || 'USD', displayCcy);
+              const hour = typeof t.open_hour === 'number'
+                ? String(t.open_hour).padStart(2,'0')+':00'
+                : new Date(t.open_time||`${t.date}T00:00:00Z`).toISOString().slice(11,13)+':00';
               return (
                 <tr key={t.trade_id}>
                   <td>{t.date}</td>
+                  <td>{hour}</td>
                   <td>{t.account}</td>
                   <td>{t.broker || '-'}</td>
                   <td>{t.strategy}</td>
@@ -589,7 +619,7 @@ export default function App(){
         </table>
       </div>
 
-      <div className="footer">© {new Date().getFullYear()} – ZooProject Vision (démo). Remplace les données par ton API pour passer en production.</div>
+      <div className="footer">© {new Date().getFullYear()} – ZooProject Vision (démo).</div>
     </div>
   )
 }
@@ -612,7 +642,7 @@ function downloadCSV(filename, rows){
   URL.revokeObjectURL(url)
 }
 
-/** ====== Rendu calendrier ====== */
+/** ====== Rendu calendrier (sombre) ====== */
 function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
   // Décale le 1er jour sur Lundi
   const first = new Date(year, monthIndex, 1)
@@ -630,10 +660,10 @@ function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
         style={{padding:'10px 8px', borderRadius:8, ...inlineStyle(style)}}
       >
         <div style={{fontSize:11, opacity:.9}}>{Number(dt.slice(8,10))}</div>
-        <div style={{fontSize:12, fontWeight:600}} className={ret<0?'bad':''}>
+        <div style={{fontSize:12, fontWeight:700}} className={ret<0?'bad':'turq'}>
           {ret!=null ? `${(ret*100).toFixed(2)}%` : '—'}
         </div>
-        <div style={{fontSize:11, opacity:.8}} className={dd<0?'bad':''}>
+        <div style={{fontSize:11, opacity:.95}} className={dd<0?'bad':'turq'}>
           {dd!=null ? `${(dd*100).toFixed(2)}%` : '—'}
         </div>
       </div>
