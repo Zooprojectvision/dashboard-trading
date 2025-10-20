@@ -620,6 +620,3 @@ function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
   })
   return [...blanks, ...cells]
 }
-
-
-
