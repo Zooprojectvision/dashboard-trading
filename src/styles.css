@@ -58,7 +58,7 @@ h1{margin:0;color:var(--gold);font-size:32px;font-weight:600;letter-spacing:.5px
 /* Controls (filtres) */
 .controls{
   display:grid;
-  grid-template-columns:repeat(6,1fr);
+  grid-template-columns:repeat(7,1fr); /* +1 colonne pour le nouveau seuil */
   gap:12px;
   margin:16px 0 18px;
 }
