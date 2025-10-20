@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 
 /** =========================
- *   Données démo — Forex & Indices CFD (volatilité + élevée)
+ *   Données démo — Forex & Indices CFD (volatilité élevée)
  *   ========================= */
 const symbolsFXCFD = ['EURUSD','GBPUSD','USDJPY','USDCHF','XAUUSD','DAX40','US30','US500','USTEC','USOIL'];
 const brokersCFD  = ['ICMarkets','Pepperstone','Eightcap','InteractiveBrokers','MetaTrader5'];
@@ -13,17 +13,16 @@ const brokersCFD  = ['ICMarkets','Pepperstone','Eightcap','InteractiveBrokers','
 function randBetween(min, max){ return min + Math.random()*(max-min) }
 function pick(a){ return a[Math.floor(Math.random()*a.length)] }
 
-// Équité simulée via rendements composés (volatilité quotidienne +/-3%, spikes +/-6%)
+// Équité simulée via rendements composés (±3%, spikes ±6%)
 const startEquity = 100000;
 const days = 260; // ~1 année de trading
 const demoEquity = (() => {
   let e = startEquity;
   const out = [];
   for (let i = days; i >= 1; i--) {
-    // rendements quotidiens typés trading CFD/FX
-    let r = randBetween(-0.03, 0.03);       // -3% à +3%
-    if (Math.random() < 0.05) r = randBetween(-0.06, 0.06); // spikes 5% de proba
-    e = Math.max(2000, e * (1 + r));        // protège de l’équité négative
+    let r = randBetween(-0.03, 0.03);
+    if (Math.random() < 0.05) r = randBetween(-0.06, 0.06); // spikes occasionnels
+    e = Math.max(2000, e * (1 + r));
     const d = new Date(); d.setDate(d.getDate() - i);
     out.push({ date: d.toISOString().slice(0,10), equity: Number(e.toFixed(2)), account_ccy: 'USD' });
   }
@@ -34,12 +33,12 @@ const demoEquity = (() => {
 const demoTrades = Array.from({ length: 400 }).map((_, i) => {
   const d = new Date(); d.setDate(d.getDate() - Math.floor(Math.random()*220));
   const side = Math.random()>0.5?'BUY':'SELL';
-  const qty  = Math.round(randBetween(1, 5));
+  const qty  = Number(randBetween(1, 5).toFixed(2));
   const price= Number(randBetween(10, 250).toFixed(2));
-  // PnL ondule fort : moyenne proche de 0, amplitude +/- 3k, parfois +/- 8k
+  // Amplitude ±1.5k à ±3k, 10% des cas ±3k à ±8k
   let pnl = (Math.random()-0.5) * randBetween(1500, 3000);
   if (Math.random() < 0.10) pnl = (Math.random()>0.5?1:-1) * randBetween(3000, 8000);
-  pnl = Math.round(pnl*100)/100;
+  pnl = Number(pnl.toFixed(2));
 
   return {
     trade_id: `T${10000+i}`,
@@ -50,12 +49,11 @@ const demoTrades = Array.from({ length: 400 }).map((_, i) => {
     symbol: pick(symbolsFXCFD),
     instrument_ccy: 'USD',
     side, qty, price,
-    fee: Number(randBetween(0.5, 3.0).toFixed(2)),
+    fee: Number(randBetween(0.50, 3.00).toFixed(2)),
     pnl,
     notes: ''
   }
 })
-
 
 /** =========================
  *   Helpers & métriques
@@ -66,14 +64,24 @@ function dailyReturns(eq){
 }
 function drawdownSeries(eq){ let peak=-Infinity; return eq.map(p=>{ peak=Math.max(peak,p.equity); const dd=(p.equity-peak)/peak; return {date:p.date, dd} }) }
 function maxDrawdown(eq){ return Math.min(...drawdownSeries(eq).map(d=>d.dd)) }
-function sharpe(returns, rf=0){ if(!returns.length) return 0; const only=returns.map(x=>x.ret); const avg=only.reduce((a,b)=>a+b,0)/only.length; const excess=avg-rf/252; const variance=only.reduce((a,b)=>a+Math.pow(b-avg,2),0)/(only.length||1); const vol=Math.sqrt(variance)*Math.sqrt(252); return vol===0?0:excess/vol }
-function sortino(returns, rf=0){ if(!returns.length) return 0; const only=returns.map(x=>x.ret); const avg=only.reduce((a,b)=>a+b,0)/only.length - rf/252; const downs=only.filter(r=>r<0); const downVar=downs.reduce((a,b)=>a+Math.pow(b,2),0)/(downs.length||1); const downDev=Math.sqrt(downVar)*Math.sqrt(252); return downDev===0?0:avg/downDev }
-function profitFactor(tr){ const g=tr.filter(t=>t.pnl>0).reduce((a,t)=>a+t.pnl,0); const l=tr.filter(t=>t.pnl<0).reduce((a,t)=>a+Math.abs(t.pnl),0); return l===0?Infinity:g/l }
+function sharpe(returns, rf=0){ if(!returns.length) return 0; const a=returns.map(x=>x.ret); const avg=a.reduce((x,y)=>x+y,0)/a.length; const excess=avg-rf/252; const varc=a.reduce((s,v)=>s+Math.pow(v-avg,2),0)/(a.length||1); const vol=Math.sqrt(varc)*Math.sqrt(252); return vol===0?0:excess/vol }
+function sortino(returns, rf=0){ if(!returns.length) return 0; const a=returns.map(x=>x.ret); const avg=a.reduce((x,y)=>x+y,0)/a.length - rf/252; const downs=a.filter(v=>v<0); const dvar=downs.reduce((s,v)=>s+v*v,0)/(downs.length||1); const ddev=Math.sqrt(dvar)*Math.sqrt(252); return ddev===0?0:avg/ddev }
+function profitFactor(tr){ const g=tr.filter(t=>t.pnl>0).reduce((s,t)=>s+t.pnl,0); const l=tr.filter(t=>t.pnl<0).reduce((s,t)=>s+Math.abs(t.pnl),0); return l===0?Infinity:g/l }
 function hitRatio(tr){ if(!tr.length) return 0; const w=tr.filter(t=>t.pnl>0).length; return w/tr.length }
-function fmtCCY(v, ccy='USD'){ try{ return new Intl.NumberFormat(undefined,{style:'currency',currency:ccy, maximumFractionDigits:0}).format(v||0) }catch{ return (v??0).toLocaleString() } }
-function pct(x){ return `${(x*100).toFixed(2)}%` }
+function fmtCCY(v, ccy='USD'){
+  try{
+    return new Intl.NumberFormat(undefined,{
+      style:'currency',currency:ccy,
+      minimumFractionDigits:2, maximumFractionDigits:2
+    }).format(v ?? 0)
+  }catch{
+    const x = (v ?? 0).toFixed(2);
+    return `${x} ${ccy}`;
+  }
+}
+function pct(x){ return `${((x||0)*100).toFixed(2)}%` }
 function classNeg(v){ return v<0 ? 'bad' : '' }
-function fmtShort(v){ if(Math.abs(v)>=1_000_000) return (v/1_000_000).toFixed(1)+'M'; if(Math.abs(v)>=1_000) return (v/1_000).toFixed(1)+'k'; return Math.round(v).toString() }
+function fmtShort2(v){ return Number(v).toFixed(2) }
 
 /** Conversion devises (démo locale) */
 const DISPLAY_CURRENCIES = ['USD','EUR','CHF']
@@ -83,8 +91,9 @@ const fx = {
   CHF: { USD:1/0.88, EUR:0.93/0.88, CHF:1 }
 }
 function convertAmount(value, fromCcy='USD', toCcy='USD') {
-  if (!value || fromCcy===toCcy) return value||0;
-  return value * (fx[fromCcy]?.[toCcy] ?? 1);
+  if (value==null || fromCcy===toCcy) return Number((value||0).toFixed(2));
+  const res = value * (fx[fromCcy]?.[toCcy] ?? 1);
+  return Number(res.toFixed(2));
 }
 
 /** Agrégations période */
@@ -216,7 +225,7 @@ export default function App(){
     const min = Math.min(...list)
     const max = Math.max(...list)
     const step = (max-min)/bins || 1
-    const arr = Array.from({length:bins}).map((_,i)=>({bin:String(Math.round(min+i*step)), count:0}))
+    const arr = Array.from({length:bins}).map((_,i)=>({bin:String(Number(min+i*step).toFixed(2)), count:0}))
     for(const v of list){
       const idx = Math.min(bins-1, Math.max(0, Math.floor((v-min)/step)))
       arr[idx].count += 1
@@ -323,8 +332,8 @@ export default function App(){
           </select>
         </div>
         <div className="item" style={{gridColumn:'span 2'}}>
-          <label>Filtre PnL minimum: <span className="tag">{minPnL}</span></label>
-          <input type="range" min="-2000" max="1000" step="50" value={minPnL} onChange={e=>setMinPnL(Number(e.target.value))} />
+          <label>Filtre PnL minimum: <span className="tag">{minPnL.toFixed(2)}</span></label>
+          <input type="range" min="-8000" max="2000" step="50" value={minPnL} onChange={e=>setMinPnL(Number(e.target.value))} />
         </div>
       </div>
 
@@ -341,13 +350,14 @@ export default function App(){
 
       {/* Graphiques principaux */}
       <div className="grid">
+        {/* Courbe d'équité */}
         <div className="card chart-card">
           <h3>Courbe d'équité</h3>
           <ResponsiveContainer width="100%" height="90%">
             <LineChart data={equityFiltered} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
-              <YAxis tickFormatter={(v)=>fmtShort(v)} />
+              <YAxis tickFormatter={fmtShort2} />
               <Tooltip formatter={(v)=>fmtCCY(v, displayCcy)} />
               <Legend />
               <Line type="monotone" dataKey="equity" dot={false} name="Équité" />
@@ -355,19 +365,21 @@ export default function App(){
           </ResponsiveContainer>
         </div>
 
+        {/* Drawdown */}
         <div className="card chart-card">
           <h3>Drawdown</h3>
           <ResponsiveContainer width="100%" height="90%">
             <AreaChart data={ddSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
-              <YAxis tickFormatter={(v)=>`${(v*100).toFixed(0)}%`} />
+              <YAxis tickFormatter={(v)=>`${(v*100).toFixed(2)}%`} />
               <Tooltip formatter={(v)=>`${(v*100).toFixed(2)}%`} />
               <Area type="monotone" dataKey="dd" name="DD" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
+        {/* Distribution PnL */}
         <div className="card chart-card">
           <h3>Distribution du PnL (trades filtrés)</h3>
           <ResponsiveContainer width="100%" height="90%">
@@ -432,7 +444,7 @@ export default function App(){
             </PieChart>
           </ResponsiveContainer>
           <div style={{textAlign:'center', marginTop:-12, fontWeight:700}}>
-            {(winLoss.wr*100).toFixed(1)}%
+            {(winLoss.wr*100).toFixed(2)}%
           </div>
         </div>
 
@@ -441,8 +453,8 @@ export default function App(){
           <h3>Risk–Reward</h3>
           <ResponsiveContainer width="100%" height="85%">
             <BarChart data={[
-              { name:'Gain moyen', value: winLoss.avgWin },
-              { name:'Perte moyenne', value: -winLoss.avgLoss }
+              { name:'Gain moyen', value: Number(winLoss.avgWin.toFixed(2)) },
+              { name:'Perte moyenne', value: Number((-winLoss.avgLoss).toFixed(2)) }
             ]} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -495,7 +507,7 @@ export default function App(){
                   <td>{t.strategy}</td>
                   <td>{t.symbol}</td>
                   <td className={t.side==='BUY'?'':'bad'}>{t.side}</td>
-                  <td>{t.qty}</td>
+                  <td>{t.qty.toFixed(2)}</td>
                   <td>{t.price.toFixed(2)}</td>
                   <td>{t.fee.toFixed(2)}</td>
                   <td className={classNeg(pnlDisp)}>{fmtCCY(pnlDisp, displayCcy)}</td>
@@ -542,14 +554,14 @@ function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
     const dd = info?.dd ?? null
     const style = colorForRet(ret)
     return (
-      <div key={dt} title={`${dt}\nRet: ${ret!=null?(ret*100).toFixed(2)+'%':'-'}\nDD: ${dd!=null?(dd*100).toFixed(0)+'%':'-'}`}
+      <div key={dt} title={`${dt}\nRet: ${ret!=null?(ret*100).toFixed(2)+'%':'-'}\nDD: ${dd!=null?(dd*100).toFixed(2)+'%':'-'}`}
            style={{padding:'10px 8px', borderRadius:8, ...inlineStyle(style)}}>
         <div style={{fontSize:11, opacity:.9}}>{Number(dt.slice(8,10))}</div>
         <div style={{fontSize:12, fontWeight:600}} className={ret<0?'bad':''}>
-          {ret!=null ? `${(ret*100).toFixed(1)}%` : '—'}
+          {ret!=null ? `${(ret*100).toFixed(2)}%` : '—'}
         </div>
         <div style={{fontSize:11, opacity:.8}} className={dd<0?'bad':''}>
-          {dd!=null ? `${(dd*100).toFixed(0)}%` : '—'}
+          {dd!=null ? `${(dd*100).toFixed(2)}%` : '—'}
         </div>
       </div>
     )
