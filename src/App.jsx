@@ -145,6 +145,33 @@ function inlineStyle(cssText){
   return out
 }
 
+/** === Multi-courbes par actif (index base 10'000) === */
+function buildSymbolEquities(dates, trades, displayCcy='USD'){
+  const symbols = Array.from(new Set(trades.map(t=>t.symbol))).sort()
+  const base = 10000
+  const byDay = new Map()
+  // agrège PnL par date & symbole (converti)
+  for(const t of trades){
+    const k = `${t.date}__${t.symbol}`
+    const v = convertAmount(t.pnl, t.instrument_ccy || 'USD', displayCcy)
+    byDay.set(k, (byDay.get(k)||0)+v)
+  }
+  // cumuls
+  const cum = new Map(symbols.map(s=>[s, base]))
+  const rows = []
+  for(const d of dates){
+    const row = { date: d }
+    for(const s of symbols){
+      const k = `${d}__${s}`
+      const add = byDay.get(k) || 0
+      cum.set(s, Number((cum.get(s) + add).toFixed(2)))
+      row[s] = cum.get(s)
+    }
+    rows.push(row)
+  }
+  return { rows, symbols }
+}
+
 /** =========================
  *   Composant principal
  *   ========================= */
@@ -152,10 +179,9 @@ export default function App(){
   const [equity] = useState(demoEquity)
   const [trades] = useState(demoTrades)
 
-  // Filtres
+  // Filtres de base (on retire le filtre “Actif” car multi-courbes)
   const [account, setAccount] = useState('ALL')
   const [broker, setBroker]   = useState('ALL')
-  const [symbol, setSymbol]   = useState('ALL')
   const [strategy, setStrategy] = useState('ALL')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState('')
@@ -164,20 +190,18 @@ export default function App(){
 
   const accounts = useMemo(()=>Array.from(new Set(trades.map(t=>t.account))),[trades])
   const brokers  = useMemo(()=>Array.from(new Set(trades.map(t=>t.broker || ''))).filter(Boolean),[trades])
-  const symbols  = useMemo(()=>Array.from(new Set(trades.map(t=>t.symbol))),[trades])
   const strategies = useMemo(()=>Array.from(new Set(trades.map(t=>t.strategy))),[trades])
 
-  // Filtre trades
+  // Filtre trades (sans filtre par actif)
   const filteredTrades = useMemo(()=>trades.filter(t=>{
     if(account!=='ALL' && t.account!==account) return false
     if(broker!=='ALL' && t.broker!==broker) return false
-    if(symbol!=='ALL' && t.symbol!==symbol) return false
     if(strategy!=='ALL' && t.strategy!==strategy) return false
     if(dateFrom && t.date < dateFrom) return false
     if(dateTo && t.date > dateTo) return false
     if(t.pnl < minPnL) return false
     return true
-  }),[trades,account,broker,symbol,strategy,dateFrom,dateTo,minPnL])
+  }),[trades,account,broker,strategy,dateFrom,dateTo,minPnL])
 
   // Équité filtrée + conversion
   const equityFiltered = useMemo(()=>{
@@ -251,7 +275,13 @@ export default function App(){
     return Array.from(m, ([name, value]) => ({ name, value }));
   }, [filteredTrades])
 
-  const chartColors = ['#d4af37','#0fb9b1','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166']
+  // Multi-courbes par actif
+  const allDates = useMemo(()=>equityFiltered.map(p=>p.date),[equityFiltered])
+  const { rows: equityBySymbolRows, symbols: allSymbols } = useMemo(
+    ()=> buildSymbolEquities(allDates, filteredTrades, displayCcy),
+    [allDates, filteredTrades, displayCcy]
+  )
+  const topSymbols = allSymbols.slice(0, 6) // pour lisibilité
 
   // Calendrier (mois courant par défaut)
   const lastDate = equityFiltered.at(-1)?.date
@@ -287,7 +317,7 @@ export default function App(){
         </div>
       </div>
 
-      {/* Filtres */}
+      {/* Filtres (sans "Actif") */}
       <div className="card controls">
         <div className="item">
           <label>Compte</label>
@@ -301,13 +331,6 @@ export default function App(){
           <select value={broker} onChange={e=>setBroker(e.target.value)}>
             <option value="ALL">Tous</option>
             {brokers.map(b=>(<option key={b} value={b}>{b}</option>))}
-          </select>
-        </div>
-        <div className="item">
-          <label>Actif</label>
-          <select value={symbol} onChange={e=>setSymbol(e.target.value)}>
-            <option value="ALL">Tous</option>
-            {symbols.map(s=>(<option key={s} value={s}>{s}</option>))}
           </select>
         </div>
         <div className="item">
@@ -348,10 +371,10 @@ export default function App(){
         <div className="card item"><h3>Max DD</h3><div className={`val ${classNeg(kpi.maxDD)}`}>{pct(kpi.maxDD)}</div></div>
       </div>
 
-      {/* Graphiques principaux */}
+      {/* Graphiques principaux — XL */}
       <div className="grid">
         {/* Courbe d'équité */}
-        <div className="card chart-card">
+        <div className="card chart-card chart-xl">
           <h3>Courbe d'équité</h3>
           <ResponsiveContainer width="100%" height="90%">
             <LineChart data={equityFiltered} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
@@ -366,7 +389,7 @@ export default function App(){
         </div>
 
         {/* Drawdown */}
-        <div className="card chart-card">
+        <div className="card chart-card chart-xl">
           <h3>Drawdown</h3>
           <ResponsiveContainer width="100%" height="90%">
             <AreaChart data={ddSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
@@ -417,6 +440,23 @@ export default function App(){
             <span style={{marginRight:12}}>🟩 gain</span>
             <span>🟥 perte</span>
           </div>
+        </div>
+
+        {/* Équités par actif (multi-courbes) */}
+        <div className="card chart-card chart-xl">
+          <h3>Équités par actif</h3>
+          <ResponsiveContainer width="100%" height="90%">
+            <LineChart data={equityBySymbolRows} margin={{ left:8, right:8, top:8, bottom:8 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis tickFormatter={(v)=>Number(v).toFixed(2)} />
+              <Tooltip />
+              <Legend />
+              {topSymbols.map((s)=>(
+                <Line key={s} type="monotone" dataKey={s} name={s} dot={false} />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
@@ -477,7 +517,7 @@ export default function App(){
           <ResponsiveContainer width="100%" height="85%">
             <PieChart>
               <Pie data={assetSplit} dataKey="value" nameKey="name" outerRadius={100}>
-                {assetSplit.map((_, i) => <Cell key={i} fill={chartColors[i % chartColors.length]} />)}
+                {assetSplit.map((_, i) => <Cell key={i} fill={['#d4af37','#0fb9b1','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166'][i % 7]} />)}
               </Pie>
               <Tooltip />
               <Legend />
@@ -568,3 +608,4 @@ function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
   })
   return [...blanks, ...cells]
 }
+
