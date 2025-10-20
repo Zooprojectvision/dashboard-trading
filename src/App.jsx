@@ -1,5 +1,4 @@
-// Preview build - test du 21 octobre 2025
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import {
   ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend,
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell
@@ -15,11 +14,13 @@ const strategiesAll = ['Breakout','MeanRevert','Swing','News','Scalp']
 function randBetween(min, max){ return min + Math.random()*(max-min) }
 function pick(a){ return a[Math.floor(Math.random()*a.length)] }
 
-// Équité simulée via rendements composés (±3%, spikes ±6%)
-const startEquity = 100000;
+// === Paramètres démo ===
+const START_EQUITY_USD = 100000;
 const days = 260; // ~1 année de trading
+
+// Équité simulée via rendements composés (±3%, spikes ±6%)
 const demoEquity = (() => {
-  let e = startEquity;
+  let e = START_EQUITY_USD;
   const out = [];
   for (let i = days; i >= 1; i--) {
     let r = randBetween(-0.03, 0.03);
@@ -62,6 +63,15 @@ const demoTrades = Array.from({ length: 450 }).map((_, i) => {
   }
 })
 
+// Cashflows démo (entrées/sorties/prop/darwinex)
+const demoCashflows = [
+  { date: '2025-01-05', ccy:'USD', amount: +2000,  type:'deposit',            note:'apport' },
+  { date: '2025-02-10', ccy:'USD', amount: -500,   type:'prop_fee',           note:'challenge TheTradingPit' },
+  { date: '2025-03-15', ccy:'USD', amount: +1000,  type:'prop_payout',        note:'payout prop' },
+  { date: '2025-04-02', ccy:'USD', amount: +250,   type:'darwin_mgmt_fee',    note:'Darwinex mgmt fee' },
+  { date: '2025-05-20', ccy:'USD', amount: -800,   type:'withdrawal',         note:'prélèvement perso' },
+];
+
 /** =========================
  *   Helpers & métriques
  *   ========================= */
@@ -75,32 +85,16 @@ function sharpe(returns, rf=0){ if(!returns.length) return 0; const a=returns.ma
 function sortino(returns, rf=0){ if(!returns.length) return 0; const a=returns.map(x=>x.ret); const avg=a.reduce((x,y)=>x+y,0)/a.length - rf/252; const downs=a.filter(v=>v<0); const dvar=downs.reduce((s,v)=>s+v*v,0)/(downs.length||1); const ddev=Math.sqrt(dvar)*Math.sqrt(252); return ddev===0?0:avg/ddev }
 function profitFactor(tr){ const g=tr.filter(t=>t.pnl>0).reduce((s,t)=>s+t.pnl,0); const l=tr.filter(t=>t.pnl<0).reduce((s,t)=>s+Math.abs(t.pnl),0); return l===0?Infinity:g/l }
 function hitRatio(tr){ if(!tr.length) return 0; const w=tr.filter(t=>t.pnl>0).length; return w/tr.length }
-function fmtCCY(v, ccy='USD'){
-  try{
-    return new Intl.NumberFormat(undefined,{
-      style:'currency',currency:ccy,
-      minimumFractionDigits:2, maximumFractionDigits:2
-    }).format(v ?? 0)
-  }catch{
-    const x = (v ?? 0).toFixed(2);
-    return `${x} ${ccy}`;
-  }
-}
 function pct(x){ return `${((x||0)*100).toFixed(2)}%` }
 function classNeg(v){ return v<0 ? 'bad' : '' }
 function fmtShort2(v){ return Number(v).toFixed(2) }
 
-/** Conversion devises (démo locale) */
+/** Conversion devises (fallback local) */
 const DISPLAY_CURRENCIES = ['USD','EUR','CHF']
-const fx = {
+const fxFallback = {
   USD: { USD:1,  EUR:0.93, CHF:0.88 },
   EUR: { USD:1/0.93, EUR:1, CHF:0.88/0.93 },
   CHF: { USD:1/0.88, EUR:0.93/0.88, CHF:1 }
-}
-function convertAmount(value, fromCcy='USD', toCcy='USD') {
-  if (value==null || fromCcy===toCcy) return Number((value||0).toFixed(2));
-  const res = value * (fx[fromCcy]?.[toCcy] ?? 1);
-  return Number(res.toFixed(2));
 }
 
 /** Agrégations période */
@@ -166,8 +160,10 @@ function splitSymbolsByShare(trades, threshold = 0.10) {
   return { major, minor, share };
 }
 
-/** Multi-courbes par actif (base 10'000) + regroupement "Autres" + courbe globale */
-function buildSymbolEquitiesGrouped(dates, trades, displayCcy, majorSet, dateToGlobal, othersLabel = 'Autres') {
+/** Multi-courbes par actif (base 10'000) + regroupement "Autres" + courbe globale
+ *  convertFn: (value, from, to) => number
+ */
+function buildSymbolEquitiesGrouped(dates, trades, displayCcy, majorSet, dateToGlobal, convertFn, othersLabel = 'Autres') {
   const symbols = Array.from(new Set(trades.map(t=>t.symbol))).sort();
   const base = 10000;
 
@@ -175,7 +171,7 @@ function buildSymbolEquitiesGrouped(dates, trades, displayCcy, majorSet, dateToG
   const byDay = new Map(); // key: date__symbol -> pnl
   for (const t of trades) {
     const k = `${t.date}__${t.symbol}`;
-    const v = convertAmount(t.pnl, t.instrument_ccy || 'USD', displayCcy);
+    const v = convertFn(t.pnl, t.instrument_ccy || 'USD', displayCcy);
     byDay.set(k, (byDay.get(k) || 0) + v);
   }
 
@@ -209,6 +205,28 @@ function buildSymbolEquitiesGrouped(dates, trades, displayCcy, majorSet, dateToG
   return { rows, plotSymbols };
 }
 
+/** Récup durée de recovery du DD (en jours) - max & moyenne */
+function ddRecoveryStats(eq){
+  let peak = -Infinity;
+  let underwaterStart = null;
+  const recTimes = []; // en jours
+  for(let i=0;i<eq.length;i++){
+    const v = eq[i].equity;
+    if (v > peak) {
+      if (underwaterStart != null) {
+        recTimes.push(i - underwaterStart);
+        underwaterStart = null;
+      }
+      peak = v;
+    } else {
+      if (underwaterStart == null) underwaterStart = i;
+    }
+  }
+  const maxDays = recTimes.length ? Math.max(...recTimes) : 0;
+  const avgDays = recTimes.length ? (recTimes.reduce((a,b)=>a+b,0)/recTimes.length) : 0;
+  return { maxDays, avgDays };
+}
+
 /** =========================
  *   Composant principal
  *   ========================= */
@@ -223,11 +241,41 @@ export default function App(){
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState('')
   const [displayCcy, setDisplayCcy] = useState('USD')
-  const [minShare, setMinShare] = useState(10) // seuil en %
+  const [minShare, setMinShare] = useState(10) // seuil pour regroupement "Autres"
 
   const accounts = useMemo(()=>Array.from(new Set(trades.map(t=>t.account))),[trades])
   const brokers  = useMemo(()=>Array.from(new Set(trades.map(t=>t.broker || ''))).filter(Boolean),[trades])
   const strategies = useMemo(()=>Array.from(new Set(trades.map(t=>t.strategy))),[trades])
+
+  // === FX live (exchangerate.host) avec cache local 24h ===
+  const [liveFx, setLiveFx] = useState(null)
+  useEffect(() => {
+    const key = 'fx_cache_v1';
+    const cached = localStorage.getItem(key);
+    const now = Date.now();
+    if (cached) {
+      const { at, rates } = JSON.parse(cached);
+      if (now - at < 24*60*60*1000) { setLiveFx(rates); return; }
+    }
+    fetch('https://api.exchangerate.host/latest?base=USD&symbols=EUR,CHF')
+      .then(r => r.json())
+      .then(j => {
+        const rates = { USD: {USD:1, EUR:j.rates.EUR, CHF:j.rates.CHF} };
+        rates.EUR = { USD:1/j.rates.EUR, EUR:1, CHF:j.rates.CHF/j.rates.EUR };
+        rates.CHF = { USD:1/j.rates.CHF, EUR:j.rates.EUR/j.rates.CHF, CHF:1 };
+        localStorage.setItem(key, JSON.stringify({ at: now, rates }));
+        setLiveFx(rates);
+      })
+      .catch(()=>{ /* fallback */});
+  }, []);
+
+  // Convertisseur (utilise liveFx si dispo)
+  const convert = useCallback((value, from='USD', to='USD') => {
+    if (value==null || from===to) return Number((value||0).toFixed(2));
+    const table = liveFx || fxFallback;
+    const res = value * (table[from]?.[to] ?? 1);
+    return Number(res.toFixed(2));
+  }, [liveFx]);
 
   // Filtre trades (sans PnL)
   const filteredTrades = useMemo(()=>trades.filter(t=>{
@@ -247,19 +295,19 @@ export default function App(){
       return true
     }).map(p=>({
       date: p.date,
-      equity: convertAmount(p.equity, p.account_ccy || 'USD', displayCcy),
+      equity: convert(p.equity, p.account_ccy || 'USD', displayCcy),
       account_ccy: displayCcy
     }))
-  },[equity, dateFrom, dateTo, displayCcy])
+  },[equity, dateFrom, dateTo, displayCcy, convert])
 
   // Séries dérivées
   const returns = useMemo(()=>dailyReturns(equityFiltered),[equityFiltered])
   const ddSeries = useMemo(()=>drawdownSeries(equityFiltered),[equityFiltered])
 
-  // KPI
+  // KPI de base
   const tradesConverted = useMemo(()=>filteredTrades.map(t=>({
-    ...t, pnl_disp: convertAmount(t.pnl, t.instrument_ccy || 'USD', displayCcy)
-  })),[filteredTrades, displayCcy])
+    ...t, pnl_disp: convert(t.pnl, t.instrument_ccy || 'USD', displayCcy)
+  })),[filteredTrades, displayCcy, convert])
 
   const kpi = useMemo(()=>({
     sharpe: sharpe(returns),
@@ -277,23 +325,21 @@ export default function App(){
   const ytd = calcYTD(equityFiltered)
   const ann = calcLast12M(equityFiltered)
 
-  // Seuil & labels dynamiques
+  // Seuil & labels dynamiques pour regroupement
   const othersLabel = useMemo(() => `Autres (<${minShare}%)`, [minShare])
-
-  // Part des actifs : majors (≥ seuil)
   const { major: majorSet } = useMemo(
     () => splitSymbolsByShare(filteredTrades, minShare/100),
     [filteredTrades, minShare]
   )
 
-  // Dates & map date -> équité globale (pour injecter "__GLOBAL__")
+  // Dates & map date -> équité globale
   const allDates = useMemo(() => equityFiltered.map(p => p.date), [equityFiltered])
   const dateToGlobal = useMemo(() => new Map(equityFiltered.map(p => [p.date, p.equity])), [equityFiltered])
 
   // Séries multi-actifs groupées + courbe globale
   const { rows: equityBySymbolRows, plotSymbols } = useMemo(
-    () => buildSymbolEquitiesGrouped(allDates, filteredTrades, displayCcy, majorSet, dateToGlobal, othersLabel),
-    [allDates, filteredTrades, displayCcy, majorSet, dateToGlobal, othersLabel]
+    () => buildSymbolEquitiesGrouped(allDates, filteredTrades, displayCcy, majorSet, dateToGlobal, convert, othersLabel),
+    [allDates, filteredTrades, displayCcy, majorSet, dateToGlobal, othersLabel, convert]
   )
 
   // Couleurs pour lignes d'actifs (sur noir)
@@ -316,6 +362,12 @@ export default function App(){
     return majors.sort((a,b)=>b.value-a.value);
   }, [filteredTrades, minShare, othersLabel]);
 
+  // Répartition par STRATÉGIE
+  const strategySplit = useMemo(()=>{
+    const m=new Map(); filteredTrades.forEach(t=>m.set(t.strategy,(m.get(t.strategy)||0)+1));
+    return Array.from(m, ([name,value])=>({name,value})).sort((a,b)=>b.value-a.value);
+  },[filteredTrades]);
+
   // ==== Top / Flop mensuels (actifs & stratégies) ====
   const monthKey = useMemo(()=>{
     const last = filteredTrades.map(t=>t.date).sort().pop() || new Date().toISOString().slice(0,10);
@@ -331,7 +383,7 @@ export default function App(){
     const map = new Map();
     for(const t of list){
       const k = t[key];
-      map.set(k, (map.get(k)||0) + t.pnl_disp);
+      map.set(k, (map.get(k)||0) + convert(t.pnl,'USD',displayCcy));
     }
     const arr = Array.from(map, ([name, value]) => ({ name, value }));
     const best = [...arr].sort((a,b)=>b.value-a.value).slice(0,3);
@@ -339,22 +391,83 @@ export default function App(){
     return { best, worst };
   }
 
-  const tfSymbols = useMemo(()=>topFlop(monthTrades.map(t=>({...t, pnl_disp: convertAmount(t.pnl,'USD',displayCcy)})),'symbol'),[monthTrades,displayCcy])
-  const tfStrats  = useMemo(()=>topFlop(monthTrades.map(t=>({...t, pnl_disp: convertAmount(t.pnl,'USD',displayCcy)})),'strategy'),[monthTrades,displayCcy])
+  const tfSymbols = useMemo(()=>topFlop(monthTrades,'symbol'),[monthTrades,displayCcy,convert])
+  const tfStrats  = useMemo(()=>topFlop(monthTrades,'strategy'),[monthTrades,displayCcy,convert])
 
-  // ==== Histogramme gains/pertes par HEURE d'ouverture ====
+  // ==== Gains/pertes par HEURE d'ouverture ====
   const hourlyBars = useMemo(()=>{
     const base = Array.from({length:24}, (_,h)=>({ hour: `${String(h).padStart(2,'0')}:00`, gains:0, losses:0 }))
     for(const t of filteredTrades){
       const h = typeof t.open_hour === 'number' ? t.open_hour : new Date(t.open_time||`${t.date}T00:00:00Z`).getHours()
       if(h>=0 && h<24){
-        if(t.pnl > 0) base[h].gains += convertAmount(t.pnl,'USD',displayCcy);
-        else if(t.pnl < 0) base[h].losses += Math.abs(convertAmount(t.pnl,'USD',displayCcy));
+        if(t.pnl > 0) base[h].gains += convert(t.pnl,'USD',displayCcy);
+        else if(t.pnl < 0) base[h].losses += Math.abs(convert(t.pnl,'USD',displayCcy));
       }
     }
-    // arrondis 2 décimales
     return base.map(r=>({ ...r, gains:Number(r.gains.toFixed(2)), losses:Number(r.losses.toFixed(2)) }))
-  },[filteredTrades, displayCcy])
+  },[filteredTrades, displayCcy, convert])
+
+  // ==== Capital (initial + cashflows + PnL réalisé) ====
+  const cashflowsDisp = useMemo(()=>demoCashflows.map(c => ({
+    ...c, amount_disp: convert(c.amount, c.ccy || 'USD', displayCcy)
+  })),[displayCcy, convert]);
+
+  const totalCashflows = useMemo(
+    () => cashflowsDisp.reduce((a,c)=>a+(c.amount_disp||0),0),
+    [cashflowsDisp]
+  );
+
+  const realizedPnL = useMemo(
+    () => tradesConverted.reduce((a,t)=>a+(t.pnl_disp||0),0),
+    [tradesConverted]
+  );
+
+  const startConverted = useMemo(
+    () => convert(START_EQUITY_USD, 'USD', displayCcy),
+    [displayCcy, convert]
+  );
+
+  const capitalNow = useMemo(
+    () => startConverted + totalCashflows + realizedPnL,
+    [startConverted, totalCashflows, realizedPnL]
+  );
+
+  // ==== Alertes risque ====
+  const onePct = capitalNow * 0.01;
+  const twoPct = capitalNow * 0.02;
+
+  const alertsTrades = useMemo(()=>filteredTrades
+    .filter(t => Math.abs(convert(t.pnl, t.instrument_ccy||'USD', displayCcy)) > onePct)
+    .map(t => ({ id:t.trade_id, symbol:t.symbol, pnl:convert(t.pnl,'USD',displayCcy), date:t.date }))
+  ,[filteredTrades, displayCcy, capitalNow, convert]);
+
+  const alertsPositions = useMemo(()=>{
+    const grp = new Map();
+    for(const t of filteredTrades){
+      const openDay = (t.open_time||`${t.date}T00:00:00Z`).slice(0,10);
+      const key = `${t.symbol}__${openDay}`;
+      const v = convert(t.pnl,'USD',displayCcy);
+      grp.set(key, (grp.get(key)||0)+v);
+    }
+    const arr = Array.from(grp, ([key, pnl])=>{
+      const [symbol, day] = key.split('__');
+      return { key, symbol, day, pnl };
+    });
+    return arr.filter(x => Math.abs(x.pnl) > twoPct);
+  },[filteredTrades, displayCcy, capitalNow, convert]);
+
+  // ==== Risk:Reward au format chiffre unique ====
+  const rrValue = useMemo(()=>{
+    const wins = filteredTrades.filter(t=>t.pnl>0).map(t=>convert(t.pnl,'USD',displayCcy));
+    const losses = filteredTrades.filter(t=>t.pnl<0).map(t=>Math.abs(convert(t.pnl,'USD',displayCcy)));
+    const avgW = wins.length ? wins.reduce((a,b)=>a+b,0)/wins.length : 0;
+    const avgL = losses.length ? losses.reduce((a,b)=>a+b,0)/losses.length : 0;
+    return avgL ? (avgW/avgL) : 0;
+  },[filteredTrades, displayCcy, convert]);
+
+  // ==== Temps de récupération du DD ====
+  const rec = useMemo(()=>ddRecoveryStats(equityFiltered),[equityFiltered]);
+  const toH = (d) => d*24;
 
   // Calendrier (mois courant par défaut)
   const lastDate = equityFiltered.at(-1)?.date
@@ -376,12 +489,32 @@ export default function App(){
     return map
   },[returns, ddSeries])
 
+  // Résumé mensuel : montant, %, DD (valeur absolue)
+  const monthSummary = useMemo(()=>{
+    const ym = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+    const monthPoints = equityFiltered.filter(p=>p.date.startsWith(ym));
+    if (monthPoints.length < 2) return { amt:0, pct:0, dd:0 };
+    const start = monthPoints[0].equity, end = monthPoints.at(-1).equity;
+    const pct = end/start - 1;
+    const dd = Math.min(...drawdownSeries(monthPoints).map(x=>x.dd)); // négatif
+    return { amt: end - start, pct, dd: Math.abs(dd) };
+  },[equityFiltered, calYear, calMonth]);
+
+  // Cashflows du mois (pour savoir si on prélève plus qu’on ne gagne)
+  const monthFlows = useMemo(()=>{
+    const ym = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+    const rows = cashflowsDisp.filter(c=>c.date.startsWith(ym));
+    const dep = rows.filter(c=>c.amount_disp>0).reduce((a,c)=>a+c.amount_disp,0);
+    const ret = rows.filter(c=>c.amount_disp<0).reduce((a,c)=>a+c.amount_disp,0);
+    return { deposits: dep, withdrawals: ret, net: dep + ret, rows };
+  },[cashflowsDisp, calYear, calMonth]);
+
   return (
     <div className="container">
       {/* Header */}
       <div className="header">
         <div>
-          <h1>ZooProject Vision</h1>
+          <h1>ZooProjectVision</h1>
           <div className="tagline">Multi-comptes • Multi-brokers • {displayCcy} • Calendrier P&L • Heures d’ouverture</div>
         </div>
         <div className="btns">
@@ -439,13 +572,21 @@ export default function App(){
 
       {/* KPI */}
       <div className="kpi">
-        <div className="card item"><h3>Valeur actuelle</h3><div className="val">{fmtCCY(kpi.lastEquity, displayCcy)}</div></div>
+        <div className="card item"><h3>Capital (init.+flux+PnL)</h3><div className="val">{fmtCCY(capitalNow, displayCcy)}</div></div>
         <div className="card item"><h3>PnL (filtré)</h3><div className={`val ${classNeg(kpi.totalPnL)}`}>{fmtCCY(kpi.totalPnL, displayCcy)}</div></div>
+        <div className="card item"><h3>Risk–Reward</h3><div className="val">{rrValue.toFixed(2)}</div></div>
         <div className="card item"><h3>Jour</h3><div className={`val ${classNeg(lastDayRet)}`}>{pct(lastDayRet)}</div></div>
         <div className="card item"><h3>MTD</h3><div className={`val ${classNeg(mtd)}`}>{pct(mtd)}</div></div>
         <div className="card item"><h3>YTD</h3><div className={`val ${classNeg(ytd)}`}>{pct(ytd)}</div></div>
         <div className="card item"><h3>Annuel (12m)</h3><div className={`val ${classNeg(ann)}`}>{pct(ann)}</div></div>
         <div className="card item"><h3>Max DD</h3><div className={`val ${classNeg(kpi.maxDD)}`}>{pct(kpi.maxDD)}</div></div>
+        <div className="card item">
+          <h3>Récup. DD (max/moy)</h3>
+          <div className="val">{rec.maxDays.toFixed(0)}j / {rec.avgDays.toFixed(0)}j</div>
+          <div className="sub" style={{color:'#20e3d6cc', fontSize:12}}>
+            ≈ {toH(rec.maxDays).toFixed(0)}h / {toH(rec.avgDays).toFixed(0)}h
+          </div>
+        </div>
       </div>
 
       {/* Graphiques principaux — XL */}
@@ -455,9 +596,9 @@ export default function App(){
           <h3>Courbe d'équité (globale + actifs)</h3>
           <ResponsiveContainer width="100%" height="90%">
             <LineChart data={equityBySymbolRows} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} />
-              <YAxis stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} tickFormatter={fmtShort2} />
+              <CartesianGrid stroke="#2b2b2b" />
+              <XAxis dataKey="date" stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} />
+              <YAxis stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} tickFormatter={fmtShort2} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               {/* Équité globale (BLANCHE & ÉPAISSE) */}
@@ -478,16 +619,16 @@ export default function App(){
           <h3>Drawdown</h3>
           <ResponsiveContainer width="100%" height="90%">
             <AreaChart data={ddSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} />
-              <YAxis stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} tickFormatter={(v)=>`${(v*100).toFixed(2)}%`} />
+              <CartesianGrid stroke="#2b2b2b" />
+              <XAxis dataKey="date" stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} />
+              <YAxis stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} tickFormatter={(v)=>`${(v*100).toFixed(2)}%`} />
               <Tooltip formatter={(v)=>`${(v*100).toFixed(2)}%`} />
               <Area type="monotone" dataKey="dd" name="DD" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Calendrier */}
+        {/* Calendrier + résumé mensuel + cashflows */}
         <div className="card" style={{padding:14}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center', marginBottom:8}}>
             <h3 style={{margin:0}}>Calendrier – {monthLabel}</h3>
@@ -501,20 +642,30 @@ export default function App(){
             </div>
           </div>
 
+          {/* Résumé mensuel : montant, %, DD (abs) */}
+          <div style={{display:'flex', gap:16, color:'#20e3d6', marginBottom:8}}>
+            <div>Montant: <b>{fmtCCY(monthSummary.amt, displayCcy)}</b></div>
+            <div>%: <b>{(monthSummary.pct*100).toFixed(2)}%</b></div>
+            <div>DD: <b>{(monthSummary.dd*100).toFixed(2)}%</b></div>
+          </div>
+
           <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:8}}>
             {['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>(
               <div key={d} style={{textAlign:'center', color:'#20e3d6cc', fontSize:12}}>{d}</div>
             ))}
             {renderMonthGrid(calYear, calMonth, monthDates, calendarMap)}
           </div>
-          <div style={{marginTop:8, color:'#20e3d6b0', fontSize:12}}>
-            <span style={{marginRight:12}}>🟩 gain</span>
-            <span>🟥 perte</span>
+
+          {/* Flux du mois (entrées/sorties/net) */}
+          <div style={{marginTop:8, color:'#20e3d6cc', fontSize:12}}>
+            Entrées: <b>{fmtCCY(monthFlows.deposits, displayCcy)}</b> ·{' '}
+            Sorties: <b className="pink">{fmtCCY(monthFlows.withdrawals, displayCcy)}</b> ·{' '}
+            Net: <b className={monthFlows.net<0?'pink':'turq'}>{fmtCCY(monthFlows.net, displayCcy)}</b>
           </div>
         </div>
       </div>
 
-      {/* Top/Flop mensuels + Histogramme par heure */}
+      {/* Top/Flop mensuels + Histogramme par heure + Répartition par stratégie */}
       <div className="grid">
         {/* Top/Flop Actifs */}
         <div className="card" style={{height:360}}>
@@ -571,15 +722,81 @@ export default function App(){
           <h3>Gains / Pertes par heure d’ouverture</h3>
           <ResponsiveContainer width="100%" height="85%">
             <BarChart data={hourlyBars} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="hour" stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} />
-              <YAxis stroke="#3a3a3a" tick={{fontSize:10}} tickLine={false} tickFormatter={(v)=>fmtCCY(v, displayCcy)} />
+              <CartesianGrid stroke="#2b2b2b" />
+              <XAxis dataKey="hour" stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} />
+              <YAxis stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} tickFormatter={(v)=>fmtCCY(v, displayCcy)} />
               <Tooltip formatter={(v)=>fmtCCY(v, displayCcy)} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar dataKey="gains" name="Gains" />
               <Bar dataKey="losses" name="Pertes" />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Répartition des actifs & stratégies */}
+      <div className="grid">
+        <div className="card chart-card" style={{height:320}}>
+          <h3>Répartition des actifs</h3>
+          <ResponsiveContainer width="100%" height="85%">
+            <PieChart>
+              <Pie data={assetSplit} dataKey="value" nameKey="name" outerRadius={100}>
+                {assetSplit.map((seg, i) => {
+                  const palette = ['#d4af37','#20e3d6','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166','#9bb6ff'];
+                  const color = seg.name.startsWith('Autres') ? '#808080' : palette[i % palette.length];
+                  return <Cell key={i} fill={color} />;
+                })}
+              </Pie>
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="card chart-card" style={{height:320}}>
+          <h3>Répartition par stratégie</h3>
+          <ResponsiveContainer width="100%" height="85%">
+            <PieChart>
+              <Pie data={strategySplit} dataKey="value" nameKey="name" outerRadius={100}>
+                {strategySplit.map((seg, i) => {
+                  const palette = ['#20e3d6','#ffd166','#6aa6ff','#c792ea','#7bd88f','#ff8a65'];
+                  return <Cell key={i} fill={palette[i % palette.length]} />;
+                })}
+              </Pie>
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Alertes risque */}
+        <div className="card" style={{height:320, overflow:'auto'}}>
+          <h3>Alertes risque (Trade & Position)</h3>
+          <div style={{fontSize:12, color:'#20e3d6cc', marginBottom:8}}>
+            Trade &gt; 1% de capital ({fmtCCY(onePct, displayCcy)}) · Position &gt; 2% ({fmtCCY(twoPct, displayCcy)})
+          </div>
+          <div className="two-cols">
+            <div>
+              <div className="pill bad">Trades &gt; 1%</div>
+              {alertsTrades.length===0 && <div className="row-kv"><span>Aucune</span><b>-</b></div>}
+              {alertsTrades.map(x=>(
+                <div key={x.id} className="row-kv">
+                  <span>{x.date} · {x.symbol}</span>
+                  <b className="pink">{fmtCCY(x.pnl, displayCcy)}</b>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div className="pill bad">Positions &gt; 2%</div>
+              {alertsPositions.length===0 && <div className="row-kv"><span>Aucune</span><b>-</b></div>}
+              {alertsPositions.map(x=>(
+                <div key={x.key} className="row-kv">
+                  <span>{x.day} · {x.symbol}</span>
+                  <b className="pink">{fmtCCY(x.pnl, displayCcy)}</b>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -595,7 +812,7 @@ export default function App(){
           </thead>
           <tbody>
             {filteredTrades.slice(0, 500).map(t=>{
-              const pnlDisp = convertAmount(t.pnl, t.instrument_ccy || 'USD', displayCcy);
+              const pnlDisp = convert(t.pnl, t.instrument_ccy || 'USD', displayCcy);
               const hour = typeof t.open_hour === 'number'
                 ? String(t.open_hour).padStart(2,'0')+':00'
                 : new Date(t.open_time||`${t.date}T00:00:00Z`).toISOString().slice(11,13)+':00';
@@ -620,7 +837,7 @@ export default function App(){
         </table>
       </div>
 
-      <div className="footer">© {new Date().getFullYear()} – ZooProject Vision (démo).</div>
+      <div className="footer">© {new Date().getFullYear()} – ZooProject Vision (démo). Données démo — remplace par ton API/exports broker.</div>
     </div>
   )
 }
@@ -672,4 +889,16 @@ function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
   })
   return [...blanks, ...cells]
 }
-preview build test
+
+/** ====== Formattage devise ====== */
+function fmtCCY(v, ccy='USD'){
+  try{
+    return new Intl.NumberFormat(undefined,{
+      style:'currency',currency:ccy,
+      minimumFractionDigits:2, maximumFractionDigits:2
+    }).format(v ?? 0)
+  }catch{
+    const x = (v ?? 0).toFixed(2);
+    return `${x} ${ccy}`;
+  }
+}
