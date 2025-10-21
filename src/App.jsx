@@ -176,7 +176,7 @@ export default function App(){
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState('')
   const [displayCcy, setDisplayCcy] = useState('USD')
-  const [minShare, setMinShare] = useState(10) // <= UNIQUE (corrigé)
+  const [minShare, setMinShare] = useState(10)
 
   const accounts = useMemo(()=>Array.from(new Set(tradesSource.map(t=>t.account))),[tradesSource])
   const brokers  = useMemo(()=>Array.from(new Set(tradesSource.map(t=>t.broker || ''))).filter(Boolean),[tradesSource])
@@ -276,7 +276,7 @@ export default function App(){
 
   // Séries métriques dynamiques
   const returns = useMemo(()=>dailyReturns(equityFromTrades),[equityFromTrades]);
-  const ddSeries = useMemo(()=>drawdownSeries(equityFromTrades),[equityFromTrades]);
+  const ddSeries = useMemo(()=>drawdownSeries(equityFromTrades),[equityFromTrades]); // <— Unique définition
   const pnlFiltered = useMemo(()=> tradesConverted.reduce((a,t)=>a+(t.pnl_disp||0),0), [tradesConverted]);
   const totalFiltered = useMemo(()=> capitalFiltre + pnlFiltered, [capitalFiltre, pnlFiltered]);
 
@@ -417,17 +417,8 @@ export default function App(){
     return dt.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
   },[calYear, calMonth])
   const returnsMap = useMemo(()=>{ const m=new Map(); dailyReturns(equityFromTrades).forEach(r=>m.set(r.date, r.ret)); return m },[equityFromTrades])
-  const ddSeries = useMemo(()=>drawdownSeries(equityFromTrades),[equityFromTrades])
-  const calendarMap = useMemo(()=>{
-    const map = new Map()
-    const ddByDate = new Map(ddSeries.map(x=>[x.date, x.dd]))
-    for(const p of equityFromTrades.slice(1)){
-      const prev = equityFromTrades.find(q=>q.date===p.date) // déjà trié; simplifié
-      const ret = returnsMap.get(p.date)
-      map.set(p.date, { ret, dd: ddByDate.get(p.date) ?? null })
-    }
-    return map
-  },[equityFromTrades, ddSeries, returnsMap])
+  // ⚠️ Plus de redéclaration : on utilise ddSeries défini plus haut
+
   const monthSummary = useMemo(()=>{
     const ym = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
     const monthPoints = equityFromTrades.filter(p=>p.date.startsWith(ym));
@@ -828,7 +819,7 @@ export default function App(){
             </div>
           </div>
           <Calendar monthDates={monthDates} calYear={calYear} calMonth={calMonth}
-                    returns={dailyReturns(equityFromTrades)} ddSeries={ddSeries} displayCcy={displayCcy} />
+                    returns={dailyReturns(equityFromTrades)} ddSeries={ddSeries} />
         </div>
       </div>
 
