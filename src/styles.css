@@ -41,45 +41,32 @@ h1{margin:0;color:#f1f3f5;font-size:30px;font-weight:700;letter-spacing:.6px}
   letter-spacing:.8px;
   text-transform:uppercase;
   cursor:pointer;
-  transition:all .15s ease;
 }
 .btn:hover{filter:brightness(1.05)}
+.btn:active{transform:translateY(1px)}
 
-/* Cards : anthracite + bordure neutre (plus de doré) */
+/* Panneaux */
 .card{
   background:var(--card);
   border:1px solid var(--card-border);
   border-radius:14px;
-  padding:18px;
-  transition:transform .15s ease, box-shadow .15s ease;
-  box-shadow:0 2px 12px rgba(0,0,0,.25);
+  padding:16px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.02), 0 12px 30px rgba(0,0,0,.35);
 }
-.card:hover{transform:translateY(-1px)}
 
-/* Filtres */
+/* Contrôles */
 .controls{
   display:grid;
-  grid-template-columns:repeat(7,1fr);
+  grid-template-columns:repeat(6,1fr);
   gap:12px;
-  margin:16px 0 18px;
+  margin:12px 0 18px;
 }
-.controls .item label{
-  display:block;color:var(--muted);
-  font-size:12px;margin:0 0 6px 2px;
-  text-transform:lowercase; /* ⇐ titres en minuscule */
+.control{display:flex;flex-direction:column;gap:6px}
+.control label{font-size:12px;color:#d6d9dc}
+.control input[type="date"], .control select{
+  background:#0e0e0e;border:1px solid #2a2a2a;color:#e9ecef;
+  padding:8px 10px;border-radius:10px;outline:none
 }
-select,input[type=date]{
-  width:100%;
-  background:#111;
-  border:1px solid #2a2a2a;
-  color:#e6e6e6;
-  border-radius:10px;
-  padding:10px 12px;
-  font-size:14px;
-  appearance:none; outline:none;
-}
-select:hover,input[type=date]:hover{border-color:#3a3a3a}
-select:focus,input[type=date]:focus{box-shadow:0 0 0 2px rgba(255,255,255,.06)}
 
 /* KPI */
 .kpi{
@@ -100,7 +87,7 @@ select:focus,input[type=date]:focus{box-shadow:0 0 0 2px rgba(255,255,255,.06)}
 .chart-xl{height:560px}
 .chart-card h3{
   margin:0 0 8px;color:#e6eaed; /* titres des graphes en gris clair */
-  font-weight:600;text-transform:lowercase;
+  font-weight:400; text-transform:lowercase; /* <- non gras */
 }
 
 /* Table */
@@ -112,19 +99,14 @@ tbody tr:hover td{background:#191919}
 td.bad{color:var(--bad);font-weight:700}
 
 /* Footer */
-.footer{margin:22px 0 6px;text-align:center;color:#9aa3aa;font-size:12px;border-top:1px solid #1f1f1f;padding-top:12px}
-
-/* Recharts tooltip/legend : bulles neutres, texte clair, sans doré */
-.recharts-default-tooltip{
-  background:#121212!important;border:1px solid #3a3a3a!important;color:#e9ecef!important;
-  border-radius:10px;padding:8px 10px!important;font-size:12px!important;
+.footer{
+  margin-top:20px;color:#8e959b;font-size:12px;text-align:center
 }
-.recharts-legend-item-text{color:#dfe3e6!important;font-size:12px!important}
 
-/* Scrollbar discrète */
-*::-webkit-scrollbar{height:8px;width:8px}
-*::-webkit-scrollbar-track{background:#0b0b0b}
-*::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:10px;border:1px solid #363636}
+/* Scrollbars (discrets) */
+*::-webkit-scrollbar{height:10px;width:10px}
+*::-webkit-scrollbar-track{background:#0d0d0d}
+*::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:10px;border:2px solid #0d0d0d}
 *::-webkit-scrollbar-thumb:hover{background:#333}
 
 /* Helpers */
@@ -139,3 +121,10 @@ td.bad{color:var(--bad);font-weight:700}
 @media (max-width:1100px){ .controls{grid-template-columns:repeat(3,1fr)} }
 @media (max-width:900px){ .grid{grid-template-columns:1fr} .chart-xl{height:460px} }
 @media (max-width:640px){ .controls{grid-template-columns:1fr} .kpi{grid-template-columns:1fr} }
+
+/* AJOUT : Mettre la 1ʳᵉ lettre des titres en majuscule tout en gardant le reste en minuscule */
+.chart-card h3::first-letter,
+.kpi .item h3::first-letter,
+.two-cols h3::first-letter{
+  text-transform: uppercase;
+}
