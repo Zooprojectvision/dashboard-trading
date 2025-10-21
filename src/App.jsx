@@ -8,21 +8,21 @@ export default function App() {
   try {
     /* ---------- Thème ---------- */
     const colors = {
-      bg: "#0b0b0c",
-      text: "#e9ecef",
-      muted: "#bfc5c9",
-      panel: "#151515",
+      bg: "#0a0a0b",
+      text: "#e8ecef",
+      muted: "#b6bcc1",
+      panel: "#141414",
       border: "#242424",
       turq: "#20e3d6",
       turq2: "#18b8ad",
       pink: "#ff5fa2",
       pink2: "#ff7cbf",
       gold: "#c9a44b",
-      axis: "#7a7a7a"
+      axis: "#6e6e6e"
     }
-    const card = { background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 14, padding: 10 }
+    const card = { background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }
 
-    /* ---------- Démo data ---------- */
+    /* ---------- Démo data (open_time + close_time + MFE/MAE) ---------- */
     const ASSETS = ["XAUUSD", "DAX", "US500", "USTEC", "US30"]
     const BROKERS = ["Darwinex", "ICMarkets", "Pepperstone"]
     const STRATS  = ["Strategy 1", "Strategy 2", "Breakout"]
@@ -38,10 +38,22 @@ export default function App() {
           const broker   = BROKERS[(i + k * 2) % BROKERS.length]
           const strategy = STRATS[(i + k * 3) % STRATS.length]
           let pnl = (Math.random() - 0.5) * (Math.random() < 0.15 ? 2500 : 900)
+          pnl = Number(pnl.toFixed(2))
+          const openH = Math.floor(Math.random()*24)
+          const openM = Math.floor(Math.random()*60)
+          const open = new Date(d.getFullYear(), d.getMonth(), d.getDate(), openH, openM)
+          const durMin = 15 + Math.floor(Math.random()* (60*8))    // 15 min à 8 h
+          const close = new Date(open.getTime() + durMin*60*1000)
+          // MFE/MAE démo : proportion du |pnl| avec bruit
+          const mfe = Number((Math.abs(pnl) * (0.8 + Math.random()*0.8)).toFixed(2))
+          const mae = Number((Math.abs(pnl) * (0.6 + Math.random()*0.8)).toFixed(2))
           rows.push({
-            date, asset, broker, strategy,
-            pnl: Number(pnl.toFixed(2)), ccy: 'USD',
-            open_time: new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(Math.random()*24)).toISOString()
+            date,
+            asset, broker, strategy,
+            pnl, ccy: 'USD',
+            open_time: open.toISOString(),
+            close_time: close.toISOString(),
+            mfe, mae
           })
         }
       }
@@ -58,11 +70,9 @@ export default function App() {
     ]
 
     /* ---------- État utilisateur ---------- */
-    // Trades (démo + imports)
     const [userTrades, setUserTrades] = useState([])
     const tradesAll = useMemo(()=> demoTrades.concat(userTrades), [demoTrades, userTrades])
 
-    // Cashflows (démo + ajout manuel)
     const [userCashflows, setUserCashflows] = useState(()=>{
       const raw = localStorage.getItem('zp_cashflows_custom')
       return raw ? JSON.parse(raw) : []
@@ -92,7 +102,6 @@ export default function App() {
     }), [tradesAll, asset, broker, strategy, dateFrom, dateTo])
 
     /* ---------- Devises (USD/EUR/CHF) ---------- */
-    const DISPLAY_CCYS = ['USD','EUR','CHF']
     const [displayCcy, setDisplayCcy] = useState('USD')
     const fxFallback = {
       USD: { USD:1,   EUR:0.93, CHF:0.88 },
@@ -134,7 +143,7 @@ export default function App() {
       } catch { return `${(v??0).toFixed(2)} ${ccy}` }
     }
 
-    /* ---------- Cashflows calcul ---------- */
+    /* ---------- Cashflows ---------- */
     const cashflowsInRange = useMemo(()=>{
       const list = allCashflows.filter(c=>{
         if (dateFrom && c.date < dateFrom) return false
@@ -148,7 +157,7 @@ export default function App() {
     const capitalInitialDisp = useMemo(()=> convert(CAPITAL_INITIAL_USD, 'USD', displayCcy), [displayCcy, rates])
     const capitalBase = useMemo(()=> capitalInitialDisp + cashFlowTotal, [capitalInitialDisp, cashFlowTotal])
 
-    /* ---------- KPI filtres ---------- */
+    /* ---------- KPI principaux ---------- */
     const totalPnlDisp = useMemo(()=> filtered.reduce((s,t)=> s + convert(t.pnl, t.ccy, displayCcy), 0), [filtered, displayCcy, rates])
     const capitalGlobal = useMemo(()=> capitalBase + totalPnlDisp, [capitalBase, totalPnlDisp])
 
@@ -163,17 +172,9 @@ export default function App() {
       return list.length ? list.reduce((a,b)=>a+b,0)/list.length : 0
     })()
     const rr = avgLoss > 0 ? (avgWin / avgLoss) : 0
-    const expectancy = (wr / 100) * rr - (1 - wr / 100)
-    const riskPerTrade = 0.01
-    const riskOfRuin = (() => {
-      const x = expectancy / (rr + 1 || 1)
-      const base = (1 - x) / (1 + x)
-      if (!isFinite(base) || base <= 0) return 0
-      const r = Math.pow(base, 1 / Math.max(1e-6, riskPerTrade))
-      return Math.max(0, Math.min(1, r))
-    })()
+    const expectancy = useMemo(()=> filtered.length ? (totalPnlDisp / filtered.length) : 0, [totalPnlDisp, filtered.length])
 
-    /* ---------- Séries équité ---------- */
+    /* ---------- Séries équité & indicateurs ---------- */
     function groupByDateSumPnlDisp(rows) {
       const m = new Map()
       for (const r of rows) {
@@ -192,7 +193,17 @@ export default function App() {
       })
     }, [pnlByDate, capitalBase])
 
-    // ret journaliers & drawdown relatif
+    // HWM/LWM le long du temps
+    const equitySeriesHL = useMemo(() => {
+      let h = -Infinity, l = Infinity;
+      return equitySeries.map(p => {
+        h = Math.max(h, p.equity);
+        l = Math.min(l, p.equity);
+        return { ...p, hwm: Number(h.toFixed(2)), lwm: Number(l.toFixed(2)) };
+      });
+    }, [equitySeries]);
+
+    // daily returns & stats
     const dailyReturns = useMemo(()=>{
       const out = []
       for (let i=1;i<equitySeries.length;i++){
@@ -201,15 +212,98 @@ export default function App() {
       }
       return out
     }, [equitySeries])
-    const ddSeries = useMemo(()=>{
-      let peak = -Infinity
-      return equitySeries.map(p=>{
-        peak = Math.max(peak, p.equity)
-        return { date:p.date, dd:(p.equity-peak)/peak }
-      })
+    const vol = useMemo(()=> stddev(dailyReturns.map(r=>r.ret)), [dailyReturns])
+
+    const { peakEquity, troughEquity, maxDDAbs } = useMemo(()=>{
+      if (!equitySeries.length) return { peakEquity:0, troughEquity:0, maxDDAbs:0 }
+      let peakSeen = equitySeries[0].equity
+      let maxDrop = 0
+      for (const p of equitySeries) {
+        if (p.equity > peakSeen) peakSeen = p.equity
+        const drop = peakSeen - p.equity
+        if (drop > maxDrop) maxDrop = drop
+      }
+      const pe = Math.max(...equitySeries.map(e=>e.equity))
+      const tr = Math.min(...equitySeries.map(e=>e.equity))
+      return { peakEquity: pe, troughEquity: tr, maxDDAbs: maxDrop }
     }, [equitySeries])
 
-    /* ---------- Histogramme actif & pie ---------- */
+    const recoveryFactor = useMemo(()=>{
+      const profitNet = (equitySeries.at(-1)?.equity || capitalBase) - capitalBase
+      return maxDDAbs > 0 ? profitNet / maxDDAbs : 0
+    }, [equitySeries, capitalBase, maxDDAbs])
+
+    const sharpe = useMemo(()=>{
+      const rets = dailyReturns.map(r=>r.ret)
+      const mu = mean(rets), sd = stddev(rets)
+      return sd>0 ? (mu/sd)*Math.sqrt(252) : 0
+    }, [dailyReturns])
+    const sortino = useMemo(()=>{
+      const rets = dailyReturns.map(r=>r.ret)
+      const mu = mean(rets), neg = rets.filter(r=>r<0), sdDown = stddev(neg)
+      return sdDown>0 ? (mu/sdDown)*Math.sqrt(252) : 0
+    }, [dailyReturns])
+
+    const avgTradeDurationMin = useMemo(()=>{
+      const mins = filtered.map(t=>{
+        const o = t.open_time ? new Date(t.open_time).getTime() : NaN
+        const c = t.close_time ? new Date(t.close_time).getTime() : NaN
+        if (!isFinite(o) || !isFinite(c)) return null
+        return (c - o) / 60000
+      }).filter(v=>v!=null)
+      return mins.length ? mean(mins) : 0
+    }, [filtered])
+    const activeDays = useMemo(()=> new Set(filtered.map(t=>t.date)).size, [filtered])
+
+    const avgStrategyCorr = useMemo(()=>{
+      const byDayByStrat = new Map()
+      for(const t of filtered){
+        const d = t.date
+        if (!byDayByStrat.has(d)) byDayByStrat.set(d, new Map())
+        const m = byDayByStrat.get(d)
+        m.set(t.strategy, (m.get(t.strategy)||0) + convert(t.pnl, t.ccy, displayCcy))
+      }
+      const stratSet = new Set()
+      for(const m of byDayByStrat.values()) for(const k of m.keys()) stratSet.add(k)
+      const strats = Array.from(stratSet)
+      if (strats.length < 2) return 0
+      const series = {}; for(const s of strats) series[s] = []
+      const dates = Array.from(byDayByStrat.keys()).sort()
+      for(const d of dates){
+        const m = byDayByStrat.get(d)
+        for(const s of strats) series[s].push(m.get(s) ?? 0)
+      }
+      const pairCorr = []
+      for(let i=0;i<strats.length;i++){
+        for(let j=i+1;j<strats.length;j++){
+          pairCorr.push(pearson(series[strats[i]], series[strats[j]]))
+        }
+      }
+      return mean(pairCorr.filter(x=>isFinite(x)))
+    }, [filtered, displayCcy, rates])
+
+    /* ---------- MFE/MAE — séries quotidiennes & cumul ---------- */
+    const mfeMaeDaily = useMemo(()=>{
+      // groupe par date: moyenne MFE & MAE (converties)
+      const map = new Map()
+      for(const t of filtered){
+        const d = t.date
+        const mfe = convert(t.mfe ?? 0, t.ccy || 'USD', displayCcy)
+        const mae = convert(t.mae ?? 0, t.ccy || 'USD', displayCcy)
+        if(!map.has(d)) map.set(d, { date:d, sMFE:0, sMAE:0, n:0 })
+        const x = map.get(d); x.sMFE += Math.max(0, mfe); x.sMAE += Math.max(0, mae); x.n++
+      }
+      const arr = Array.from(map.values()).sort((a,b)=>a.date.localeCompare(b.date))
+      let cumM=0, cumA=0
+      return arr.map(r=>{
+        const avgMFE = r.n? r.sMFE/r.n : 0
+        const avgMAE = r.n? r.sMAE/r.n : 0
+        cumM += r.sMFE; cumA += r.sMAE
+        return { date:r.date, avgMFE:Number(avgMFE.toFixed(2)), avgMAE:Number(avgMAE.toFixed(2)), cumMFE:Number(cumM.toFixed(2)), cumMAE:Number(cumA.toFixed(2)) }
+      })
+    }, [filtered, displayCcy, rates])
+
+    /* ---------- Histogramme & Pie ---------- */
     function groupByNameSumDisp(rows, key) {
       const m = new Map()
       for (const r of rows) m.set(r[key], (m.get(r[key]) || 0) + convert(r.pnl, r.ccy, displayCcy))
@@ -230,8 +324,13 @@ export default function App() {
 
     /* ---------- Export CSV ---------- */
     const exportCSV = () => {
-      const header = ['date','asset','broker','strategy',`pnl_${displayCcy}`]
-      const rows = filtered.map(t => [t.date, t.asset, t.broker, t.strategy, convert(t.pnl, t.ccy, displayCcy).toFixed(2)])
+      const header = ['date','asset','broker','strategy',`pnl_${displayCcy}`,`mfe_${displayCcy}`,`mae_${displayCcy}`]
+      const rows = filtered.map(t => [
+        t.date, t.asset, t.broker, t.strategy,
+        convert(t.pnl, t.ccy, displayCcy).toFixed(2),
+        convert(t.mfe??0, t.ccy, displayCcy).toFixed(2),
+        convert(t.mae??0, t.ccy, displayCcy).toFixed(2),
+      ])
       const csv = [header, ...rows].map(r => r.join(',')).join('\n')
       const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'})
       const url = URL.createObjectURL(blob)
@@ -254,16 +353,24 @@ export default function App() {
       return rows
     }
     function mapMT5Rows(rows){
-      // essaie plusieurs en-têtes MT5 fréquents
-      // Exemple colonnes: "Time","Symbol","Type","Volume","Price","S/L","T/P","Time","Price","Commission","Taxes","Swap","Profit"
-      return rows.map((r,i)=>{
+      // tente plusieurs noms de colonnes possibles pour MFE/MAE
+      return rows.map((r)=>{
         const date = (r['Time'] || r['Open time'] || r['Open Time'] || r['Date'] || '').slice(0,10)
         const asset = r['Symbol'] || r['Instrument'] || r['Symbol name'] || 'UNKNOWN'
         const broker = r['Broker'] || 'Unknown'
         const strategy = r['Strategy'] || 'Unknown'
         const pnl = Number(r['Profit'] || r['PnL'] || r['PL'] || r['Net P/L'] || 0)
         const openTime = r['Time'] || r['Open time'] || r['Open Time'] || ''
-        return { date, asset, broker, strategy, pnl: Number(pnl.toFixed(2)), ccy:'USD', open_time: openTime }
+        const closeTime = r['Close time'] || r['Close Time'] || ''
+        const mfeRaw = Number(r['MFE'] || r['MFE Profit'] || r['Max Favorable Excursion'] || 0)
+        const maeRaw = Number(r['MAE'] || r['MAE Profit'] || r['Max Adverse Excursion'] || 0)
+        return {
+          date, asset, broker, strategy,
+          pnl: Number((pnl||0).toFixed(2)), ccy:'USD',
+          open_time: openTime, close_time: closeTime,
+          mfe: Number((Math.abs(mfeRaw)||0).toFixed(2)),
+          mae: Number((Math.abs(maeRaw)||0).toFixed(2)),
+        }
       }).filter(r=>r.date)
     }
 
@@ -296,20 +403,17 @@ export default function App() {
       setFlow({ date: new Date().toISOString().slice(0,10), type:'darwin_mgmt_fee', amount:'', ccy: displayCcy, note:'' })
     }
 
-    /* ---------- Alertes & clochette ---------- */
+    /* ---------- Alertes (comme avant) ---------- */
     const [showAlerts, setShowAlerts] = useState(false)
-    // seuils — trade >1% du total, créneau horaire avec >=80% pertes si >=10 trades sur 30j récents
     const TOTAL_REF = Math.max(1, capitalGlobal)
     const onePctThreshold = TOTAL_REF * 0.01
     const recentCutoff = useMemo(()=>{ const d=new Date(); d.setDate(d.getDate()-30); return d.toISOString().slice(0,10) },[])
     const recentTrades = useMemo(()=> filtered.filter(t=>t.date>=recentCutoff), [filtered, recentCutoff])
-
     const alertsTrades = useMemo(()=>{
       return filtered
         .filter(t => Math.abs(convert(t.pnl, t.ccy, displayCcy)) > onePctThreshold)
         .map(t => ({ date:t.date, asset:t.asset, pnl: convert(t.pnl, t.ccy, displayCcy)}))
     }, [filtered, onePctThreshold, displayCcy, rates])
-
     const alertsHours = useMemo(()=>{
       const byHour = new Map()
       for(const t of recentTrades){
@@ -326,39 +430,20 @@ export default function App() {
       }
       return out.sort((a,b)=>b.lossRate - a.lossRate)
     }, [recentTrades])
-
     const alertsCount = (alertsTrades?.length||0) + (alertsHours?.length||0)
-    const buildAlertText = ()=>{
-      const lines=[]
-      lines.push(`ZooProjectVision — Alertes (${new Date().toLocaleString()})`)
-      if(!alertsCount){ lines.push('Aucune alerte active.'); return lines.join('\n') }
-      if(alertsTrades.length){
-        lines.push('• Trades > 1% :')
-        alertsTrades.forEach(a=> lines.push(`  - ${a.date} ${a.asset} ${fmt(a.pnl)}`))
-      }
-      if(alertsHours.length){
-        lines.push('• Heures faibles (30j) :')
-        alertsHours.forEach(a=> lines.push(`  - ${a.hour} — ${(a.lossRate*100).toFixed(0)}% pertes (${a.n} trades)`))
-      }
-      return lines.join('\n')
-    }
 
-    /* ---------- Calendrier (perf% / DD%) ---------- */
+    /* ---------- Calendrier ---------- */
     const lastDate = equitySeries.at(-1)?.date || new Date().toISOString().slice(0,10)
     const [calYear, setCalYear] = useState(Number(lastDate.slice(0,4)))
     const [calMonth, setCalMonth] = useState(Number(lastDate.slice(5,7))-1)
     function monthDays(year, monthIndex){
       const end = new Date(year, monthIndex+1, 0).getDate()
       const arr=[]
-      for(let d=1; d<=end; d++){
-        const dt = new Date(year, monthIndex, d).toISOString().slice(0,10)
-        arr.push(dt)
-      }
+      for (let d=1; d<=end; d++) arr.push(new Date(year, monthIndex, d).toISOString().slice(0,10))
       return arr
     }
     const calDates = useMemo(()=> monthDays(calYear, calMonth), [calYear, calMonth])
-    const retMap = useMemo(()=>{ const m=new Map(); dailyReturns.forEach(r=>m.set(r.date,r.ret)); return m }, [dailyReturns])
-    // dd du MOIS courant (par rapport au pic du mois)
+    const dailyRetMap = useMemo(()=>{ const m=new Map(); dailyReturns.forEach(r=>m.set(r.date,r.ret)); return m }, [dailyReturns])
     const monthDDMap = useMemo(()=>{
       const ym = `${calYear}-${String(calMonth+1).padStart(2,'0')}`
       const pts = equitySeries.filter(p=>p.date.startsWith(ym))
@@ -366,7 +451,6 @@ export default function App() {
       for(const p of pts){ peak=Math.max(peak, p.equity); m.set(p.date, (p.equity-peak)/peak) }
       return m
     }, [equitySeries, calYear, calMonth])
-
     const monthLabel = useMemo(()=>{
       const dt = new Date(calYear, calMonth, 1)
       return dt.toLocaleDateString(undefined,{month:'long', year:'numeric'})
@@ -374,11 +458,11 @@ export default function App() {
 
     /* ---------- Render ---------- */
     return (
-      <div style={{ minHeight: "100vh", background: colors.bg, color: colors.text, fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif", padding: 16 }}>
+      <div style={{ minHeight: "100vh", background: colors.bg, color: colors.text, fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif", padding: 20, maxWidth: 1540, margin: "0 auto" }}>
         {/* HEADER */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 12 }}>
           <div>
-            <h1 style={{ color: colors.turq, fontWeight: 400, margin: 0, fontSize: 22 }}>ZooProjectVision</h1>
+            <h1 style={{ color: colors.turq, fontWeight: 400, margin: 0, fontSize: 26 }}>ZooProject</h1>
             <p style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>Dashboard de performance trading — multi-actifs, multi-brokers, multi-stratégies</p>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: 'wrap', alignItems:'center' }}>
@@ -391,37 +475,45 @@ export default function App() {
                   fr.onload=()=>{
                     const rows=parseCSV(String(fr.result));
                     const mapped=mapMT5Rows(rows);
-                    if(!mapped.length){ alert('CSV non reconnu. Vérifie les colonnes Time/Symbol/Profit.'); return }
+                    if(!mapped.length){ alert('CSV non reconnu. Vérifie Time/Symbol/Profit (+ MFE/MAE si dispo).'); return }
                     setUserTrades(prev=>prev.concat(mapped));
                   };
                   fr.readAsText(f);
                 }}/>
             </label>
-
-            <button style={btn(colors)} onClick={()=>window.location.reload()}>actualiser</button>
-            <button style={btn(colors)} onClick={resetFilters}>réinitialiser filtres</button>
-            <button style={btn(colors)} onClick={()=>setShowForm(true)}>ajouter flux</button>
-            <button style={btn(colors)} onClick={exportCSV}>export csv</button>
+            <button
+              style={btn(colors)}
+              onClick={() => window.location.reload()}
+              onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
+              onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
+            >actualiser</button>
+            <button
+              style={btn(colors)}
+              onClick={resetFilters}
+              onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
+              onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
+            >réinitialiser filtres</button>
+            <button
+              style={btn(colors)}
+              onClick={()=>setShowForm(true)}
+              onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
+              onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
+            >ajouter flux</button>
+            <button
+              style={btn(colors)}
+              onClick={exportCSV}
+              onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
+              onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
+            >export csv</button>
 
             <button onClick={()=>setShowAlerts(s=>!s)} style={{ position:'relative', border:`1px solid ${colors.border}`, background:colors.panel, color:colors.text, padding:'6px 10px', borderRadius:10 }}>
-              🔔
-              {alertsCount>0 && (
-                <span style={{ position:'absolute', top:-6, right:-6, background:colors.pink, color:'#111', fontSize:10, padding:'2px 6px', borderRadius:999 }}>{alertsCount}</span>
-              )}
+              🔔{ (alertsCount>0) && (<span style={{ position:'absolute', top:-6, right:-6, background:colors.pink, color:'#111', fontSize:10, padding:'2px 6px', borderRadius:999 }}>{alertsCount}</span>) }
             </button>
-            <button style={btn(colors)} onClick={async ()=>{
-              try{
-                const text = buildAlertText()
-                const res = await fetch('/api/notify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ channel:'whatsapp', message: text }) })
-                if(!res.ok) throw new Error('notify failed')
-                alert('Alertes envoyées sur WhatsApp ✅')
-              }catch(e){ alert('WhatsApp indisponible (config requise).') }
-            }}>envoyer whatsapp</button>
           </div>
         </div>
 
-        {/* FILTRES */}
-        <div style={{ ...card, display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 10 }}>
+        {/* FILTRES (compteurs supprimés) */}
+        <div style={{ ...card, display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10 }}>
           <div><div style={label(colors)}>Actif</div>
             <select value={asset} onChange={e => setAsset(e.target.value)} style={sel(colors)}><option>All</option>{assets.map(a => <option key={a} value={a}>{a}</option>)}</select>
           </div>
@@ -436,11 +528,10 @@ export default function App() {
           <div><div style={label(colors)}>Devise</div>
             <select value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)} style={sel(colors)}>{['USD','EUR','CHF'].map(c=><option key={c}>{c}</option>)}</select>
           </div>
-          <div style={{ display:'flex', alignItems:'end', color: colors.muted, fontSize: 12 }}>{filtered.length} trades</div>
-          <div style={{ display:'flex', alignItems:'end', color: colors.muted, fontSize: 12 }}>base: {fmt(capitalBase)}</div>
+          <div />
         </div>
 
-        {/* KPI */}
+        {/* KPI Principaux */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginTop: 12 }}>
           <div style={card}><h3 style={kpiTitle(colors)}>Capital initial</h3><div style={{ fontSize: 18 }}>{fmt(capitalInitialDisp)}</div></div>
           <div style={card}><h3 style={kpiTitle(colors)}>Cash flow</h3><div style={{ fontSize: 18, color: cashFlowTotal >= 0 ? colors.turq : colors.pink }}>{fmt(cashFlowTotal)}</div></div>
@@ -448,31 +539,81 @@ export default function App() {
           <div style={card}><h3 style={kpiTitle(colors)}>Capital global</h3><div style={{ fontSize: 18 }}>{fmt(capitalGlobal)}</div></div>
         </div>
 
-        {/* KPI secondaires */}
+        {/* KPI Secondaires */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 12 }}>
           <div style={card}><h3 style={kpiTitle(colors)}>Win Rate / RR</h3><div style={{ fontSize: 16 }}>{wr.toFixed(2)}% / {rr.toFixed(2)}</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Risque ruine</h3><div style={{ fontSize: 16, color: colors.pink }}>{(riskOfRuin * 100).toFixed(2)}%</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Risque ruine</h3><div style={{ fontSize: 16, color: colors.pink }}>{(riskOfRuin(wr, rr)*100).toFixed(2)}%</div></div>
           <div style={card}><h3 style={kpiTitle(colors)}>Trades</h3><div style={{ fontSize: 16 }}>{filtered.length}</div></div>
         </div>
 
-        {/* Courbe d'équité */}
-        <div style={{ ...card, height: 360, marginTop: 16 }}>
-          <h3 style={kpiTitle(colors)}>Courbe d’équité</h3>
+        {/* KPI Avancés */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginTop: 12 }}>
+          <div style={card}><h3 style={kpiTitle(colors)}>Expectancy (par trade)</h3><div style={{ fontSize: 16, color: expectancy>=0?colors.turq:colors.pink }}>{fmt(expectancy)}</div><div style={{ fontSize: 12, color: colors.muted }}>Moyenne PnL/trade</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Recovery factor</h3><div style={{ fontSize: 16 }}>{recoveryFactor.toFixed(2)}</div><div style={{ fontSize: 12, color: colors.muted }}>Profit net / |Max DD|</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Sharpe / Sortino</h3><div style={{ fontSize: 16 }}>{sharpe.toFixed(2)} / {sortino.toFixed(2)}</div><div style={{ fontSize: 12, color: colors.muted }}>Rdt journaliers (annualisés)</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Volatilité résultats</h3><div style={{ fontSize: 16 }}>{(vol*100).toFixed(2)}%</div><div style={{ fontSize: 12, color: colors.muted }}>Écart-type des ret. journaliers</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Equity peak / trough</h3><div style={{ fontSize: 16 }}>{fmt(peakEquity)} / {fmt(troughEquity)}</div><div style={{ fontSize: 12, color: colors.muted }}>Plus haut / plus bas</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Durée moyenne</h3><div style={{ fontSize: 16 }}>{avgTradeDurationMin.toFixed(0)} min</div><div style={{ fontSize: 12, color: colors.muted }}>Ouverture → clôture</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Jours actifs</h3><div style={{ fontSize: 16 }}>{activeDays}</div><div style={{ fontSize: 12, color: colors.muted }}>≥1 trade/jour</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Corrélation stratégies</h3><div style={{ fontSize: 16 }}>{(avgStrategyCorr||0).toFixed(2)}</div><div style={{ fontSize: 12, color: colors.muted }}>Moyenne paires</div></div>
+        </div>
+
+        {/* Courbe d'équité + HWM/LWM */}
+        <div style={{ ...card, height: 420, marginTop: 16 }}>
+          <h3 style={kpiTitle(colors)}>Courbe d’équité (avec HWM/LWM)</h3>
           <ResponsiveContainer width="100%" height="88%">
-            <LineChart data={equitySeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+            <LineChart data={equitySeriesHL} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+              <CartesianGrid stroke="#2b2b2b" />
+              <XAxis dataKey="date" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
+              <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} tickFormatter={(v)=>v.toFixed(0)} />
+              <Tooltip contentStyle={{ background: colors.panel, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 10 }} itemStyle={{ color: colors.text }} labelStyle={{ color: colors.text }} />
+              <Legend wrapperStyle={{ fontSize: 12, color: colors.text }} />
+              <Line type="monotone" dataKey="equity" name="Équité" dot={false} stroke="#ffffff" strokeWidth={2.8} isAnimationActive={false} />
+              <Line type="monotone" dataKey="hwm" name="Plus haut (HWM)" dot={false} stroke={colors.turq} strokeWidth={1.8} strokeDasharray="4 3" />
+              <Line type="monotone" dataKey="lwm" name="Plus bas (LWM)" dot={false} stroke={colors.pink} strokeWidth={1.4} strokeDasharray="4 3" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* MFE/MAE — quotidien (moyenne) */}
+        <div style={{ ...card, height: 360, marginTop: 16 }}>
+          <h3 style={kpiTitle(colors)}>MFE (potentiel) vs MAE (risque) — quotidien</h3>
+          <ResponsiveContainer width="100%" height="88%">
+            <LineChart data={mfeMaeDaily} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid stroke="#2b2b2b" />
               <XAxis dataKey="date" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
               <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} tickFormatter={(v)=>v.toFixed(0)} />
               <Tooltip contentStyle={{ background: colors.panel, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 10 }}
-                       itemStyle={{ color: colors.text }} labelStyle={{ color: colors.text }} />
+                       itemStyle={{ color: colors.text }} labelStyle={{ color: colors.text }}
+                       formatter={(v, n)=>[fmt(v), n === 'avgMFE' ? 'MFE moyen' : 'MAE moyen (visu +)']} />
               <Legend wrapperStyle={{ fontSize: 12, color: colors.text }} />
-              <Line type="monotone" dataKey="equity" name="Équité" dot={false} stroke="#ffffff" strokeWidth={2.6} isAnimationActive={false} />
+              <Line type="monotone" dataKey="avgMFE" name="MFE moyen" dot={false} stroke={colors.turq} strokeWidth={2} />
+              {/* MAE affiché en valeur positive mais à interpréter "risque" */}
+              <Line type="monotone" dataKey="avgMAE" name="MAE moyen" dot={false} stroke={colors.pink} strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* MFE/MAE — cumul */}
+        <div style={{ ...card, height: 360, marginTop: 16 }}>
+          <h3 style={kpiTitle(colors)}>Cumul MFE vs MAE</h3>
+          <ResponsiveContainer width="100%" height="88%">
+            <LineChart data={mfeMaeDaily} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+              <CartesianGrid stroke="#2b2b2b" />
+              <XAxis dataKey="date" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
+              <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} tickFormatter={(v)=>v.toFixed(0)} />
+              <Tooltip contentStyle={{ background: colors.panel, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 10 }}
+                       itemStyle={{ color: colors.text }} labelStyle={{ color: colors.text }}
+                       formatter={(v, n)=>[fmt(v), n === 'cumMFE' ? 'Cumul MFE' : 'Cumul MAE']} />
+              <Legend wrapperStyle={{ fontSize: 12, color: colors.text }} />
+              <Line type="monotone" dataKey="cumMFE" name="Cumul MFE" dot={false} stroke={colors.turq} strokeWidth={2.2} />
+              <Line type="monotone" dataKey="cumMAE" name="Cumul MAE" dot={false} stroke={colors.pink} strokeWidth={2.2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
         {/* Histogramme par actif */}
-        <div style={{ ...card, height: 320, marginTop: 16 }}>
+        <div style={{ ...card, height: 360, marginTop: 16 }}>
           <h3 style={kpiTitle(colors)}>Gain / Perte par actif</h3>
           <ResponsiveContainer width="100%" height="88%">
             <BarChart data={pnlByAsset} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
@@ -497,7 +638,7 @@ export default function App() {
         </div>
 
         {/* Répartition PnL */}
-        <div style={{ ...card, height: 320, marginTop: 16 }}>
+        <div style={{ ...card, height: 360, marginTop: 16 }}>
           <h3 style={kpiTitle(colors)}>Répartition PnL</h3>
           <ResponsiveContainer width="100%" height="88%">
             <PieChart>
@@ -523,13 +664,23 @@ export default function App() {
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
             <h3 style={kpiTitle(colors)}>Calendrier — {monthLabel}</h3>
             <div style={{ display:'flex', gap:8 }}>
-              <button style={btn(colors)} onClick={()=>{ let m=calMonth-1, y=calYear; if(m<0){m=11;y--} setCalMonth(m); setCalYear(y) }}>◀</button>
-              <button style={btn(colors)} onClick={()=>{ let m=calMonth+1, y=calYear; if(m>11){m=0;y++} setCalMonth(m); setCalYear(y) }}>▶</button>
+              <button
+                style={btn(colors)}
+                onClick={()=>{ let m=calMonth-1, y=calYear; if(m<0){m=11;y--} setCalMonth(m); setCalYear(y) }}
+                onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
+                onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
+              >◀</button>
+              <button
+                style={btn(colors)}
+                onClick={()=>{ let m=calMonth+1, y=calYear; if(m>11){m=0;y++} setCalMonth(m); setCalYear(y) }}
+                onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
+                onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
+              >▶</button>
             </div>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:8 }}>
             {['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=><div key={d} style={{textAlign:'center', color:colors.muted, fontSize:12}}>{d}</div>)}
-            {calendarCells(calDates, retMap, monthDDMap, colors)}
+            {calendarCells(calDates, dailyRetMap, monthDDMap, colors)}
           </div>
         </div>
 
@@ -537,8 +688,8 @@ export default function App() {
         {showAlerts && (
           <div style={{ ...card, marginTop: 16 }}>
             <h3 style={kpiTitle(colors)}>Centre d’alertes</h3>
-            {!alertsCount && <div style={{fontSize:12, color:colors.muted}}>Aucune alerte active.</div>}
-            {!!alertsTrades.length && (
+            {(!alertsCount) && <div style={{fontSize:12, color:colors.muted}}>Aucune alerte active.</div>}
+            {(alertsTrades.length>0) && (
               <>
                 <div style={{marginTop:6, fontSize:12, color:colors.muted}}>Trades &gt; 1% du capital</div>
                 {alertsTrades.map((a,i)=>(
@@ -548,7 +699,7 @@ export default function App() {
                 ))}
               </>
             )}
-            {!!alertsHours.length && (
+            {(alertsHours.length>0) && (
               <>
                 <div style={{marginTop:6, fontSize:12, color:colors.muted}}>Créneaux horaires faibles (30j)</div>
                 {alertsHours.map((a,i)=>(
@@ -558,19 +709,12 @@ export default function App() {
                 ))}
               </>
             )}
-            <div style={{display:'flex', gap:8, marginTop:8}}>
-              <button style={btn(colors)} onClick={()=>{
-                const text = buildAlertText();
-                navigator.clipboard.writeText(text).then(()=>alert('Résumé copié ✅')).catch(()=>{})
-              }}>copier le résumé</button>
-              <a style={btn(colors)} href={`mailto:?subject=Alertes%20ZooProjectVision&body=${encodeURIComponent(buildAlertText())}`} target="_blank" rel="noreferrer">envoyer par email</a>
-            </div>
           </div>
         )}
 
         {/* FOOTER */}
         <div style={{ textAlign: "center", color: colors.muted, fontSize: 12, marginTop: 20 }}>
-          ZooProjectVision © {new Date().getFullYear()}
+          ZooProject © {new Date().getFullYear()}
         </div>
 
         {/* MODAL — Ajouter flux */}
@@ -608,9 +752,6 @@ export default function App() {
                   <button type="submit" style={btn(colors)}>enregistrer</button>
                 </div>
               </form>
-              <div style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
-                Types : <em>darwin_mgmt_fee</em>, <em>prop_payout</em>, <em>prop_fee</em>, <em>deposit</em>, <em>withdrawal</em>, <em>business_expense</em>, <em>other_income</em>.
-              </div>
             </div>
           </div>
         )}
@@ -622,20 +763,52 @@ export default function App() {
   }
 }
 
+/* ---------- helpers math ---------- */
+function mean(a){ if(!a.length) return 0; return a.reduce((x,y)=>x+y,0)/a.length }
+function stddev(a){
+  if(!a.length) return 0
+  const m = mean(a)
+  const v = mean(a.map(x => (x-m)*(x-m)))
+  return Math.sqrt(v)
+}
+function pearson(a,b){
+  const n = Math.min(a.length, b.length)
+  if(n===0) return 0
+  const ax = a.slice(0,n), bx = b.slice(0,n)
+  const ma = mean(ax), mb = mean(bx)
+  let num=0, da=0, db=0
+  for(let i=0;i<n;i++){
+    const x=ax[i]-ma, y=bx[i]-mb
+    num += x*y; da += x*x; db += y*y
+  }
+  const den = Math.sqrt(da*db)
+  return den>0 ? num/den : 0
+}
+function riskOfRuin(wrPct, rr){
+  const wr = wrPct/100
+  const expectancy = wr*rr - (1-wr)
+  const x = expectancy / (rr + 1 || 1)
+  const base = (1 - x) / (1 + x)
+  if (!isFinite(base) || base <= 0) return 0
+  const riskPerTrade = 0.01
+  const r = Math.pow(base, 1 / Math.max(1e-6, riskPerTrade))
+  return Math.max(0, Math.min(1, r))
+}
+
 /* ---------- helpers UI ---------- */
 function btn(colors, isLabel){
   return {
     position: isLabel?'relative':'static',
     border:`1px solid ${colors.gold}`, background:'transparent', color:colors.text,
-    padding:'8px 12px', borderRadius:10, cursor:'pointer', fontSize:12
+    padding:'8px 12px', borderRadius:10, cursor:'pointer', fontSize:12, transition:'background 160ms ease'
   }
 }
 function btnGhost(colors){ return { border:`1px solid ${colors.border}`, background:'transparent', color:colors.text, padding:'8px 12px', borderRadius:10, cursor:'pointer', fontSize:12 } }
 function label(colors){ return { color: colors.text, fontSize: 12, marginBottom: 4, fontWeight: 400 } }
 function sel(colors){ return { width:'100%', padding:'8px 10px', fontSize:12, color:colors.text, background:'#0f0f10', border:`1px solid ${colors.border}`, borderRadius:10, outline:'none' } }
-function kpiTitle(colors){ return { fontWeight: 400, color: colors.text, margin: "0 0 6px", fontSize: 13 } }
+function kpiTitle(colors){ return { fontWeight: 400, color: colors.text, margin: "0 0 8px", fontSize: 13, letterSpacing: 0.2 } }
 function modalOverlay(){ return { position:'fixed', inset:0, background:'rgba(0,0,0,.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 } }
-function modalCard(colors){ return { width:'min(720px, 100%)', background:colors.panel, border:`1px solid ${colors.border}`, borderRadius:14, padding:12 } }
+function modalCard(colors){ return { width:'min(720px, 100%)', background:colors.panel, border:`1px solid ${colors.border}`, borderRadius:16, padding:12 } }
 function formLabel(){ return { display:'flex', flexDirection:'column', gap:6, fontSize:12 } }
 function rowKV(colors){ return { display:'flex', justifyContent:'space-between', alignItems:'center', border:`1px solid ${colors.border}`, borderRadius:10, padding:'8px 10px', margin:'6px 0', fontSize:12 } }
 
