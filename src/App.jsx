@@ -130,10 +130,10 @@ function monthDays(year, monthIndex){
   return days;
 }
 function colorForRet(ret){
-  // Palette sombre : turquoise/rose "stabilo" sur fond noir
-  if(ret == null) return 'background:#0a0a0a;border:1px solid #191919;';
+  // Palette sombre : turquoise/rose sur fond noir
+  if(ret == null) return 'background:#121212;border:1px solid #1f1f1f;';
   const mag = Math.min(1, Math.abs(ret)*10);
-  if(ret >= 0) return `background: rgba(32,227,214,${0.10+0.25*mag}); border:1px solid rgba(32,227,214,.35);`;
+  if(ret >= 0) return `background: rgba(32,227,214,${0.10+0.25*mag}); border:1px solid rgba(90,170,170,.35);`;
   return `background: rgba(255,95,162,${0.10+0.25*mag}); border:1px solid rgba(255,95,162,.35);`;
 }
 function inlineStyle(cssText){
@@ -160,15 +160,13 @@ function splitSymbolsByShare(trades, threshold = 0.10) {
   return { major, minor, share };
 }
 
-/** Multi-courbes par actif (base 10'000) + regroupement "Autres" + courbe globale
- *  convertFn: (value, from, to) => number
- */
+/** Multi-courbes par actif (base 10'000) + regroupement "Autres" + courbe globale */
 function buildSymbolEquitiesGrouped(dates, trades, displayCcy, majorSet, dateToGlobal, convertFn, othersLabel = 'Autres') {
   const symbols = Array.from(new Set(trades.map(t=>t.symbol))).sort();
   const base = 10000;
 
   // agrège PnL par date & symbole (converti)
-  const byDay = new Map(); // key: date__symbol -> pnl
+  const byDay = new Map();
   for (const t of trades) {
     const k = `${t.date}__${t.symbol}`;
     const v = convertFn(t.pnl, t.instrument_ccy || 'USD', displayCcy);
@@ -209,7 +207,7 @@ function buildSymbolEquitiesGrouped(dates, trades, displayCcy, majorSet, dateToG
 function ddRecoveryStats(eq){
   let peak = -Infinity;
   let underwaterStart = null;
-  const recTimes = []; // en jours
+  const recTimes = [];
   for(let i=0;i<eq.length;i++){
     const v = eq[i].equity;
     if (v > peak) {
@@ -231,8 +229,12 @@ function ddRecoveryStats(eq){
  *   Composant principal
  *   ========================= */
 export default function App(){
-  const [equity] = useState(demoEquity)
-  const [trades] = useState(demoTrades)
+  // === Import CSV (optionnel) : placeholders si tu veux connecter tes fichiers ===
+  const [userTrades, setUserTrades] = useState(null);
+  const [userCashflows, setUserCashflows] = useState(null);
+
+  const tradesSource = userTrades ?? demoTrades;
+  const cashflows = userCashflows ?? demoCashflows;
 
   // Filtres (sans filtre PnL)
   const [account, setAccount] = useState('ALL')
@@ -243,9 +245,9 @@ export default function App(){
   const [displayCcy, setDisplayCcy] = useState('USD')
   const [minShare, setMinShare] = useState(10) // seuil pour regroupement "Autres"
 
-  const accounts = useMemo(()=>Array.from(new Set(trades.map(t=>t.account))),[trades])
-  const brokers  = useMemo(()=>Array.from(new Set(trades.map(t=>t.broker || ''))).filter(Boolean),[trades])
-  const strategies = useMemo(()=>Array.from(new Set(trades.map(t=>t.strategy))),[trades])
+  const accounts = useMemo(()=>Array.from(new Set(tradesSource.map(t=>t.account))),[tradesSource])
+  const brokers  = useMemo(()=>Array.from(new Set(tradesSource.map(t=>t.broker || ''))).filter(Boolean),[tradesSource])
+  const strategies = useMemo(()=>Array.from(new Set(tradesSource.map(t=>t.strategy))),[tradesSource])
 
   // === FX live (exchangerate.host) avec cache local 24h ===
   const [liveFx, setLiveFx] = useState(null)
@@ -278,18 +280,18 @@ export default function App(){
   }, [liveFx]);
 
   // Filtre trades (sans PnL)
-  const filteredTrades = useMemo(()=>trades.filter(t=>{
+  const filteredTrades = useMemo(()=>tradesSource.filter(t=>{
     if(account!=='ALL' && t.account!==account) return false
     if(broker!=='ALL' && t.broker!==broker) return false
     if(strategy!=='ALL' && t.strategy!==strategy) return false
     if(dateFrom && t.date < dateFrom) return false
     if(dateTo && t.date > dateTo) return false
     return true
-  }),[trades,account,broker,strategy,dateFrom,dateTo])
+  }),[tradesSource,account,broker,strategy,dateFrom,dateTo])
 
   // Équité filtrée + conversion (courbe globale)
   const equityFiltered = useMemo(()=>{
-    return equity.filter(p=>{
+    return demoEquity.filter(p=>{
       if(dateFrom && p.date < dateFrom) return false
       if(dateTo && p.date > dateTo) return false
       return true
@@ -298,7 +300,7 @@ export default function App(){
       equity: convert(p.equity, p.account_ccy || 'USD', displayCcy),
       account_ccy: displayCcy
     }))
-  },[equity, dateFrom, dateTo, displayCcy, convert])
+  },[dateFrom, dateTo, displayCcy, convert])
 
   // Séries dérivées
   const returns = useMemo(()=>dailyReturns(equityFiltered),[equityFiltered])
@@ -342,10 +344,10 @@ export default function App(){
     [allDates, filteredTrades, displayCcy, majorSet, dateToGlobal, othersLabel, convert]
   )
 
-  // Couleurs pour lignes d'actifs (sur noir)
+  // Couleurs pour lignes d'actifs
   const lineColors = ['#20e3d6','#5aa9ff','#ffd166','#c792ea','#7bd88f','#ff8a65','#9bb6ff','#f472b6','#8bd3dd']
 
-  // Répartition des actifs (≥ seuil + "Autres")
+  // Répartition des actifs
   const assetSplit = useMemo(() => {
     const counts = new Map();
     filteredTrades.forEach(t => counts.set(t.symbol, (counts.get(t.symbol)||0)+1));
@@ -408,9 +410,9 @@ export default function App(){
   },[filteredTrades, displayCcy, convert])
 
   // ==== Capital (initial + cashflows + PnL réalisé) ====
-  const cashflowsDisp = useMemo(()=>demoCashflows.map(c => ({
+  const cashflowsDisp = useMemo(()=>cashflows.map(c => ({
     ...c, amount_disp: convert(c.amount, c.ccy || 'USD', displayCcy)
-  })),[displayCcy, convert]);
+  })),[cashflows, displayCcy, convert]);
 
   const totalCashflows = useMemo(
     () => cashflowsDisp.reduce((a,c)=>a+(c.amount_disp||0),0),
@@ -500,7 +502,7 @@ export default function App(){
     return { amt: end - start, pct, dd: Math.abs(dd) };
   },[equityFiltered, calYear, calMonth]);
 
-  // Cashflows du mois (pour savoir si on prélève plus qu’on ne gagne)
+  // Cashflows du mois
   const monthFlows = useMemo(()=>{
     const ym = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
     const rows = cashflowsDisp.filter(c=>c.date.startsWith(ym));
@@ -509,59 +511,120 @@ export default function App(){
     return { deposits: dep, withdrawals: ret, net: dep + ret, rows };
   },[cashflowsDisp, calYear, calMonth]);
 
+  // ——— Tooltip style commun (gris clair) + suppression cercles actifs ———
+  const tooltipProps = {
+    contentStyle: { background:'#121212', border:'1px solid #3a3a3a', color:'#e9ecef', borderRadius:10 },
+    itemStyle: { color:'#e9ecef' },
+    labelStyle: { color:'#d6d9dc' }
+  };
+
   return (
     <div className="container">
       {/* Header */}
       <div className="header">
         <div>
           <h1>ZooProjectVision</h1>
-          <div className="tagline">Multi-comptes • Multi-brokers • {displayCcy} • Calendrier P&L • Heures d’ouverture</div>
+          <div className="tagline">multi-comptes • multi-brokers • {displayCcy} • calendrier p&l • heures d’ouverture</div>
         </div>
-        <div className="btns">
-          <button className="btn" onClick={()=>window.location.reload()}>Actualiser</button>
-          <button className="btn" onClick={()=>downloadCSV('trades.csv', filteredTrades)}>Export CSV</button>
+        <div className="btns" style={{display:'flex', gap:8}}>
+          {/* Import CSV (optionnel) */}
+          <label className="btn" style={{position:'relative', overflow:'hidden'}}>
+            importer trades csv
+            <input type="file" accept=".csv" style={{position:'absolute', inset:0, opacity:0, cursor:'pointer'}}
+              onChange={e=>{
+                const f = e.target.files?.[0]; if(!f) return;
+                const fr = new FileReader();
+                fr.onload = () => {
+                  const rows = parseCSV(String(fr.result));
+                  const mapped = rows.map((r, i)=>({
+                    trade_id: r.trade_id || `U${i}`,
+                    date: r.date,
+                    open_time: r.open_time || null,
+                    open_hour: r.open_hour ? Number(r.open_hour) : (r.open_time ? new Date(r.open_time).getHours() : null),
+                    account: r.account || 'ACC-1',
+                    broker: r.broker || '',
+                    strategy: r.strategy || 'Unknown',
+                    symbol: r.symbol || 'UNKNOWN',
+                    instrument_ccy: r.instrument_ccy || 'USD',
+                    side: r.side || 'BUY',
+                    qty: Number(r.qty||0),
+                    price: Number(r.price||0),
+                    fee: Number(r.fee||0),
+                    pnl: Number(r.pnl||0),
+                    notes: r.notes || ''
+                  }));
+                  setUserTrades(mapped);
+                };
+                fr.readAsText(f);
+              }}
+            />
+          </label>
+          <label className="btn" style={{position:'relative', overflow:'hidden'}}>
+            importer cashflows csv
+            <input type="file" accept=".csv" style={{position:'absolute', inset:0, opacity:0, cursor:'pointer'}}
+              onChange={e=>{
+                const f = e.target.files?.[0]; if(!f) return;
+                const fr = new FileReader();
+                fr.onload = () => {
+                  const rows = parseCSV(String(fr.result));
+                  const mapped = rows.map(r=>({
+                    date: r.date,
+                    ccy: r.ccy || 'USD',
+                    amount: Number(r.amount || 0),
+                    type: r.type || 'other',
+                    note: r.note || ''
+                  }));
+                  setUserCashflows(mapped);
+                };
+                fr.readAsText(f);
+              }}
+            />
+          </label>
+
+          <button className="btn" onClick={()=>window.location.reload()}>actualiser</button>
+          <button className="btn" onClick={()=>downloadCSV('trades.csv', filteredTrades)}>export csv</button>
         </div>
       </div>
 
       {/* Filtres */}
       <div className="card controls">
         <div className="item">
-          <label>Compte</label>
+          <label>compte</label>
           <select value={account} onChange={e=>setAccount(e.target.value)}>
-            <option value="ALL">Tous</option>
+            <option value="ALL">tous</option>
             {accounts.map(a=>(<option key={a} value={a}>{a}</option>))}
           </select>
         </div>
         <div className="item">
-          <label>Broker</label>
+          <label>broker</label>
           <select value={broker} onChange={e=>setBroker(e.target.value)}>
-            <option value="ALL">Tous</option>
+            <option value="ALL">tous</option>
             {brokers.map(b=>(<option key={b} value={b}>{b}</option>))}
           </select>
         </div>
         <div className="item">
-          <label>Stratégie</label>
+          <label>stratégie</label>
           <select value={strategy} onChange={e=>setStrategy(e.target.value)}>
-            <option value="ALL">Toutes</option>
+            <option value="ALL">toutes</option>
             {strategies.map(s=>(<option key={s} value={s}>{s}</option>))}
           </select>
         </div>
         <div className="item">
-          <label>Du</label>
+          <label>du</label>
           <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} />
         </div>
         <div className="item">
-          <label>Au</label>
+          <label>au</label>
           <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} />
         </div>
         <div className="item">
-          <label>Devise d’affichage</label>
+          <label>devise d’affichage</label>
           <select value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)}>
             {DISPLAY_CURRENCIES.map(c=> <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div className="item">
-          <label>Seuil actifs (≥%)</label>
+          <label>seuil actifs (≥%)</label>
           <select value={minShare} onChange={e=>setMinShare(Number(e.target.value))}>
             <option value={5}>5%</option>
             <option value={10}>10%</option>
@@ -572,20 +635,18 @@ export default function App(){
 
       {/* KPI */}
       <div className="kpi">
-        <div className="card item"><h3>Capital (init.+flux+PnL)</h3><div className="val">{fmtCCY(capitalNow, displayCcy)}</div></div>
-        <div className="card item"><h3>PnL (filtré)</h3><div className={`val ${classNeg(kpi.totalPnL)}`}>{fmtCCY(kpi.totalPnL, displayCcy)}</div></div>
-        <div className="card item"><h3>Risk–Reward</h3><div className="val">{rrValue.toFixed(2)}</div></div>
-        <div className="card item"><h3>Jour</h3><div className={`val ${classNeg(lastDayRet)}`}>{pct(lastDayRet)}</div></div>
-        <div className="card item"><h3>MTD</h3><div className={`val ${classNeg(mtd)}`}>{pct(mtd)}</div></div>
-        <div className="card item"><h3>YTD</h3><div className={`val ${classNeg(ytd)}`}>{pct(ytd)}</div></div>
-        <div className="card item"><h3>Annuel (12m)</h3><div className={`val ${classNeg(ann)}`}>{pct(ann)}</div></div>
-        <div className="card item"><h3>Max DD</h3><div className={`val ${classNeg(kpi.maxDD)}`}>{pct(kpi.maxDD)}</div></div>
+        <div className="card item"><h3>capital (init.+flux+pnl)</h3><div className="val">{fmtCCY(capitalNow, displayCcy)}</div></div>
+        <div className="card item"><h3>pnl (filtré)</h3><div className={`val ${classNeg(kpi.totalPnL)}`}>{fmtCCY(kpi.totalPnL, displayCcy)}</div></div>
+        <div className="card item"><h3>risk–reward</h3><div className="val">{rrValue.toFixed(2)}</div></div>
+        <div className="card item"><h3>jour</h3><div className={`val ${classNeg(lastDayRet)}`}>{pct(lastDayRet)}</div></div>
+        <div className="card item"><h3>mtd</h3><div className={`val ${classNeg(mtd)}`}>{pct(mtd)}</div></div>
+        <div className="card item"><h3>ytd</h3><div className={`val ${classNeg(ytd)}`}>{pct(ytd)}</div></div>
+        <div className="card item"><h3>annuel (12m)</h3><div className={`val ${classNeg(ann)}`}>{pct(ann)}</div></div>
+        <div className="card item"><h3>max dd</h3><div className={`val ${classNeg(kpi.maxDD)}`}>{pct(kpi.maxDD)}</div></div>
         <div className="card item">
-          <h3>Récup. DD (max/moy)</h3>
+          <h3>récup. dd (max/moy)</h3>
           <div className="val">{rec.maxDays.toFixed(0)}j / {rec.avgDays.toFixed(0)}j</div>
-          <div className="sub" style={{color:'#20e3d6cc', fontSize:12}}>
-            ≈ {toH(rec.maxDays).toFixed(0)}h / {toH(rec.avgDays).toFixed(0)}h
-          </div>
+          <div className="sub">≈ {toH(rec.maxDays).toFixed(0)}h / {toH(rec.avgDays).toFixed(0)}h</div>
         </div>
       </div>
 
@@ -593,22 +654,22 @@ export default function App(){
       <div className="grid">
         {/* Courbe d'équité (globale blanche + lignes par actif) */}
         <div className="card chart-card chart-xl">
-          <h3>Courbe d'équité (globale + actifs)</h3>
+          <h3>courbe d'équité (globale + actifs)</h3>
           <ResponsiveContainer width="100%" height="90%">
             <LineChart data={equityBySymbolRows} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid stroke="#2b2b2b" />
               <XAxis dataKey="date" stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} />
               <YAxis stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} tickFormatter={fmtShort2} />
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Tooltip {...tooltipProps} />
+              <Legend wrapperStyle={{ fontSize: 12, color:'#e9ecef' }} />
               {/* Équité globale (BLANCHE & ÉPAISSE) */}
-              <Line type="monotone" dataKey="__GLOBAL__" name="Équité globale" dot={false}
-                    stroke="#ffffff" strokeWidth={3.5} isAnimationActive={false} />
-              {/* Lignes par actif (majors + 'Autres' si présent), fines */}
+              <Line type="monotone" dataKey="__GLOBAL__" name="équité globale" dot={false}
+                    stroke="#ffffff" strokeWidth={3.5} isAnimationActive={false} activeDot={false} />
+              {/* Lignes par actif, fines */}
               {plotSymbols.map((s, i)=>(
                 <Line key={s} type="monotone" dataKey={s} name={s} dot={false}
-                      stroke={lineColors[i % lineColors.length]} strokeWidth={1.25} opacity={0.95}
-                      isAnimationActive={false} />
+                      stroke={lineColors[i % lineColors.length]} strokeWidth={1.25}
+                      isAnimationActive={false} activeDot={false} />
               ))}
             </LineChart>
           </ResponsiveContainer>
@@ -616,14 +677,14 @@ export default function App(){
 
         {/* Drawdown */}
         <div className="card chart-card chart-xl">
-          <h3>Drawdown</h3>
+          <h3>drawdown</h3>
           <ResponsiveContainer width="100%" height="90%">
             <AreaChart data={ddSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid stroke="#2b2b2b" />
               <XAxis dataKey="date" stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} />
               <YAxis stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} tickFormatter={(v)=>`${(v*100).toFixed(2)}%`} />
-              <Tooltip formatter={(v)=>`${(v*100).toFixed(2)}%`} />
-              <Area type="monotone" dataKey="dd" name="DD" />
+              <Tooltip {...tooltipProps} formatter={(v)=>`${(v*100).toFixed(2)}%`} />
+              <Area type="monotone" dataKey="dd" name="dd" activeDot={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -631,7 +692,7 @@ export default function App(){
         {/* Calendrier + résumé mensuel + cashflows */}
         <div className="card" style={{padding:14}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center', marginBottom:8}}>
-            <h3 style={{margin:0}}>Calendrier – {monthLabel}</h3>
+            <h3 style={{margin:0}}>calendrier – {monthLabel}</h3>
             <div style={{display:'flex', gap:8}}>
               <button className="btn" onClick={()=>{
                 let m = calMonth-1, y = calYear; if(m<0){ m=11; y=y-1 } setCalYear(y); setCalMonth(m)
@@ -643,24 +704,24 @@ export default function App(){
           </div>
 
           {/* Résumé mensuel : montant, %, DD (abs) */}
-          <div style={{display:'flex', gap:16, color:'#20e3d6', marginBottom:8}}>
-            <div>Montant: <b>{fmtCCY(monthSummary.amt, displayCcy)}</b></div>
+          <div style={{display:'flex', gap:16, color:'#dfe3e6', marginBottom:8}}>
+            <div>montant: <b>{fmtCCY(monthSummary.amt, displayCcy)}</b></div>
             <div>%: <b>{(monthSummary.pct*100).toFixed(2)}%</b></div>
-            <div>DD: <b>{(monthSummary.dd*100).toFixed(2)}%</b></div>
+            <div>dd: <b>{(monthSummary.dd*100).toFixed(2)}%</b></div>
           </div>
 
           <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:8}}>
             {['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>(
-              <div key={d} style={{textAlign:'center', color:'#20e3d6cc', fontSize:12}}>{d}</div>
+              <div key={d} style={{textAlign:'center', color:'#c8cdd2', fontSize:12}}>{d}</div>
             ))}
             {renderMonthGrid(calYear, calMonth, monthDates, calendarMap)}
           </div>
 
           {/* Flux du mois (entrées/sorties/net) */}
-          <div style={{marginTop:8, color:'#20e3d6cc', fontSize:12}}>
-            Entrées: <b>{fmtCCY(monthFlows.deposits, displayCcy)}</b> ·{' '}
-            Sorties: <b className="pink">{fmtCCY(monthFlows.withdrawals, displayCcy)}</b> ·{' '}
-            Net: <b className={monthFlows.net<0?'pink':'turq'}>{fmtCCY(monthFlows.net, displayCcy)}</b>
+          <div style={{marginTop:8, color:'#bfc5c9', fontSize:12}}>
+            entrées: <b>{fmtCCY(monthFlows.deposits, displayCcy)}</b> ·{' '}
+            sorties: <b className="pink">{fmtCCY(monthFlows.withdrawals, displayCcy)}</b> ·{' '}
+            net: <b className={monthFlows.net<0?'pink':'turq'}>{fmtCCY(monthFlows.net, displayCcy)}</b>
           </div>
         </div>
       </div>
@@ -669,10 +730,10 @@ export default function App(){
       <div className="grid">
         {/* Top/Flop Actifs */}
         <div className="card" style={{height:360}}>
-          <h3>Top / Flop du mois – Actifs ({monthKey})</h3>
+          <h3>top / flop du mois – actifs ({monthKey})</h3>
           <div className="two-cols">
             <div>
-              <div className="pill good">Top</div>
+              <div className="pill">top</div>
               {tfSymbols.best.map(x=>(
                 <div key={'b'+x.name} className="row-kv">
                   <span>{x.name}</span>
@@ -681,7 +742,7 @@ export default function App(){
               ))}
             </div>
             <div>
-              <div className="pill bad">Flop</div>
+              <div className="pill">flop</div>
               {tfSymbols.worst.map(x=>(
                 <div key={'w'+x.name} className="row-kv">
                   <span>{x.name}</span>
@@ -694,10 +755,10 @@ export default function App(){
 
         {/* Top/Flop Stratégies */}
         <div className="card" style={{height:360}}>
-          <h3>Top / Flop du mois – Stratégies ({monthKey})</h3>
+          <h3>top / flop du mois – stratégies ({monthKey})</h3>
           <div className="two-cols">
             <div>
-              <div className="pill good">Top</div>
+              <div className="pill">top</div>
               {tfStrats.best.map(x=>(
                 <div key={'sb'+x.name} className="row-kv">
                   <span>{x.name}</span>
@@ -706,7 +767,7 @@ export default function App(){
               ))}
             </div>
             <div>
-              <div className="pill bad">Flop</div>
+              <div className="pill">flop</div>
               {tfStrats.worst.map(x=>(
                 <div key={'sw'+x.name} className="row-kv">
                   <span>{x.name}</span>
@@ -719,16 +780,16 @@ export default function App(){
 
         {/* Gains / Pertes par heure d'ouverture */}
         <div className="card chart-card" style={{height:360}}>
-          <h3>Gains / Pertes par heure d’ouverture</h3>
+          <h3>gains / pertes par heure d’ouverture</h3>
           <ResponsiveContainer width="100%" height="85%">
             <BarChart data={hourlyBars} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid stroke="#2b2b2b" />
               <XAxis dataKey="hour" stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} />
               <YAxis stroke="#7a7a7a" axisLine={{stroke:'#7a7a7a'}} tickLine={false} tick={{fontSize:10}} tickFormatter={(v)=>fmtCCY(v, displayCcy)} />
-              <Tooltip formatter={(v)=>fmtCCY(v, displayCcy)} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="gains" name="Gains" />
-              <Bar dataKey="losses" name="Pertes" />
+              <Tooltip {...tooltipProps} formatter={(v)=>fmtCCY(v, displayCcy)} />
+              <Legend wrapperStyle={{ fontSize: 12, color:'#e9ecef' }} />
+              <Bar dataKey="gains" name="gains" fill="#20e3d6" />
+              <Bar dataKey="losses" name="pertes" fill="#ff5fa2" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -737,48 +798,48 @@ export default function App(){
       {/* Répartition des actifs & stratégies */}
       <div className="grid">
         <div className="card chart-card" style={{height:320}}>
-          <h3>Répartition des actifs</h3>
+          <h3>répartition des actifs</h3>
           <ResponsiveContainer width="100%" height="85%">
             <PieChart>
               <Pie data={assetSplit} dataKey="value" nameKey="name" outerRadius={100}>
                 {assetSplit.map((seg, i) => {
-                  const palette = ['#d4af37','#20e3d6','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166','#9bb6ff'];
+                  const palette = ['#dfe3e6','#20e3d6','#6aa6ff','#ff8a65','#c792ea','#7bd88f','#ffd166','#9bb6ff'];
                   const color = seg.name.startsWith('Autres') ? '#808080' : palette[i % palette.length];
                   return <Cell key={i} fill={color} />;
                 })}
               </Pie>
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Tooltip {...tooltipProps} />
+              <Legend wrapperStyle={{ fontSize: 12, color:'#e9ecef' }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
         <div className="card chart-card" style={{height:320}}>
-          <h3>Répartition par stratégie</h3>
+          <h3>répartition par stratégie</h3>
           <ResponsiveContainer width="100%" height="85%">
             <PieChart>
               <Pie data={strategySplit} dataKey="value" nameKey="name" outerRadius={100}>
                 {strategySplit.map((seg, i) => {
-                  const palette = ['#20e3d6','#ffd166','#6aa6ff','#c792ea','#7bd88f','#ff8a65'];
+                  const palette = ['#20e3d6','#dfe3e6','#6aa6ff','#c792ea','#7bd88f','#ff8a65'];
                   return <Cell key={i} fill={palette[i % palette.length]} />;
                 })}
               </Pie>
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Tooltip {...tooltipProps} />
+              <Legend wrapperStyle={{ fontSize: 12, color:'#e9ecef' }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
         {/* Alertes risque */}
         <div className="card" style={{height:320, overflow:'auto'}}>
-          <h3>Alertes risque (Trade & Position)</h3>
-          <div style={{fontSize:12, color:'#20e3d6cc', marginBottom:8}}>
-            Trade &gt; 1% de capital ({fmtCCY(onePct, displayCcy)}) · Position &gt; 2% ({fmtCCY(twoPct, displayCcy)})
+          <h3>alertes risque (trade & position)</h3>
+          <div style={{fontSize:12, color:'#bfc5c9', marginBottom:8}}>
+            trade &gt; 1% de capital ({fmtCCY(onePct, displayCcy)}) · position &gt; 2% ({fmtCCY(twoPct, displayCcy)})
           </div>
           <div className="two-cols">
             <div>
-              <div className="pill bad">Trades &gt; 1%</div>
-              {alertsTrades.length===0 && <div className="row-kv"><span>Aucune</span><b>-</b></div>}
+              <div className="pill">trades &gt; 1%</div>
+              {alertsTrades.length===0 && <div className="row-kv"><span>aucune</span><b>-</b></div>}
               {alertsTrades.map(x=>(
                 <div key={x.id} className="row-kv">
                   <span>{x.date} · {x.symbol}</span>
@@ -787,8 +848,8 @@ export default function App(){
               ))}
             </div>
             <div>
-              <div className="pill bad">Positions &gt; 2%</div>
-              {alertsPositions.length===0 && <div className="row-kv"><span>Aucune</span><b>-</b></div>}
+              <div className="pill">positions &gt; 2%</div>
+              {alertsPositions.length===0 && <div className="row-kv"><span>aucune</span><b>-</b></div>}
               {alertsPositions.map(x=>(
                 <div key={x.key} className="row-kv">
                   <span>{x.day} · {x.symbol}</span>
@@ -802,12 +863,12 @@ export default function App(){
 
       {/* Tableau de trades */}
       <div className="card table-wrap" style={{padding:'12px', marginTop:12}}>
-        <h3 style={{marginBottom:8}}>Trades ({filteredTrades.length})</h3>
+        <h3 style={{marginBottom:8}}>trades ({filteredTrades.length})</h3>
         <table>
           <thead>
             <tr>
-              <th>Date</th><th>Heure Ouv.</th><th>Compte</th><th>Broker</th><th>Stratégie</th><th>Symbole</th>
-              <th>Sens</th><th>Qté</th><th>Prix</th><th>Frais</th><th>PnL ({displayCcy})</th><th>Notes</th>
+              <th>date</th><th>heure ouv.</th><th>compte</th><th>broker</th><th>stratégie</th><th>symbole</th>
+              <th>sens</th><th>qté</th><th>prix</th><th>frais</th><th>pnl ({displayCcy})</th><th>notes</th>
             </tr>
           </thead>
           <tbody>
@@ -837,12 +898,22 @@ export default function App(){
         </table>
       </div>
 
-      <div className="footer">© {new Date().getFullYear()} – ZooProject Vision (démo). Données démo — remplace par ton API/exports broker.</div>
+      <div className="footer">© {new Date().getFullYear()} – ZooProjectVision (démo). données démo — remplace par ton api/exports broker.</div>
     </div>
   )
 }
 
 /** ====== CSV util ====== */
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines.shift().split(',').map(h=>h.trim());
+  return lines.map(line=>{
+    const cols = line.split(',').map(c=>c.trim());
+    const row = {};
+    headers.forEach((h,i)=> row[h] = cols[i] ?? '');
+    return row;
+  });
+}
 function toCSV(rows){
   if(!rows?.length) return ''
   const headers = Object.keys(rows[0])
@@ -874,7 +945,7 @@ function renderMonthGrid(year, monthIndex, monthDates, calendarMap){
     return (
       <div
         key={dt}
-        title={`${dt}\nRet: ${ret!=null ? (ret*100).toFixed(2)+'%' : '-'}\nDD: ${dd!=null ? (dd*100).toFixed(2)+'%' : '-'}`}
+        title={`${dt}\nret: ${ret!=null ? (ret*100).toFixed(2)+'%' : '-'}\ndd: ${dd!=null ? (dd*100).toFixed(2)+'%' : '-'}`}
         style={{padding:'10px 8px', borderRadius:8, ...inlineStyle(style)}}
       >
         <div style={{fontSize:11, opacity:.9}}>{Number(dt.slice(8,10))}</div>
