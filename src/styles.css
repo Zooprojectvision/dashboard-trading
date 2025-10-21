@@ -1,15 +1,15 @@
-/* === Thème Noir Profond + Or (bordures) + Turquoise/Pink "stabilo" === */
+/* === Thème sombre carbone, titres gris clair, boutons or conservés === */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
 :root{
-  --bg:#000000;            /* noir profond */
-  --card:#000000;          /* cartes aussi noires */
-  --line:#d4af37;          /* or pour les BORDURES uniquement */
-  --text:#20e3d6;          /* turquoise stabilo */
-  --muted:#20e3d6cc;       /* turquoise adouci */
-  --gold:#d4af37;          /* or */
-  --good:#20e3d6;          /* vert/turquoise stabilo */
-  --bad:#ff5fa2;           /* rose stabilo pour négatifs */
+  --bg:#000000;            /* fond noir */
+  --card:#151515;          /* blocs : gris anthracite carbone */
+  --card-border:#1f1f1f;   /* bordures neutres (plus de doré) */
+  --text:#20e3d6;          /* texte principal (turquoise) */
+  --muted:#bfc5c9;         /* gris clair pour titres/labels */
+  --good:#20e3d6;          /* positif */
+  --bad:#ff5fa2;           /* négatif */
+  --gold:#d4af37;          /* gardé UNIQUEMENT pour les boutons */
 }
 
 *{box-sizing:border-box}
@@ -18,7 +18,7 @@ body{
   margin:0;
   font-family:"Poppins",system-ui,Segoe UI,Roboto,Arial,sans-serif;
   background:var(--bg);
-  color:var(--text);
+  color:#e9ecef; /* texte général légèrement plus clair */
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
   letter-spacing:.2px;
@@ -27,14 +27,14 @@ body{
 /* Plein écran + layout */
 .container{max-width:100%;margin:0 auto;padding:28px 24px}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px}
-h1{margin:0;color:var(--text);font-size:30px;font-weight:700;letter-spacing:.6px;text-shadow:0 0 6px rgba(32,227,214,.55)}
-.tagline{color:var(--muted);font-size:12px;margin-top:6px}
+h1{margin:0;color:#f1f3f5;font-size:30px;font-weight:700;letter-spacing:.6px}
+.tagline{color:#9aa3aa;font-size:12px;margin-top:6px}
 
-/* Buttons (contour or) */
+/* Boutons : on garde l’or */
 .btn{
   border:1px solid var(--gold);
-  color:var(--gold);
-  background:transparent;
+  color:#000;
+  background:var(--gold);
   padding:10px 16px;
   border-radius:999px;
   font-size:12px;
@@ -43,23 +43,20 @@ h1{margin:0;color:var(--text);font-size:30px;font-weight:700;letter-spacing:.6px
   cursor:pointer;
   transition:all .15s ease;
 }
-.btn:hover{background:var(--gold);color:#000}
+.btn:hover{filter:brightness(1.05)}
 
-/* Cards : fond noir + bordure or */
+/* Cards : anthracite + bordure neutre (plus de doré) */
 .card{
   background:var(--card);
-  border:1px solid var(--gold);
+  border:1px solid var(--card-border);
   border-radius:14px;
   padding:18px;
   transition:transform .15s ease, box-shadow .15s ease;
-  box-shadow:0 0 0 0 rgba(212,175,55,0);
+  box-shadow:0 2px 12px rgba(0,0,0,.25);
 }
-.card:hover{
-  transform:translateY(-1px);
-  box-shadow:0 0 24px rgba(212,175,55,.12);
-}
+.card:hover{transform:translateY(-1px)}
 
-/* Controls (filtres) */
+/* Filtres */
 .controls{
   display:grid;
   grid-template-columns:repeat(7,1fr);
@@ -67,90 +64,78 @@ h1{margin:0;color:var(--text);font-size:30px;font-weight:700;letter-spacing:.6px
   margin:16px 0 18px;
 }
 .controls .item label{
-  display:block;color:var(--muted);font-size:12px;margin:0 0 6px 2px
+  display:block;color:var(--muted);
+  font-size:12px;margin:0 0 6px 2px;
+  text-transform:lowercase; /* ⇐ titres en minuscule */
 }
 select,input[type=date]{
   width:100%;
-  background:#0a0a0a;
-  border:1px solid var(--gold);
-  color:var(--text);
+  background:#111;
+  border:1px solid #2a2a2a;
+  color:#e6e6e6;
   border-radius:10px;
   padding:10px 12px;
   font-size:14px;
   appearance:none; outline:none;
-  box-shadow:0 0 10px rgba(212,175,55,.06) inset;
 }
-select:hover,input[type=date]:hover{box-shadow:0 0 14px rgba(212,175,55,.12) inset}
-select:focus,input[type=date]:focus{
-  border-color:var(--gold); box-shadow:0 0 0 2px rgba(212,175,55,.25)
-}
-option{background:#0a0a0a;color:var(--text)}
+select:hover,input[type=date]:hover{border-color:#3a3a3a}
+select:focus,input[type=date]:focus{box-shadow:0 0 0 2px rgba(255,255,255,.06)}
 
-/* KPI grid */
+/* KPI */
 .kpi{
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
-  gap:12px;
-  margin:12px 0 18px;
+  display:grid; grid-template-columns:repeat(8,1fr);
+  gap:12px; margin:12px 0 18px;
 }
-.kpi .item h3{margin:0 0 8px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.8px}
-.kpi .val{font-size:20px;font-weight:700;color:var(--text);text-shadow:0 0 6px rgba(32,227,214,.45)}
-.kpi .val.bad{color:var(--bad);text-shadow:0 0 6px rgba(255,95,162,.45)}
-.kpi .sub{margin-top:4px}
+.kpi .item h3{
+  margin:0 0 8px;color:#d6d9dc; /* titres gris clair */
+  font-size:12px; text-transform:lowercase; letter-spacing:.4px;
+}
+.kpi .val{font-size:20px;font-weight:700;color:#f1f3f5}
+.kpi .val.bad{color:var(--bad)}
+.kpi .sub{margin-top:4px; color:#aeb4b9}
 
-/* Charts & grids */
+/* Grilles & graphes */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0}
 .chart-card{height:380px;display:flex;flex-direction:column}
-.chart-xl{height:560px} /* grands graphes */
+.chart-xl{height:560px}
+.chart-card h3{
+  margin:0 0 8px;color:#e6eaed; /* titres des graphes en gris clair */
+  font-weight:600;text-transform:lowercase;
+}
 
-.chart-card h3{margin:0 0 8px;color:var(--text);font-weight:700;text-shadow:0 0 6px rgba(32,227,214,.35)}
-
-/* Tableau trades */
+/* Table */
 .table-wrap{overflow:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:10px 8px;border-bottom:1px solid rgba(212,175,55,.25);text-align:left}
-th{color:var(--muted);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px}
-tbody tr:hover td{background:rgba(212,175,55,.06)}
-td.bad{color:var(--bad);font-weight:700;text-shadow:0 0 6px rgba(255,95,162,.45)}
+table{width:100%;border-collapse:collapse;font-size:13px;color:#e9ecef}
+th,td{padding:10px 8px;border-bottom:1px solid #262626;text-align:left}
+th{color:#c8cdd2;font-weight:600;text-transform:lowercase;font-size:10px;letter-spacing:.4px}
+tbody tr:hover td{background:#191919}
+td.bad{color:var(--bad);font-weight:700}
 
 /* Footer */
-.footer{margin:22px 0 6px;text-align:center;color:var(--muted);font-size:12px;border-top:1px solid rgba(212,175,55,.25);padding-top:12px}
+.footer{margin:22px 0 6px;text-align:center;color:#9aa3aa;font-size:12px;border-top:1px solid #1f1f1f;padding-top:12px}
 
-/* Recharts (tooltip/legend) */
+/* Recharts tooltip/legend : bulles neutres, texte clair, sans doré */
 .recharts-default-tooltip{
-  background:#0a0a0a!important;border:1px solid var(--gold)!important;color:var(--text)!important;
-  border-radius:10px;padding:8px 10px!important; font-size:12px!important;
-  box-shadow:0 0 18px rgba(212,175,55,.12);
+  background:#121212!important;border:1px solid #3a3a3a!important;color:#e9ecef!important;
+  border-radius:10px;padding:8px 10px!important;font-size:12px!important;
 }
-.recharts-legend-item-text{color:var(--text)!important; font-size:12px!important}
+.recharts-legend-item-text{color:#dfe3e6!important;font-size:12px!important}
 
-/* Scrollbar (discret) */
+/* Scrollbar discrète */
 *::-webkit-scrollbar{height:8px;width:8px}
-*::-webkit-scrollbar-track{background:#060606}
-*::-webkit-scrollbar-thumb{background:#222;border-radius:10px;border:1px solid var(--gold)}
-*::-webkit-scrollbar-thumb:hover{background:#2d2d2d}
+*::-webkit-scrollbar-track{background:#0b0b0b}
+*::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:10px;border:1px solid #363636}
+*::-webkit-scrollbar-thumb:hover{background:#333}
 
 /* Helpers */
 .two-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
-.row-kv{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px dashed rgba(212,175,55,.35);border-radius:10px;margin:8px 0}
-.pill{display:inline-block;padding:6px 10px;border-radius:999px;border:1px solid var(--gold);font-size:11px;letter-spacing:.6px}
-.pill.good{color:var(--text)}
-.pill.bad{color:var(--bad)}
-.turq{color:var(--text)}
+.row-kv{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px dashed #2e2e2e;border-radius:10px;margin:8px 0}
+.pill{display:inline-block;padding:6px 10px;border-radius:999px;border:1px solid #3a3a3a;font-size:11px;letter-spacing:.6px;color:#dfe3e6}
+.turq{color:#dfeff0}
 .pink{color:var(--bad)}
 
 /* Responsive */
-@media (max-width:1400px){
-  .grid{grid-template-columns:repeat(2,1fr)}
-}
-@media (max-width:1100px){
-  .controls{grid-template-columns:repeat(3,1fr)}
-}
-@media (max-width:900px){
-  .grid{grid-template-columns:1fr}
-  .chart-xl{height:460px}
-}
-@media (max-width:640px){
-  .controls{grid-template-columns:1fr}
-  .kpi{grid-template-columns:1fr}
-}
+@media (max-width:1400px){ .grid{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:1100px){ .controls{grid-template-columns:repeat(3,1fr)} }
+@media (max-width:900px){ .grid{grid-template-columns:1fr} .chart-xl{height:460px} }
+@media (max-width:640px){ .controls{grid-template-columns:1fr} .kpi{grid-template-columns:1fr} }
