@@ -77,7 +77,6 @@ function hitRatio(tr){ if(!tr.length) return 0; const w=tr.filter(t=>t.pnl>0).le
 function pct(x){ return `${((x||0)*100).toFixed(2)}%` }
 function classNeg(v){ return v<0 ? 'bad' : '' }
 function fmtShort2(v){ return Number(v).toFixed(2) }
-function ymOf(d){ return d?.slice(0,7) }
 function monthDays(year, monthIndex){ const days=[]; const end=new Date(year, monthIndex+1, 0); for(let d=1; d<=end.getDate(); d++){ const dt=new Date(year, monthIndex, d); days.push(dt.toISOString().slice(0,10)); } return days }
 function colorForRet(ret){ if(ret == null) return 'background:#121212;border:1px solid #1f1f1f;'; const mag=Math.min(1, Math.abs(ret)*10); if(ret>=0) return `background: rgba(32,227,214,${0.10+0.25*mag}); border:1px solid rgba(90,170,170,.35);`; return `background: rgba(255,95,162,${0.10+0.25*mag}); border:1px solid rgba(255,95,162,.35);`; }
 function inlineStyle(cssText){ const out={}; cssText.split(';').forEach(rule=>{ const [k,v]=rule.split(':').map(x=>x&&x.trim()); if(!k||!v) return; const jsKey=k.replace(/-([a-z])/g,(_,c)=>c.toUpperCase()); out[jsKey]=v }); return out }
@@ -177,7 +176,7 @@ export default function App(){
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState('')
   const [displayCcy, setDisplayCcy] = useState('USD')
-  const [minShare, setMinShare] = useState(10)
+  const [minShare, setMinShare] = useState(10) // <= UNIQUE (corrigé)
 
   const accounts = useMemo(()=>Array.from(new Set(tradesSource.map(t=>t.account))),[tradesSource])
   const brokers  = useMemo(()=>Array.from(new Set(tradesSource.map(t=>t.broker || ''))).filter(Boolean),[tradesSource])
@@ -313,7 +312,6 @@ export default function App(){
   },[tradesConverted]);
 
   // Groupement actifs (répartition + multicourbes si besoin)
-  const [minShare, setMinShare] = useState(10)
   const othersLabel = useMemo(() => `Autres (<${minShare}%)`, [minShare])
   const { major: majorSet } = useMemo(
     () => splitSymbolsByShare(filteredTrades, minShare/100),
@@ -418,12 +416,18 @@ export default function App(){
     const dt = new Date(calYear, calMonth, 1)
     return dt.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
   },[calYear, calMonth])
+  const returnsMap = useMemo(()=>{ const m=new Map(); dailyReturns(equityFromTrades).forEach(r=>m.set(r.date, r.ret)); return m },[equityFromTrades])
+  const ddSeries = useMemo(()=>drawdownSeries(equityFromTrades),[equityFromTrades])
   const calendarMap = useMemo(()=>{
     const map = new Map()
     const ddByDate = new Map(ddSeries.map(x=>[x.date, x.dd]))
-    for(const r of returns){ map.set(r.date, { ret: r.ret, dd: ddByDate.get(r.date) ?? null }) }
+    for(const p of equityFromTrades.slice(1)){
+      const prev = equityFromTrades.find(q=>q.date===p.date) // déjà trié; simplifié
+      const ret = returnsMap.get(p.date)
+      map.set(p.date, { ret, dd: ddByDate.get(p.date) ?? null })
+    }
     return map
-  },[returns, ddSeries])
+  },[equityFromTrades, ddSeries, returnsMap])
   const monthSummary = useMemo(()=>{
     const ym = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
     const monthPoints = equityFromTrades.filter(p=>p.date.startsWith(ym));
@@ -433,15 +437,14 @@ export default function App(){
     const ddV = Math.min(...drawdownSeries(monthPoints).map(x=>x.dd));
     return { amt: end - start, pct: pctV, dd: Math.abs(ddV) };
   },[equityFromTrades, calYear, calMonth]);
-
   const monthDailyBestWorst = useMemo(()=>{
     const ym = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
-    const days = returns.filter(r=>r.date.startsWith(ym));
+    const days = dailyReturns(equityFromTrades).filter(r=>r.date.startsWith(ym));
     if(!days.length) return { bestDate:null, worstDate:null };
     let best = days[0], worst = days[0];
     for(const d of days){ if(d.ret > best.ret) best=d; if(d.ret < worst.ret) worst=d; }
     return { bestDate: best.date, worstDate: worst.date };
-  },[returns, calYear, calMonth]);
+  },[equityFromTrades, calYear, calMonth]);
 
   // Alertes comportement (stratégies/heures/jours) — fenêtres 30j vs 120j
   const RECENT_DAYS = 30, BASELINE_LOOKBACK_DAYS = 120, MIN_TRADES_BASELINE=20, MIN_TRADES_RECENT=15, LOSS_RATE_THRESHOLD=0.80, MIN_TRADES_BUCKET=10, Z_THRESHOLD=2.0;
@@ -466,11 +469,10 @@ export default function App(){
       const avgR = avg(recentList), avgB = avg(baseList);
       const varB = wrB*(1-wrB)/nB; const sdB = Math.sqrt(Math.max(varB, 1e-9));
       const z = (wrR - wrB) / sdB;
-      const deltaAvg = (avgR - avgB);
+      const bigDrop = Math.abs(avgB)>0 ? (avgR < avgB && Math.abs((avgR-avgB)/avgB) > 0.5) : (avgR < avgB - 50);
       if(Math.abs(z) >= Z_THRESHOLD){
         out.push({ type:'strategy-z', strategy: strat, msg: `Changement win rate (z=${z.toFixed(2)})`, detail: `Réc: ${(wrR*100).toFixed(1)}% vs Base: ${(wrB*100).toFixed(1)}% (${nR}/${nB})`, severity: (z<0?'bad':'good') });
       }
-      const bigDrop = Math.abs(avgB)>0 ? (avgR < avgB && Math.abs((avgR-avgB)/avgB) > 0.5) : (avgR < avgB - 50);
       if(bigDrop){ out.push({ type:'strategy-pnl', strategy:strat, msg:'Baisse PnL moyen/trade', detail:`Réc: ${fmtCCY(avgR, displayCcy)} vs Base: ${fmtCCY(avgB, displayCcy)} (${nR}/${nB})`, severity:'bad' }) }
     }
     return out;
@@ -826,7 +828,7 @@ export default function App(){
             </div>
           </div>
           <Calendar monthDates={monthDates} calYear={calYear} calMonth={calMonth}
-                    returns={returns} ddSeries={ddSeries} displayCcy={displayCcy} />
+                    returns={dailyReturns(equityFromTrades)} ddSeries={ddSeries} displayCcy={displayCcy} />
         </div>
       </div>
 
