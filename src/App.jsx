@@ -6,7 +6,7 @@ import {
 
 export default function App() {
   try {
-    /* ---------- Thème ---------- */
+    /* ===================== Thème ===================== */
     const colors = {
       bg: "#0a0a0b",
       text: "#e8ecef",
@@ -22,7 +22,7 @@ export default function App() {
     }
     const card = { background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }
 
-    /* ---------- Démo data (open_time + close_time + MFE/MAE) ---------- */
+    /* ===================== Démo data ===================== */
     const ASSETS = ["XAUUSD", "DAX", "US500", "USTEC", "US30"]
     const BROKERS = ["Darwinex", "ICMarkets", "Pepperstone"]
     const STRATS  = ["Strategy 1", "Strategy 2", "Breakout"]
@@ -68,7 +68,7 @@ export default function App() {
       { date:'2025-05-20', type:'withdrawal',       amount: -800, ccy:'USD', note:'Retrait' },
     ]
 
-    /* ---------- État utilisateur ---------- */
+    /* ===================== État utilisateur ===================== */
     const [userTrades, setUserTrades] = useState([])
     const tradesAll = useMemo(()=> demoTrades.concat(userTrades), [demoTrades, userTrades])
 
@@ -79,7 +79,7 @@ export default function App() {
     useEffect(()=>{ localStorage.setItem('zp_cashflows_custom', JSON.stringify(userCashflows)) }, [userCashflows])
     const allCashflows = useMemo(()=> demoCashflows.concat(userCashflows), [userCashflows])
 
-    /* ---------- Filtres ---------- */
+    /* ===================== Filtres ===================== */
     const [asset, setAsset] = useState("All")
     const [broker, setBroker] = useState("All")
     const [strategy, setStrategy] = useState("All")
@@ -100,7 +100,7 @@ export default function App() {
       return true
     }), [tradesAll, asset, broker, strategy, dateFrom, dateTo])
 
-    /* ---------- Devises (USD/EUR/CHF) ---------- */
+    /* ===================== Devises (USD/EUR/CHF) ===================== */
     const [displayCcy, setDisplayCcy] = useState('USD')
     const fxFallback = {
       USD: { USD:1,   EUR:0.93, CHF:0.88 },
@@ -142,7 +142,7 @@ export default function App() {
       } catch { return `${(v??0).toFixed(2)} ${ccy}` }
     }
 
-    /* ---------- Cashflows ---------- */
+    /* ===================== Cashflows ===================== */
     const cashflowsInRange = useMemo(()=>{
       const list = allCashflows.filter(c=>{
         if (dateFrom && c.date < dateFrom) return false
@@ -156,7 +156,7 @@ export default function App() {
     const capitalInitialDisp = useMemo(()=> convert(CAPITAL_INITIAL_USD, 'USD', displayCcy), [displayCcy, rates])
     const capitalBase = useMemo(()=> capitalInitialDisp + cashFlowTotal, [capitalInitialDisp, cashFlowTotal])
 
-    /* ---------- KPI principaux ---------- */
+    /* ===================== KPI principaux ===================== */
     const totalPnlDisp = useMemo(()=> filtered.reduce((s,t)=> s + convert(t.pnl, t.ccy, displayCcy), 0), [filtered, displayCcy, rates])
     const capitalGlobal = useMemo(()=> capitalBase + totalPnlDisp, [capitalBase, totalPnlDisp])
 
@@ -173,7 +173,7 @@ export default function App() {
     const rr = avgLoss > 0 ? (avgWin / avgLoss) : 0
     const expectancy = useMemo(()=> filtered.length ? (totalPnlDisp / filtered.length) : 0, [totalPnlDisp, filtered.length])
 
-    /* ---------- Équité : deux courbes (trading seul / avec flux) ---------- */
+    /* ===================== Équité : trading seul vs avec flux ===================== */
     function groupByDateSumPnlDisp(rows) {
       const m = new Map()
       for (const r of rows) {
@@ -249,7 +249,7 @@ export default function App() {
       return p ? p.equity_with_flows : undefined
     }
 
-    /* ---------- daily returns & stats ---------- */
+    /* === daily returns & stats pour Sharpe/Sortino/Recovery === */
     const dailyReturns = useMemo(()=>{
       const out = []
       for (let i=1;i<equitySeriesHL.length;i++){
@@ -258,6 +258,7 @@ export default function App() {
       }
       return out
     }, [equitySeriesHL])
+
     const vol = useMemo(()=> stddev(dailyReturns.map(r=>r.ret)), [dailyReturns])
 
     const recoveryFactor = useMemo(()=>{
@@ -270,6 +271,7 @@ export default function App() {
       const mu = mean(rets), sd = stddev(rets)
       return sd>0 ? (mu/sd)*Math.sqrt(252) : 0
     }, [dailyReturns])
+
     const sortino = useMemo(()=>{
       const rets = dailyReturns.map(r=>r.ret)
       const mu = mean(rets), neg = rets.filter(r=>r<0), sdDown = stddev(neg)
@@ -315,7 +317,7 @@ export default function App() {
       return mean(pairCorr.filter(x=>isFinite(x)))
     }, [filtered, displayCcy, rates])
 
-    /* ---------- MFE/MAE — séries quotidiennes & cumul ---------- */
+    /* ===================== MFE/MAE — séries ===================== */
     const mfeMaeDaily = useMemo(()=>{
       const map = new Map()
       for(const t of filtered){
@@ -343,7 +345,7 @@ export default function App() {
       return {label:'À améliorer', color:colors.pink}
     }, [mfeMaeDaily])
 
-    /* ---------- Histogrammes de volume (heures & mois) ---------- */
+    /* ===================== Histogrammes volume ===================== */
     const tradesCountByHour = useMemo(()=>{
       const m = new Array(24).fill(0)
       for (const t of filtered){
@@ -363,7 +365,7 @@ export default function App() {
       return Array.from(map, ([month, count])=>({ month, count })).sort((a,b)=> a.month.localeCompare(b.month))
     }, [filtered])
 
-    /* ---------- Répartition PnL ---------- */
+    /* ===================== Répartition PnL ===================== */
     function groupByNameSumDisp(rows, key) {
       const m = new Map()
       for (const r of rows) m.set(r[key], (m.get(r[key]) || 0) + convert(r.pnl, r.ccy, displayCcy))
@@ -382,7 +384,7 @@ export default function App() {
         .sort((a,b)=>b.value-a.value)
     }, [filtered, displayCcy, rates])
 
-    /* ---------- Rentabilité & MaxDD% ---------- */
+    /* ===================== Rentabilité & MaxDD% ===================== */
     const globalReturnPct = useMemo(()=>{
       if (!isFinite(capitalBase) || capitalBase<=0) return 0
       return (totalPnlDisp / capitalBase) * 100
@@ -393,7 +395,7 @@ export default function App() {
       return (maxDDAbs / peakEquity) * 100
     }, [maxDDAbs, peakEquity])
 
-    /* ---------- Distribution SL (3 niveaux) ---------- */
+    /* ===================== SL distribution (3 niveaux) ===================== */
     const slDistribution = useMemo(()=>{
       const losers = filtered.filter(t => t.pnl < 0)
       const agg = { direct:0, rebound10:0, rebound20:0, other:0, total: losers.length }
@@ -416,7 +418,7 @@ export default function App() {
       }
     }, [filtered, displayCcy, rates])
 
-    /* ---------- Export CSV ---------- */
+    /* ===================== Export CSV ===================== */
     const exportCSV = () => {
       const header = ['date','asset','broker','strategy',`pnl_${displayCcy}`,`mfe_${displayCcy}`,`mae_${displayCcy}`]
       const rows = filtered.map(t => [
@@ -433,7 +435,7 @@ export default function App() {
       URL.revokeObjectURL(url)
     }
 
-    /* ---------- Import CSV (MT5/MT4) ---------- */
+    /* ===================== Import CSV (MT5/MT4) ===================== */
     function parseCSV(text){
       const lines = text.trim().split(/\r?\n/); if(!lines.length) return []
       const headers = lines.shift().split(',').map(h=>h.trim().replace(/^"|"$/g,''))
@@ -467,7 +469,7 @@ export default function App() {
       }).filter(r=>r.date)
     }
 
-    /* ---------- Formulaire flux ---------- */
+    /* ===================== Formulaire flux ===================== */
     const [showForm, setShowForm] = useState(false)
     const [flow, setFlow] = useState({
       date: new Date().toISOString().slice(0,10),
@@ -496,7 +498,7 @@ export default function App() {
       setFlow({ date: new Date().toISOString().slice(0,10), type:'darwin_mgmt_fee', amount:'', ccy: displayCcy, note:'' })
     }
 
-    /* ---------- Alertes ---------- */
+    /* ===================== Alertes ===================== */
     const [showAlerts, setShowAlerts] = useState(false)
     const TOTAL_REF = Math.max(1, capitalGlobal)
     const onePctThreshold = TOTAL_REF * 0.01
@@ -525,7 +527,7 @@ export default function App() {
     }, [recentTrades])
     const alertsCount = (alertsTrades?.length||0) + (alertsHours?.length||0)
 
-    /* ---------- Calendrier ---------- */
+    /* ===================== Calendrier ===================== */
     const lastDate = equitySeriesHL.at(-1)?.date || new Date().toISOString().slice(0,10)
     const [calYear, setCalYear] = useState(Number(lastDate.slice(0,4)))
     const [calMonth, setCalMonth] = useState(Number(lastDate.slice(5,7))-1)
@@ -560,7 +562,10 @@ export default function App() {
                      .reduce((s,t)=> s + convert(t.pnl, t.ccy, displayCcy), 0)
     }, [filtered, calYear, displayCcy, rates])
 
-    /* ---------- Render ---------- */
+    /* ===================== Toggle courbe “avec flux” ===================== */
+    const [showFlows, setShowFlows] = useState(true)
+
+    /* ===================== Render ===================== */
     return (
       <div style={{ minHeight: "100vh", background: colors.bg, color: colors.text, padding: 20, maxWidth: 1540, margin: "0 auto" }}>
         {/* HEADER */}
@@ -697,10 +702,16 @@ export default function App() {
           </div>
         </div>
 
-        {/* Courbe d’équité (trading / avec flux) + HWM/LWM + marqueurs cashflows */}
-        <div style={{ ...card, height: 430, marginTop: 16 }}>
-          <h3 style={kpiTitle(colors)}>Courbe D’Équité (Trading Seul / Avec Flux)</h3>
-          <ResponsiveContainer width="100%" height="88%">
+        {/* Courbe d’équité + toggle */}
+        <div style={{ ...card, height: 460, marginTop: 16 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+            <h3 style={kpiTitle(colors)}>Courbe D’Équité (Trading Seul / Avec Flux)</h3>
+            <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:colors.muted }}>
+              <input type="checkbox" checked={showFlows} onChange={e=>setShowFlows(e.target.checked)} />
+              Afficher « avec flux »
+            </label>
+          </div>
+          <ResponsiveContainer width="100%" height="85%">
             <LineChart data={equitySeriesHL} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid stroke="#2b2b2b" />
               <XAxis dataKey="date" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
@@ -715,15 +726,17 @@ export default function App() {
               {/* TRADING SEUL (débute au capital initial) */}
               <Line type="monotone" dataKey="equity_trading" name="Équité (trading seul)" dot={false} stroke="#ffffff" strokeWidth={2.8} isAnimationActive={false} />
 
-              {/* AVEC FLUX (montre l’effet dépôts/retraits) */}
-              <Line type="monotone" dataKey="equity_with_flows" name="Équité (avec flux)" dot={false} stroke="#8a8f94" strokeWidth={1.6} strokeDasharray="5 4" />
+              {/* AVEC FLUX (optionnel) */}
+              {showFlows && (
+                <Line type="monotone" dataKey="equity_with_flows" name="Équité (avec flux)" dot={false} stroke="#8a8f94" strokeWidth={1.6} strokeDasharray="5 4" />
+              )}
 
               {/* HWM/LWM (sur trading seul) */}
               <Line type="monotone" dataKey="hwm" name="Plus Haut (HWM)" dot={false} stroke={colors.turq} strokeWidth={1.6} strokeDasharray="4 3" />
               <Line type="monotone" dataKey="lwm" name="Plus Bas (LWM)" dot={false} stroke={colors.pink} strokeWidth={1.2} strokeDasharray="4 3" />
 
               {/* Repères cash-flow : verticale + point coloré (sur "avec flux") */}
-              {cashflowsInRange
+              {showFlows && cashflowsInRange
                 .filter(c=>['deposit','withdrawal','prop_fee','prop_payout','darwin_mgmt_fee'].includes(c.type))
                 .map((c,i)=>{
                   const y = equityWithFlowsAt(c.date)
@@ -859,13 +872,17 @@ export default function App() {
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
             <h3 style={kpiTitle(colors)}>Calendrier / {monthLabel}</h3>
             <div style={{ display:'flex', gap:8 }}>
-              <button style={btn(colors)} onClick={()=>{ let m=calMonth-1, y=calYear; if(m<0){m=11;y--} setCalMonth(m); setCalYear(y) }}
-                onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}}
-                onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
+              <button
+                style={btn(colors)}
+                onClick={() => { let m=calMonth-1, y=calYear; if(m<0){m=11;y--} setCalMonth(m); setCalYear(y) }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(201,164,75,0.10)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >◀</button>
-              <button style={btn(colors)} onClick={()=>{ let m=calMonth+1, y=calYear; if(m>11){m=0;y++} setCalMonth(m); setCalYear(y) }}
-                onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}}
-                onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
+              <button
+                style={btn(colors)}
+                onClick={() => { let m=calMonth+1, y=calYear; if(m>11){m=0;y++} setCalMonth(m); setCalYear(y) }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(201,164,75,0.10)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >▶</button>
             </div>
           </div>
@@ -971,7 +988,7 @@ export default function App() {
   }
 }
 
-/* ---------- helpers math ---------- */
+/* ===================== helpers math ===================== */
 function mean(a){ if(!a.length) return 0; return a.reduce((x,y)=>x+y,0)/a.length }
 function stddev(a){
   if(!a.length) return 0
@@ -993,7 +1010,7 @@ function pearson(a,b){
   return den>0 ? num/den : 0
 }
 
-/* ---------- helpers UI ---------- */
+/* ===================== helpers UI ===================== */
 function btn(colors, isLabel){
   return {
     position: isLabel?'relative':'static',
@@ -1025,7 +1042,7 @@ function colorByThreshold(metric, value){
 }
 function Hint({text}){ return <span title={text} style={{marginLeft:6, opacity:.8, cursor:'help'}}>?</span> }
 
-/* ---------- calendrier cellules ---------- */
+/* ===================== calendrier cellules ===================== */
 function calendarCells(dates, retMap, ddMap, colors){
   return dates.map(dt=>{
     const ret = retMap.get(dt); const dd = ddMap.get(dt);
