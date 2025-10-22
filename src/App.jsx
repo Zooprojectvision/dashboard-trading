@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell, CartesianGrid
+  BarChart, Bar, PieChart, Pie, Cell, CartesianGrid, ReferenceLine
 } from 'recharts'
 
 export default function App() {
@@ -44,7 +44,6 @@ export default function App() {
           const open = new Date(d.getFullYear(), d.getMonth(), d.getDate(), openH, openM)
           const durMin = 15 + Math.floor(Math.random()* (60*8))    // 15 min à 8 h
           const close = new Date(open.getTime() + durMin*60*1000)
-          // MFE/MAE démo : proportion du |pnl| avec bruit
           const mfe = Number((Math.abs(pnl) * (0.8 + Math.random()*0.8)).toFixed(2))
           const mae = Number((Math.abs(pnl) * (0.6 + Math.random()*0.8)).toFixed(2))
           rows.push({
@@ -62,11 +61,11 @@ export default function App() {
 
     const CAPITAL_INITIAL_USD = 100000
     const demoCashflows = [
-      { date:'2025-01-05', type:'deposit',          amount: 2000, ccy:'USD', note:'apport' },
-      { date:'2025-02-10', type:'prop_fee',         amount: -500, ccy:'USD', note:'prop challenge' },
-      { date:'2025-03-15', type:'prop_payout',      amount: 1000, ccy:'USD', note:'payout prop' },
+      { date:'2025-01-05', type:'deposit',          amount: 2000, ccy:'USD', note:'Apport' },
+      { date:'2025-02-10', type:'prop_fee',         amount: -500, ccy:'USD', note:'Prop challenge' },
+      { date:'2025-03-15', type:'prop_payout',      amount: 1000, ccy:'USD', note:'Payout prop' },
       { date:'2025-04-02', type:'darwin_mgmt_fee',  amount: 250,  ccy:'USD', note:'Darwinex mgmt fee' },
-      { date:'2025-05-20', type:'withdrawal',       amount: -800, ccy:'USD', note:'retrait' },
+      { date:'2025-05-20', type:'withdrawal',       amount: -800, ccy:'USD', note:'Retrait' },
     ]
 
     /* ---------- État utilisateur ---------- */
@@ -201,7 +200,7 @@ export default function App() {
         l = Math.min(l, p.equity);
         return { ...p, hwm: Number(h.toFixed(2)), lwm: Number(l.toFixed(2)) };
       });
-    }, [equitySeries]);
+    }, [equitySeries])
 
     // daily returns & stats
     const dailyReturns = useMemo(()=>{
@@ -253,6 +252,7 @@ export default function App() {
       }).filter(v=>v!=null)
       return mins.length ? mean(mins) : 0
     }, [filtered])
+
     const activeDays = useMemo(()=> new Set(filtered.map(t=>t.date)).size, [filtered])
 
     const avgStrategyCorr = useMemo(()=>{
@@ -284,7 +284,6 @@ export default function App() {
 
     /* ---------- MFE/MAE — séries quotidiennes & cumul ---------- */
     const mfeMaeDaily = useMemo(()=>{
-      // groupe par date: moyenne MFE & MAE (converties)
       const map = new Map()
       for(const t of filtered){
         const d = t.date
@@ -303,7 +302,35 @@ export default function App() {
       })
     }, [filtered, displayCcy, rates])
 
-    /* ---------- Histogramme & Pie ---------- */
+    const mfeMaeVerdict = useMemo(()=>{
+      if (!mfeMaeDaily.length) return {label:'—', color:colors.muted}
+      const r = mean(mfeMaeDaily.map(x => (x.avgMAE>0 ? x.avgMFE/x.avgMAE : 2)))
+      if (r>=1.5) return {label:'Efficace', color:'#ffffff'}
+      if (r>=1.0) return {label:'Moyen', color:'#c8d0d6'}
+      return {label:'À améliorer', color:colors.pink}
+    }, [mfeMaeDaily])
+
+    /* ---------- Histogrammes de volume (heures & mois) ---------- */
+    const tradesCountByHour = useMemo(()=>{
+      const m = new Array(24).fill(0)
+      for (const t of filtered){
+        const h = new Date(t.open_time || (t.date+'T00:00:00Z')).getHours()
+        if (isFinite(h)) m[h]++
+      }
+      return m.map((n, h)=>({ hour: `${String(h).padStart(2,'0')}:00`, count: n }))
+    }, [filtered])
+
+    const tradesCountByMonth = useMemo(()=>{
+      const map = new Map()
+      for (const t of filtered){
+        const d = new Date(t.open_time || (t.date+'T00:00:00Z'))
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+        map.set(key, (map.get(key)||0) + 1)
+      }
+      return Array.from(map, ([month, count])=>({ month, count })).sort((a,b)=> a.month.localeCompare(b.month))
+    }, [filtered])
+
+    /* ---------- Répartition PnL ---------- */
     function groupByNameSumDisp(rows, key) {
       const m = new Map()
       for (const r of rows) m.set(r[key], (m.get(r[key]) || 0) + convert(r.pnl, r.ccy, displayCcy))
@@ -322,6 +349,40 @@ export default function App() {
         .sort((a,b)=>b.value-a.value)
     }, [filtered, displayCcy, rates])
 
+    /* ---------- Rentabilité & MaxDD% ---------- */
+    const globalReturnPct = useMemo(()=>{
+      if (!isFinite(capitalBase) || capitalBase<=0) return 0
+      return (totalPnlDisp / capitalBase) * 100
+    }, [totalPnlDisp, capitalBase])
+
+    const maxDDPct = useMemo(()=>{
+      if (!isFinite(peakEquity) || peakEquity<=0) return 0
+      return (maxDDAbs / peakEquity) * 100
+    }, [maxDDAbs, peakEquity])
+
+    /* ---------- Distribution SL (3 niveaux) ---------- */
+    const slDistribution = useMemo(()=>{
+      const losers = filtered.filter(t => t.pnl < 0)
+      const agg = { direct:0, rebound10:0, rebound20:0, other:0, total: losers.length }
+      for (const t of losers){
+        const mfe = Math.max(0, convert(t.mfe ?? 0, t.ccy || 'USD', displayCcy))
+        const mae = Math.max(0, Math.abs(convert(t.mae ?? 0, t.ccy || 'USD', displayCcy)))
+        const ratio = mae > 0 ? (mfe / mae) : 0
+        if (mfe <= 0) agg.direct++
+        else if (ratio <= 0.10) agg.rebound10++
+        else if (ratio <= 0.20) agg.rebound20++
+        else agg.other++
+      }
+      const pct = (n)=> (agg.total ? (n/agg.total)*100 : 0)
+      return {
+        ...agg,
+        pctDirect: pct(agg.direct),
+        pctReb10:  pct(agg.rebound10),
+        pctReb20:  pct(agg.rebound20),
+        pctOther:  pct(agg.other),
+      }
+    }, [filtered, displayCcy, rates])
+
     /* ---------- Export CSV ---------- */
     const exportCSV = () => {
       const header = ['date','asset','broker','strategy',`pnl_${displayCcy}`,`mfe_${displayCcy}`,`mae_${displayCcy}`]
@@ -335,7 +396,7 @@ export default function App() {
       const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'})
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url; a.download = `trades_filtrés_${displayCcy}.csv`; a.click()
+      a.href = url; a.download = `trades_filtres_${displayCcy}.csv`; a.click()
       URL.revokeObjectURL(url)
     }
 
@@ -353,7 +414,6 @@ export default function App() {
       return rows
     }
     function mapMT5Rows(rows){
-      // tente plusieurs noms de colonnes possibles pour MFE/MAE
       return rows.map((r)=>{
         const date = (r['Time'] || r['Open time'] || r['Open Time'] || r['Date'] || '').slice(0,10)
         const asset = r['Symbol'] || r['Instrument'] || r['Symbol name'] || 'UNKNOWN'
@@ -385,13 +445,13 @@ export default function App() {
     })
     useEffect(()=>{ setFlow(f=>({...f, ccy: displayCcy})) }, [displayCcy])
     const flowTypes = [
-      { value:'darwin_mgmt_fee',  label:'Darwinex – management fee' },
-      { value:'prop_payout',      label:'Prop firm – payout' },
-      { value:'prop_fee',         label:'Prop firm – fee challenge' },
+      { value:'darwin_mgmt_fee',  label:'Darwinex – Management Fee' },
+      { value:'prop_payout',      label:'Prop Firm – Payout' },
+      { value:'prop_fee',         label:'Prop Firm – Fee Challenge' },
       { value:'deposit',          label:'Dépôt' },
       { value:'withdrawal',       label:'Retrait' },
-      { value:'business_expense', label:'Charge business' },
-      { value:'other_income',     label:'Autre revenu' }
+      { value:'business_expense', label:'Charge Business' },
+      { value:'other_income',     label:'Autre Revenu' }
     ]
     const submitFlow = (e)=>{
       e.preventDefault()
@@ -403,7 +463,7 @@ export default function App() {
       setFlow({ date: new Date().toISOString().slice(0,10), type:'darwin_mgmt_fee', amount:'', ccy: displayCcy, note:'' })
     }
 
-    /* ---------- Alertes (comme avant) ---------- */
+    /* ---------- Alertes ---------- */
     const [showAlerts, setShowAlerts] = useState(false)
     const TOTAL_REF = Math.max(1, capitalGlobal)
     const onePctThreshold = TOTAL_REF * 0.01
@@ -456,18 +516,29 @@ export default function App() {
       return dt.toLocaleDateString(undefined,{month:'long', year:'numeric'})
     }, [calYear, calMonth])
 
+    const ymNow = `${calYear}-${String(calMonth+1).padStart(2,'0')}`
+    const monthTradesPnl = useMemo(()=>{
+      return filtered.filter(t=>t.date.startsWith(ymNow))
+                     .reduce((s,t)=> s + convert(t.pnl, t.ccy, displayCcy), 0)
+    }, [filtered, ymNow, displayCcy, rates])
+    const yearTradesPnl = useMemo(()=>{
+      const y = String(calYear)
+      return filtered.filter(t=>t.date.startsWith(y))
+                     .reduce((s,t)=> s + convert(t.pnl, t.ccy, displayCcy), 0)
+    }, [filtered, calYear, displayCcy, rates])
+
     /* ---------- Render ---------- */
     return (
-      <div style={{ minHeight: "100vh", background: colors.bg, color: colors.text, fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif", padding: 20, maxWidth: 1540, margin: "0 auto" }}>
+      <div style={{ minHeight: "100vh", background: colors.bg, color: colors.text, padding: 20, maxWidth: 1540, margin: "0 auto" }}>
         {/* HEADER */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 12 }}>
           <div>
-            <h1 style={{ color: colors.turq, fontWeight: 400, margin: 0, fontSize: 26 }}>ZooProject</h1>
+            <h1 style={{ color: colors.turq, fontWeight: 400, margin: 0, fontSize: 28 }}>ZooProjectVision</h1>
             <p style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>Dashboard de performance trading — multi-actifs, multi-brokers, multi-stratégies</p>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: 'wrap', alignItems:'center' }}>
             <label style={btn(colors, true)}>
-              importer trades csv
+              Importer Trades CSV
               <input type="file" accept=".csv" style={{position:'absolute', inset:0, opacity:0, cursor:'pointer'}}
                 onChange={e=>{
                   const f=e.target.files?.[0]; if(!f) return;
@@ -481,30 +552,22 @@ export default function App() {
                   fr.readAsText(f);
                 }}/>
             </label>
-            <button
-              style={btn(colors)}
-              onClick={() => window.location.reload()}
+            <button style={btn(colors)} onClick={() => window.location.reload()}
               onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
               onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
-            >actualiser</button>
-            <button
-              style={btn(colors)}
-              onClick={resetFilters}
+            >Actualiser</button>
+            <button style={btn(colors)} onClick={resetFilters}
               onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
               onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
-            >réinitialiser filtres</button>
-            <button
-              style={btn(colors)}
-              onClick={()=>setShowForm(true)}
+            >Réinitialiser Filtres</button>
+            <button style={btn(colors)} onClick={()=>setShowForm(true)}
               onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
               onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
-            >ajouter flux</button>
-            <button
-              style={btn(colors)}
-              onClick={exportCSV}
+            >Ajouter Flux</button>
+            <button style={btn(colors)} onClick={exportCSV}
               onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
               onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
-            >export csv</button>
+            >Export CSV</button>
 
             <button onClick={()=>setShowAlerts(s=>!s)} style={{ position:'relative', border:`1px solid ${colors.border}`, background:colors.panel, color:colors.text, padding:'6px 10px', borderRadius:10 }}>
               🔔{ (alertsCount>0) && (<span style={{ position:'absolute', top:-6, right:-6, background:colors.pink, color:'#111', fontSize:10, padding:'2px 6px', borderRadius:999 }}>{alertsCount}</span>) }
@@ -512,7 +575,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* FILTRES (compteurs supprimés) */}
+        {/* FILTRES */}
         <div style={{ ...card, display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10 }}>
           <div><div style={label(colors)}>Actif</div>
             <select value={asset} onChange={e => setAsset(e.target.value)} style={sel(colors)}><option>All</option>{assets.map(a => <option key={a} value={a}>{a}</option>)}</select>
@@ -532,76 +595,142 @@ export default function App() {
         </div>
 
         {/* KPI Principaux */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginTop: 12 }}>
-          <div style={card}><h3 style={kpiTitle(colors)}>Capital initial</h3><div style={{ fontSize: 18 }}>{fmt(capitalInitialDisp)}</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Cash flow</h3><div style={{ fontSize: 18, color: cashFlowTotal >= 0 ? colors.turq : colors.pink }}>{fmt(cashFlowTotal)}</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>PNL (filtré)</h3><div style={{ fontSize: 18, color: totalPnlDisp >= 0 ? colors.turq : colors.pink }}>{fmt(totalPnlDisp)}</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Capital global</h3><div style={{ fontSize: 18 }}>{fmt(capitalGlobal)}</div></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginTop: 12 }}>
+          <div style={card}><h3 style={kpiTitle(colors)}>Capital Initial</h3><div style={{ fontSize: 18 }}>{fmt(capitalInitialDisp)}</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Cash Flow</h3><div style={{ fontSize: 18, color: cashFlowTotal >= 0 ? colors.turq : colors.pink }}>{fmt(cashFlowTotal)}</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>PNL (Filtré)</h3><div style={{ fontSize: 18, color: totalPnlDisp >= 0 ? colors.turq : colors.pink }}>{fmt(totalPnlDisp)}</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Capital Global</h3><div style={{ fontSize: 18 }}>{fmt(capitalGlobal)}</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Rentabilité Globale</h3>
+            <div style={{ fontSize: 18, color: colorByThreshold('ret', globalReturnPct) }}>{globalReturnPct.toFixed(2)}%</div>
+          </div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Max DD</h3>
+            <div style={{ fontSize: 18, color: colorByThreshold('dd', maxDDPct) }}>{maxDDPct.toFixed(2)}%</div>
+          </div>
         </div>
 
         {/* KPI Secondaires */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 12 }}>
-          <div style={card}><h3 style={kpiTitle(colors)}>Win Rate / RR</h3><div style={{ fontSize: 16 }}>{wr.toFixed(2)}% / {rr.toFixed(2)}</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Risque ruine</h3><div style={{ fontSize: 16, color: colors.pink }}>{(riskOfRuin(wr, rr)*100).toFixed(2)}%</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Trades</h3><div style={{ fontSize: 16 }}>{filtered.length}</div></div>
-        </div>
-
-        {/* KPI Avancés */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginTop: 12 }}>
-          <div style={card}><h3 style={kpiTitle(colors)}>Expectancy (par trade)</h3><div style={{ fontSize: 16, color: expectancy>=0?colors.turq:colors.pink }}>{fmt(expectancy)}</div><div style={{ fontSize: 12, color: colors.muted }}>Moyenne PnL/trade</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Recovery factor</h3><div style={{ fontSize: 16 }}>{recoveryFactor.toFixed(2)}</div><div style={{ fontSize: 12, color: colors.muted }}>Profit net / |Max DD|</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Sharpe / Sortino</h3><div style={{ fontSize: 16 }}>{sharpe.toFixed(2)} / {sortino.toFixed(2)}</div><div style={{ fontSize: 12, color: colors.muted }}>Rdt journaliers (annualisés)</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Volatilité résultats</h3><div style={{ fontSize: 16 }}>{(vol*100).toFixed(2)}%</div><div style={{ fontSize: 12, color: colors.muted }}>Écart-type des ret. journaliers</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Equity peak / trough</h3><div style={{ fontSize: 16 }}>{fmt(peakEquity)} / {fmt(troughEquity)}</div><div style={{ fontSize: 12, color: colors.muted }}>Plus haut / plus bas</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Durée moyenne</h3><div style={{ fontSize: 16 }}>{avgTradeDurationMin.toFixed(0)} min</div><div style={{ fontSize: 12, color: colors.muted }}>Ouverture → clôture</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Jours actifs</h3><div style={{ fontSize: 16 }}>{activeDays}</div><div style={{ fontSize: 12, color: colors.muted }}>≥1 trade/jour</div></div>
-          <div style={card}><h3 style={kpiTitle(colors)}>Corrélation stratégies</h3><div style={{ fontSize: 16 }}>{(avgStrategyCorr||0).toFixed(2)}</div><div style={{ fontSize: 12, color: colors.muted }}>Moyenne paires</div></div>
+          <div style={card}>
+            <h3 style={kpiTitle(colors)}>Win Rate / RR <Hint text="WR: % de trades gagnants. RR: gain moyen / perte moyenne. Objectif: WR≥50% ou RR≥1.5." /></h3>
+            <div style={{ fontSize: 16 }}>
+              <span style={{ color: colorByThreshold('wr', wr) }}>{wr.toFixed(2)}%</span>{' / '}
+              <span style={{ color: colorByThreshold('rr', rr) }}>{rr.toFixed(2)}</span>
+            </div>
+          </div>
+          <div style={card}>
+            <h3 style={kpiTitle(colors)}>Expectancy (par Trade) <Hint text="PnL moyen par trade. S’il est > 0, la stratégie est, en moyenne, rentable." /></h3>
+            <div style={{ fontSize: 16, color: colorByThreshold('exp', expectancy) }}>{fmt(expectancy)}</div>
+          </div>
+          <div style={card}>
+            <h3 style={kpiTitle(colors)}>Sharpe / Sortino <Hint text="Sharpe: rendement/volatilité totale. Sortino: rendement/volatilité baissière. ≥1 / ≥1.2 sont de bons repères." /></h3>
+            <div style={{ fontSize: 16 }}>
+              <span style={{ color: colorByThreshold('sharpe', sharpe) }}>{sharpe.toFixed(2)}</span>{' / '}
+              <span style={{ color: colorByThreshold('sortino', sortino) }}>{sortino.toFixed(2)}</span>
+            </div>
+          </div>
+          <div style={card}>
+            <h3 style={kpiTitle(colors)}>Recovery Factor <Hint text="Profit net / |Max DD|. ≥1.5 souhaitable." /></h3>
+            <div style={{ fontSize: 16, color: colorByThreshold('rf', recoveryFactor) }}>{recoveryFactor.toFixed(2)}</div>
+          </div>
         </div>
 
-        {/* Courbe d'équité + HWM/LWM */}
-        <div style={{ ...card, height: 420, marginTop: 16 }}>
-          <h3 style={kpiTitle(colors)}>Courbe d’équité (avec HWM/LWM)</h3>
+        {/* KPI Opérationnels */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginTop: 12 }}>
+          <div style={card}><h3 style={kpiTitle(colors)}>Durée Moyenne</h3><div style={{ fontSize: 16 }}>{avgTradeDurationMin.toFixed(0)} min</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Jours Actifs</h3><div style={{ fontSize: 16 }}>{activeDays}</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Equity Peak / Trough</h3><div style={{ fontSize: 16 }}>{fmt(peakEquity)}{' / '}{fmt(troughEquity)}</div></div>
+          <div style={card}><h3 style={kpiTitle(colors)}>Corrélation Stratégies <Hint text="Corrélation moyenne (paires) des PnL quotidiens par stratégie. 1: mêmes cycles; 0: indépendantes; <0: anti-corrélées." /></h3><div style={{ fontSize: 16 }}>{(avgStrategyCorr||0).toFixed(2)}</div></div>
+        </div>
+
+        {/* Distribution SL losers (3 niveaux) */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 12 }}>
+          <div style={card}>
+            <h3 style={kpiTitle(colors)}>SL Direct <Hint text="Le trade part directement en drawdown jusqu’au SL (MFE ≤ 0)." /></h3>
+            <div style={{ fontSize: 18, color: slDistribution.pctDirect > 20 ? colors.pink : '#ffffff' }}>
+              {slDistribution.pctDirect.toFixed(2)}%
+            </div>
+          </div>
+          <div style={card}>
+            <h3 style={kpiTitle(colors)}>SL Rebond ≤ 10% <Hint text="Petit rebond avant la perte (0 < MFE ≤ 10% de MAE)." /></h3>
+            <div style={{ fontSize: 18, color: slDistribution.pctReb10 > 20 ? colors.pink : '#ffffff' }}>
+              {slDistribution.pctReb10.toFixed(2)}%
+            </div>
+          </div>
+          <div style={card}>
+            <h3 style={kpiTitle(colors)}>SL Rebond 10–20% <Hint text="Rebond modéré (10–20% de MAE) mais le trade finit au SL." /></h3>
+            <div style={{ fontSize: 18, color: slDistribution.pctReb20 > 20 ? colors.pink : '#ffffff' }}>
+              {slDistribution.pctReb20.toFixed(2)}%
+            </div>
+          </div>
+        </div>
+
+        {/* Courbe d’équité + HWM/LWM + marqueurs cashflows */}
+        <div style={{ ...card, height: 430, marginTop: 16 }}>
+          <h3 style={kpiTitle(colors)}>Courbe D’Équité (Avec HWM / LWM)</h3>
           <ResponsiveContainer width="100%" height="88%">
             <LineChart data={equitySeriesHL} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid stroke="#2b2b2b" />
               <XAxis dataKey="date" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
-              <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} tickFormatter={(v)=>v.toFixed(0)} />
+              <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
               <Tooltip contentStyle={{ background: colors.panel, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 10 }} itemStyle={{ color: colors.text }} labelStyle={{ color: colors.text }} />
               <Legend wrapperStyle={{ fontSize: 12, color: colors.text }} />
               <Line type="monotone" dataKey="equity" name="Équité" dot={false} stroke="#ffffff" strokeWidth={2.8} isAnimationActive={false} />
-              <Line type="monotone" dataKey="hwm" name="Plus haut (HWM)" dot={false} stroke={colors.turq} strokeWidth={1.8} strokeDasharray="4 3" />
-              <Line type="monotone" dataKey="lwm" name="Plus bas (LWM)" dot={false} stroke={colors.pink} strokeWidth={1.4} strokeDasharray="4 3" />
+              <Line type="monotone" dataKey="hwm" name="Plus Haut (HWM)" dot={false} stroke={colors.turq} strokeWidth={1.8} strokeDasharray="4 3" />
+              <Line type="monotone" dataKey="lwm" name="Plus Bas (LWM)" dot={false} stroke={colors.pink} strokeWidth={1.4} strokeDasharray="4 3" />
+
+              {cashflowsInRange
+                .filter(c=>['deposit','withdrawal','prop_fee','prop_payout','darwin_mgmt_fee'].includes(c.type))
+                .map((c,i)=>(
+                  <ReferenceLine
+                    key={'cf'+i}
+                    x={c.date}
+                    stroke={c.amount >= 0 ? colors.turq : colors.pink}
+                    strokeDasharray="3 3"
+                    label={{ value: (c.amount>=0?'+':'') + convert(c.amount,c.ccy,displayCcy).toFixed(0), fill: c.amount>=0?colors.turq:colors.pink, fontSize: 10, position: 'top' }}
+                  />
+                ))}
             </LineChart>
           </ResponsiveContainer>
+          {(!asset || asset==='All') && (!broker || broker==='All') && (!strategy || strategy==='All') && (!dateFrom && !dateTo) && (
+            <div style={{fontSize:12, color:colors.muted, marginTop:6}}>Période : tout l’historique (filtres = All).</div>
+          )}
         </div>
 
         {/* MFE/MAE — quotidien (moyenne) */}
         <div style={{ ...card, height: 360, marginTop: 16 }}>
-          <h3 style={kpiTitle(colors)}>MFE (potentiel) vs MAE (risque) — quotidien</h3>
+          <h3 style={kpiTitle(colors)}>
+            MFE (Potentiel) / MAE (Risque) — Quotidien
+            <span style={{ marginLeft:8, padding:'2px 8px', border:`1px solid ${colors.border}`, borderRadius:999, fontSize:11, color:mfeMaeVerdict.color }}>
+              {mfeMaeVerdict.label}
+            </span>
+            <Hint text="MFE: meilleur gain latent. MAE: pire perte latente. Ratio moyen MFE/MAE ⇒ Efficace / Moyen / À améliorer." />
+          </h3>
           <ResponsiveContainer width="100%" height="88%">
             <LineChart data={mfeMaeDaily} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid stroke="#2b2b2b" />
               <XAxis dataKey="date" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
-              <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} tickFormatter={(v)=>v.toFixed(0)} />
+              <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
               <Tooltip contentStyle={{ background: colors.panel, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 10 }}
                        itemStyle={{ color: colors.text }} labelStyle={{ color: colors.text }}
-                       formatter={(v, n)=>[fmt(v), n === 'avgMFE' ? 'MFE moyen' : 'MAE moyen (visu +)']} />
+                       formatter={(v, n)=>[fmt(v), n === 'avgMFE' ? 'MFE moyen' : 'MAE moyen']} />
               <Legend wrapperStyle={{ fontSize: 12, color: colors.text }} />
-              <Line type="monotone" dataKey="avgMFE" name="MFE moyen" dot={false} stroke={colors.turq} strokeWidth={2} />
-              {/* MAE affiché en valeur positive mais à interpréter "risque" */}
-              <Line type="monotone" dataKey="avgMAE" name="MAE moyen" dot={false} stroke={colors.pink} strokeWidth={2} />
+              <Line type="monotone" dataKey="avgMFE" name="MFE Moyen" dot={false} stroke={colors.turq} strokeWidth={2} />
+              <Line type="monotone" dataKey="avgMAE" name="MAE Moyen" dot={false} stroke={colors.pink} strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
         {/* MFE/MAE — cumul */}
         <div style={{ ...card, height: 360, marginTop: 16 }}>
-          <h3 style={kpiTitle(colors)}>Cumul MFE vs MAE</h3>
+          <h3 style={kpiTitle(colors)}>
+            Cumul MFE / MAE
+            <Hint text="Somme cumulée du potentiel (MFE) et du risque (MAE). Si Cumul MFE >> Cumul MAE, potentiel élevé à mieux capturer." />
+          </h3>
           <ResponsiveContainer width="100%" height="88%">
             <LineChart data={mfeMaeDaily} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid stroke="#2b2b2b" />
               <XAxis dataKey="date" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
-              <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} tickFormatter={(v)=>v.toFixed(0)} />
+              <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
               <Tooltip contentStyle={{ background: colors.panel, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 10 }}
                        itemStyle={{ color: colors.text }} labelStyle={{ color: colors.text }}
                        formatter={(v, n)=>[fmt(v), n === 'cumMFE' ? 'Cumul MFE' : 'Cumul MAE']} />
@@ -612,34 +741,43 @@ export default function App() {
           </ResponsiveContainer>
         </div>
 
-        {/* Histogramme par actif */}
-        <div style={{ ...card, height: 360, marginTop: 16 }}>
-          <h3 style={kpiTitle(colors)}>Gain / Perte par actif</h3>
-          <ResponsiveContainer width="100%" height="88%">
-            <BarChart data={pnlByAsset} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-              <CartesianGrid stroke="#2b2b2b" />
-              <XAxis dataKey="name" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
-              <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }}
-                     tickFormatter={v=>fmt(v)} />
-              <Tooltip contentStyle={{ background: colors.panel, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 10 }}
-                       itemStyle={{ color: colors.text }} labelStyle={{ color: colors.text }}
-                       formatter={(v)=>[fmt(v), 'PnL']} />
-              <defs>
-                <linearGradient id="turqGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={colors.turq} /><stop offset="100%" stopColor={colors.turq2} /></linearGradient>
-                <linearGradient id="pinkGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={colors.pink} /><stop offset="100%" stopColor={colors.pink2} /></linearGradient>
-              </defs>
-              <Bar dataKey="value" name="PnL">
-                {pnlByAsset.map((row, i) => (
-                  <Cell key={i} fill={row.value >= 0 ? "url(#turqGloss)" : "url(#pinkGloss)"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        {/* Histogrammes — volume de trades */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:16 }}>
+          <div style={{ ...card, height: 320 }}>
+            <h3 style={kpiTitle(colors)}>Trades Par Heure D’Ouverture <Hint text="Comptage des trades selon l’heure d’ouverture (après filtres)." /></h3>
+            <ResponsiveContainer width="100%" height="88%">
+              <BarChart data={tradesCountByHour} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+                <CartesianGrid stroke="#2b2b2b" />
+                <XAxis dataKey="hour" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
+                <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
+                <Tooltip contentStyle={{ background: colors.panel, border:`1px solid ${colors.border}`, color: colors.text, borderRadius:10 }} />
+                <defs>
+                  <linearGradient id="turqGloss" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={colors.turq} /><stop offset="100%" stopColor={colors.turq2} />
+                  </linearGradient>
+                </defs>
+                <Bar dataKey="count" name="Trades" fill="url(#turqGloss)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{ ...card, height: 320 }}>
+            <h3 style={kpiTitle(colors)}>Trades Par Mois D’Ouverture <Hint text="Comptage des trades par mois (après filtres)." /></h3>
+            <ResponsiveContainer width="100%" height="88%">
+              <BarChart data={tradesCountByMonth} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+                <CartesianGrid stroke="#2b2b2b" />
+                <XAxis dataKey="month" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
+                <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
+                <Tooltip contentStyle={{ background: colors.panel, border:`1px solid ${colors.border}`, color: colors.text, borderRadius:10 }} />
+                <Bar dataKey="count" name="Trades" fill="url(#turqGloss)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Répartition PnL */}
         <div style={{ ...card, height: 360, marginTop: 16 }}>
-          <h3 style={kpiTitle(colors)}>Répartition PnL</h3>
+          <h3 style={kpiTitle(colors)}>Répartition PnL (|PnL|) Par Actif <Hint text="Part d’impact absolu (|PnL|) par actif sur la période filtrée." /></h3>
           <ResponsiveContainer width="100%" height="88%">
             <PieChart>
               <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={70} outerRadius={110} stroke="none"
@@ -662,21 +800,21 @@ export default function App() {
         {/* Calendrier */}
         <div style={{ ...card, marginTop: 16 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-            <h3 style={kpiTitle(colors)}>Calendrier — {monthLabel}</h3>
+            <h3 style={kpiTitle(colors)}>Calendrier / {monthLabel}</h3>
             <div style={{ display:'flex', gap:8 }}>
-              <button
-                style={btn(colors)}
-                onClick={()=>{ let m=calMonth-1, y=calYear; if(m<0){m=11;y--} setCalMonth(m); setCalYear(y) }}
+              <button style={btn(colors)} onClick={()=>{ let m=calMonth-1, y=calYear; if(m<0){m=11;y--} setCalMonth(m); setCalYear(y) }}
                 onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
                 onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
               >◀</button>
-              <button
-                style={btn(colors)}
-                onClick={()=>{ let m=calMonth+1, y=calYear; if(m>11){m=0;y++} setCalMonth(m); setCalYear(y) }}
+              <button style={btn(colors)} onClick={()=>{ let m=calMonth+1, y=calYear; if(m>11){m=0;y++} setCalMonth(m); setCalYear(y) }}
                 onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
                 onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
               >▶</button>
             </div>
+          </div>
+          <div style={{ display:'flex', gap:12, color:colors.muted, fontSize:12, margin:'4px 0 10px' }}>
+            <span>Mensuel (trading) : <span style={{color: monthTradesPnl>=0?colors.turq:colors.pink}}>{fmt(monthTradesPnl)}</span></span>
+            <span>Annuel (trading) : <span style={{color: yearTradesPnl>=0?colors.turq:colors.pink}}>{fmt(yearTradesPnl)}</span></span>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:8 }}>
             {['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=><div key={d} style={{textAlign:'center', color:colors.muted, fontSize:12}}>{d}</div>)}
@@ -687,7 +825,7 @@ export default function App() {
         {/* Centre Alertes */}
         {showAlerts && (
           <div style={{ ...card, marginTop: 16 }}>
-            <h3 style={kpiTitle(colors)}>Centre d’alertes</h3>
+            <h3 style={kpiTitle(colors)}>Centre D’Alertes</h3>
             {(!alertsCount) && <div style={{fontSize:12, color:colors.muted}}>Aucune alerte active.</div>}
             {(alertsTrades.length>0) && (
               <>
@@ -712,9 +850,22 @@ export default function App() {
           </div>
         )}
 
+        {/* GUIDE (optionnel) */}
+        <details style={{ ...card, marginTop:16 }}>
+          <summary style={{ cursor:'pointer', color: colors.text }}>Guide Rapide Des Métriques</summary>
+          <div style={{ fontSize:12, color:colors.muted, marginTop:8, lineHeight:1.6 }}>
+            <div><b style={{fontWeight:500}}>Rentabilité Globale</b> = PnL filtré / (Capital initial + Cash-flow filtré).</div>
+            <div><b style={{fontWeight:500}}>Max DD%</b> : drawdown max sur l’équité filtrée.</div>
+            <div><b style={{fontWeight:500}}>WR / RR</b> : au moins l’un des deux doit être fort (WR ≥ 50% ou RR ≥ 1.5).</div>
+            <div><b style={{fontWeight:500}}>Expectancy</b> : PnL moyen par trade (&gt; 0 = OK).</div>
+            <div><b style={{fontWeight:500}}>Sharpe / Sortino</b> : qualité/regularité des rendements.</div>
+            <div><b style={{fontWeight:500}}>Recovery Factor</b> : Profit net / |Max DD| (≥ 1.5 souhaitable).</div>
+          </div>
+        </details>
+
         {/* FOOTER */}
         <div style={{ textAlign: "center", color: colors.muted, fontSize: 12, marginTop: 20 }}>
-          ZooProject © {new Date().getFullYear()}
+          ZooProjectVision © {new Date().getFullYear()}
         </div>
 
         {/* MODAL — Ajouter flux */}
@@ -722,8 +873,8 @@ export default function App() {
           <div style={modalOverlay()} onClick={()=>setShowForm(false)}>
             <div style={modalCard(colors)} onClick={(e)=>e.stopPropagation()}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-                <div style={{ fontSize:14, color: colors.text }}>Ajouter un flux</div>
-                <button style={btnGhost(colors)} onClick={()=>setShowForm(false)}>fermer</button>
+                <div style={{ fontSize:14, color: colors.text }}>Ajouter Un Flux</div>
+                <button style={btnGhost(colors)} onClick={()=>setShowForm(false)}>Fermer</button>
               </div>
               <form onSubmit={submitFlow} style={{ display:'grid', gap:10, gridTemplateColumns:'repeat(2,1fr)' }}>
                 <label style={formLabel()}><span>Type</span>
@@ -748,8 +899,8 @@ export default function App() {
                          onChange={e=>setFlow(f=>({...f, note:e.target.value}))} style={sel(colors)} />
                 </label>
                 <div style={{ gridColumn:'1 / -1', display:'flex', justifyContent:'flex-end', gap:8 }}>
-                  <button type="button" style={btnGhost(colors)} onClick={()=>setShowForm(false)}>annuler</button>
-                  <button type="submit" style={btn(colors)}>enregistrer</button>
+                  <button type="button" style={btnGhost(colors)} onClick={()=>setShowForm(false)}>Annuler</button>
+                  <button type="submit" style={btn(colors)}>Enregistrer</button>
                 </div>
               </form>
             </div>
@@ -811,6 +962,21 @@ function modalOverlay(){ return { position:'fixed', inset:0, background:'rgba(0,
 function modalCard(colors){ return { width:'min(720px, 100%)', background:colors.panel, border:`1px solid ${colors.border}`, borderRadius:16, padding:12 } }
 function formLabel(){ return { display:'flex', flexDirection:'column', gap:6, fontSize:12 } }
 function rowKV(colors){ return { display:'flex', justifyContent:'space-between', alignItems:'center', border:`1px solid ${colors.border}`, borderRadius:10, padding:'8px 10px', margin:'6px 0', fontSize:12 } }
+function colorByThreshold(metric, value){
+  const c = { good:'#ffffff', neutral:'#c8d0d6', bad:'#ff5fa2' }
+  switch(metric){
+    case 'wr':      return value>=50?c.good: value>=35?c.neutral:c.bad
+    case 'rr':      return value>=1.5?c.good: value>=1.0?c.neutral:c.bad
+    case 'exp':     return value>0?c.good:c.bad
+    case 'sharpe':  return value>=1?c.good: value>=0.5?c.neutral:c.bad
+    case 'sortino': return value>=1.2?c.good: value>=0.8?c.neutral:c.bad
+    case 'rf':      return value>=1.5?c.good: value>=0.7?c.neutral:c.bad
+    case 'dd':      return value<10?c.good: value<=25?c.neutral:c.bad
+    case 'ret':     return value>=0?c.good:c.bad
+    default:        return '#e8ecef'
+  }
+}
+function Hint({text}){ return <span title={text} style={{marginLeft:6, opacity:.8, cursor:'help'}}>?</span> }
 
 /* ---------- calendrier cellules ---------- */
 function calendarCells(dates, retMap, ddMap, colors){
