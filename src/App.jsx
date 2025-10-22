@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell, CartesianGrid, ReferenceLine
+  BarChart, Bar, PieChart, Pie, Cell, CartesianGrid, ReferenceLine, ReferenceDot
 } from 'recharts'
 
 export default function App() {
@@ -173,7 +173,7 @@ export default function App() {
     const rr = avgLoss > 0 ? (avgWin / avgLoss) : 0
     const expectancy = useMemo(()=> filtered.length ? (totalPnlDisp / filtered.length) : 0, [totalPnlDisp, filtered.length])
 
-    /* ---------- Séries équité & indicateurs ---------- */
+    /* ---------- Équité : deux courbes (trading seul / avec flux) ---------- */
     function groupByDateSumPnlDisp(rows) {
       const m = new Map()
       for (const r of rows) {
@@ -184,53 +184,86 @@ export default function App() {
     }
     const pnlByDate = useMemo(() => groupByDateSumPnlDisp(filtered), [filtered, displayCcy, rates])
 
-    const equitySeries = useMemo(() => {
-      let eq = capitalBase
-      return pnlByDate.map(pt => {
-        eq += pt.pnl
-        return { date: pt.date, equity: Number(eq.toFixed(2)) }
-      })
-    }, [pnlByDate, capitalBase])
+    const cashByDate = useMemo(()=>{
+      const m = new Map()
+      for (const c of cashflowsInRange){
+        m.set(c.date, (m.get(c.date)||0) + (c.amount_disp||0))
+      }
+      return Array.from(m, ([date, cash]) => ({ date, cash })).sort((a,b)=>a.date.localeCompare(b.date))
+    }, [cashflowsInRange])
 
-    // HWM/LWM le long du temps
-    const equitySeriesHL = useMemo(() => {
-      let h = -Infinity, l = Infinity;
-      return equitySeries.map(p => {
-        h = Math.max(h, p.equity);
-        l = Math.min(l, p.equity);
-        return { ...p, hwm: Number(h.toFixed(2)), lwm: Number(l.toFixed(2)) };
-      });
-    }, [equitySeries])
+    const pnlMap = useMemo(()=>{ const m=new Map(); pnlByDate.forEach(p=>m.set(p.date, p.pnl)); return m },[pnlByDate])
+    const cashCumMap = useMemo(()=>{
+      let cum=0; const m=new Map()
+      for (const c of cashByDate){ cum += c.cash; m.set(c.date, Number(cum.toFixed(2))) }
+      return m
+    }, [cashByDate])
 
-    // daily returns & stats
-    const dailyReturns = useMemo(()=>{
+    const mergedDates = useMemo(()=>{
+      const s = new Set()
+      pnlByDate.forEach(x=>s.add(x.date))
+      cashByDate.forEach(x=>s.add(x.date))
+      return Array.from(s).sort((a,b)=>a.localeCompare(b))
+    }, [pnlByDate, cashByDate])
+
+    const equityMerged = useMemo(()=>{
+      let eqTrading = capitalInitialDisp // démarre au capital initial uniquement (trading seul)
       const out = []
-      for (let i=1;i<equitySeries.length;i++){
-        const p = equitySeries[i-1].equity, c = equitySeries[i].equity
-        out.push({ date: equitySeries[i].date, ret: p===0?0:(c-p)/p })
+      for (const d of mergedDates){
+        eqTrading += (pnlMap.get(d) || 0)
+        const cashCum = (cashCumMap.get(d) || 0)
+        out.push({
+          date: d,
+          equity_trading: Number(eqTrading.toFixed(2)),
+          equity_with_flows: Number((eqTrading + cashCum).toFixed(2))
+        })
       }
       return out
-    }, [equitySeries])
-    const vol = useMemo(()=> stddev(dailyReturns.map(r=>r.ret)), [dailyReturns])
+    }, [mergedDates, pnlMap, cashCumMap, capitalInitialDisp])
+
+    const equitySeriesHL = useMemo(() => {
+      let h = -Infinity, l = Infinity
+      return equityMerged.map(p => {
+        h = Math.max(h, p.equity_trading)
+        l = Math.min(l, p.equity_trading)
+        return { ...p, hwm: Number(h.toFixed(2)), lwm: Number(l.toFixed(2)) }
+      })
+    }, [equityMerged])
 
     const { peakEquity, troughEquity, maxDDAbs } = useMemo(()=>{
-      if (!equitySeries.length) return { peakEquity:0, troughEquity:0, maxDDAbs:0 }
-      let peakSeen = equitySeries[0].equity
+      if (!equitySeriesHL.length) return { peakEquity:0, troughEquity:0, maxDDAbs:0 }
+      let peakSeen = equitySeriesHL[0].equity_trading
       let maxDrop = 0
-      for (const p of equitySeries) {
-        if (p.equity > peakSeen) peakSeen = p.equity
-        const drop = peakSeen - p.equity
+      for (const p of equitySeriesHL) {
+        if (p.equity_trading > peakSeen) peakSeen = p.equity_trading
+        const drop = peakSeen - p.equity_trading
         if (drop > maxDrop) maxDrop = drop
       }
-      const pe = Math.max(...equitySeries.map(e=>e.equity))
-      const tr = Math.min(...equitySeries.map(e=>e.equity))
+      const pe = Math.max(...equitySeriesHL.map(e=>e.equity_trading))
+      const tr = Math.min(...equitySeriesHL.map(e=>e.equity_trading))
       return { peakEquity: pe, troughEquity: tr, maxDDAbs: maxDrop }
-    }, [equitySeries])
+    }, [equitySeriesHL])
+
+    function equityWithFlowsAt(date){
+      const p = equitySeriesHL.find(x=>x.date===date)
+      return p ? p.equity_with_flows : undefined
+    }
+
+    /* ---------- daily returns & stats ---------- */
+    const dailyReturns = useMemo(()=>{
+      const out = []
+      for (let i=1;i<equitySeriesHL.length;i++){
+        const p = equitySeriesHL[i-1].equity_trading, c = equitySeriesHL[i].equity_trading
+        out.push({ date: equitySeriesHL[i].date, ret: p===0?0:(c-p)/p })
+      }
+      return out
+    }, [equitySeriesHL])
+    const vol = useMemo(()=> stddev(dailyReturns.map(r=>r.ret)), [dailyReturns])
 
     const recoveryFactor = useMemo(()=>{
-      const profitNet = (equitySeries.at(-1)?.equity || capitalBase) - capitalBase
+      const profitNet = (equitySeriesHL.at(-1)?.equity_trading || capitalInitialDisp) - capitalInitialDisp
       return maxDDAbs > 0 ? profitNet / maxDDAbs : 0
-    }, [equitySeries, capitalBase, maxDDAbs])
+    }, [equitySeriesHL, capitalInitialDisp, maxDDAbs])
 
     const sharpe = useMemo(()=>{
       const rets = dailyReturns.map(r=>r.ret)
@@ -493,7 +526,7 @@ export default function App() {
     const alertsCount = (alertsTrades?.length||0) + (alertsHours?.length||0)
 
     /* ---------- Calendrier ---------- */
-    const lastDate = equitySeries.at(-1)?.date || new Date().toISOString().slice(0,10)
+    const lastDate = equitySeriesHL.at(-1)?.date || new Date().toISOString().slice(0,10)
     const [calYear, setCalYear] = useState(Number(lastDate.slice(0,4)))
     const [calMonth, setCalMonth] = useState(Number(lastDate.slice(5,7))-1)
     function monthDays(year, monthIndex){
@@ -506,11 +539,11 @@ export default function App() {
     const dailyRetMap = useMemo(()=>{ const m=new Map(); dailyReturns.forEach(r=>m.set(r.date,r.ret)); return m }, [dailyReturns])
     const monthDDMap = useMemo(()=>{
       const ym = `${calYear}-${String(calMonth+1).padStart(2,'0')}`
-      const pts = equitySeries.filter(p=>p.date.startsWith(ym))
+      const pts = equitySeriesHL.filter(p=>p.date.startsWith(ym))
       let peak=-Infinity; const m=new Map()
-      for(const p of pts){ peak=Math.max(peak, p.equity); m.set(p.date, (p.equity-peak)/peak) }
+      for(const p of pts){ peak=Math.max(peak, p.equity_trading); m.set(p.date, (p.equity_trading-peak)/peak) }
       return m
-    }, [equitySeries, calYear, calMonth])
+    }, [equitySeriesHL, calYear, calMonth])
     const monthLabel = useMemo(()=>{
       const dt = new Date(calYear, calMonth, 1)
       return dt.toLocaleDateString(undefined,{month:'long', year:'numeric'})
@@ -664,35 +697,59 @@ export default function App() {
           </div>
         </div>
 
-        {/* Courbe d’équité + HWM/LWM + marqueurs cashflows */}
+        {/* Courbe d’équité (trading / avec flux) + HWM/LWM + marqueurs cashflows */}
         <div style={{ ...card, height: 430, marginTop: 16 }}>
-          <h3 style={kpiTitle(colors)}>Courbe D’Équité (Avec HWM / LWM)</h3>
+          <h3 style={kpiTitle(colors)}>Courbe D’Équité (Trading Seul / Avec Flux)</h3>
           <ResponsiveContainer width="100%" height="88%">
             <LineChart data={equitySeriesHL} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
               <CartesianGrid stroke="#2b2b2b" />
               <XAxis dataKey="date" stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
               <YAxis stroke={colors.axis} tickLine={false} axisLine={{ stroke: colors.axis }} tick={{ fontSize: 10 }} />
-              <Tooltip contentStyle={{ background: colors.panel, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 10 }} itemStyle={{ color: colors.text }} labelStyle={{ color: colors.text }} />
+              <Tooltip
+                contentStyle={{ background: colors.panel, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 10 }}
+                itemStyle={{ color: colors.text }} labelStyle={{ color: colors.text }}
+                formatter={(v, n)=>[fmt(v), n]}
+              />
               <Legend wrapperStyle={{ fontSize: 12, color: colors.text }} />
-              <Line type="monotone" dataKey="equity" name="Équité" dot={false} stroke="#ffffff" strokeWidth={2.8} isAnimationActive={false} />
-              <Line type="monotone" dataKey="hwm" name="Plus Haut (HWM)" dot={false} stroke={colors.turq} strokeWidth={1.8} strokeDasharray="4 3" />
-              <Line type="monotone" dataKey="lwm" name="Plus Bas (LWM)" dot={false} stroke={colors.pink} strokeWidth={1.4} strokeDasharray="4 3" />
 
+              {/* TRADING SEUL (débute au capital initial) */}
+              <Line type="monotone" dataKey="equity_trading" name="Équité (trading seul)" dot={false} stroke="#ffffff" strokeWidth={2.8} isAnimationActive={false} />
+
+              {/* AVEC FLUX (montre l’effet dépôts/retraits) */}
+              <Line type="monotone" dataKey="equity_with_flows" name="Équité (avec flux)" dot={false} stroke="#8a8f94" strokeWidth={1.6} strokeDasharray="5 4" />
+
+              {/* HWM/LWM (sur trading seul) */}
+              <Line type="monotone" dataKey="hwm" name="Plus Haut (HWM)" dot={false} stroke={colors.turq} strokeWidth={1.6} strokeDasharray="4 3" />
+              <Line type="monotone" dataKey="lwm" name="Plus Bas (LWM)" dot={false} stroke={colors.pink} strokeWidth={1.2} strokeDasharray="4 3" />
+
+              {/* Repères cash-flow : verticale + point coloré (sur "avec flux") */}
               {cashflowsInRange
                 .filter(c=>['deposit','withdrawal','prop_fee','prop_payout','darwin_mgmt_fee'].includes(c.type))
-                .map((c,i)=>(
-                  <ReferenceLine
-                    key={'cf'+i}
-                    x={c.date}
-                    stroke={c.amount >= 0 ? colors.turq : colors.pink}
-                    strokeDasharray="3 3"
-                    label={{ value: (c.amount>=0?'+':'') + convert(c.amount,c.ccy,displayCcy).toFixed(0), fill: c.amount>=0?colors.turq:colors.pink, fontSize: 10, position: 'top' }}
-                  />
-                ))}
+                .map((c,i)=>{
+                  const y = equityWithFlowsAt(c.date)
+                  const color = c.amount >= 0 ? colors.turq : colors.pink
+                  const labelTxt =
+                    (c.amount>=0?'+':'') + convert(c.amount,c.ccy,displayCcy).toFixed(0) + ' · ' + (
+                      c.type==='deposit' ? 'Dépôt' :
+                      c.type==='withdrawal' ? 'Retrait' :
+                      c.type==='prop_fee' ? 'Prop Fee' :
+                      c.type==='prop_payout' ? 'Prop Payout' :
+                      'Darwinex Fee'
+                    )
+                  return (
+                    <React.Fragment key={'cf'+i}>
+                      <ReferenceLine x={c.date} stroke={color} strokeDasharray="3 3"
+                        label={{ value: labelTxt, fill: color, fontSize: 10, position: 'top' }} />
+                      {y!=null && <ReferenceDot x={c.date} y={y} r={4} fill={color} stroke="none" />}
+                    </React.Fragment>
+                  )
+                })}
             </LineChart>
           </ResponsiveContainer>
           {(!asset || asset==='All') && (!broker || broker==='All') && (!strategy || strategy==='All') && (!dateFrom && !dateTo) && (
-            <div style={{fontSize:12, color:colors.muted, marginTop:6}}>Période : tout l’historique (filtres = All).</div>
+            <div style={{fontSize:12, color:colors.muted, marginTop:6}}>
+              Période : tout l’historique (filtres = All). Courbe blanche = trading seul (débute au capital initial). Courbe grise = trading + flux.
+            </div>
           )}
         </div>
 
@@ -803,11 +860,11 @@ export default function App() {
             <h3 style={kpiTitle(colors)}>Calendrier / {monthLabel}</h3>
             <div style={{ display:'flex', gap:8 }}>
               <button style={btn(colors)} onClick={()=>{ let m=calMonth-1, y=calYear; if(m<0){m=11;y--} setCalMonth(m); setCalYear(y) }}
-                onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
+                onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}}
                 onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
               >◀</button>
               <button style={btn(colors)} onClick={()=>{ let m=calMonth+1, y=calYear; if(m>11){m=0;y++} setCalMonth(m); setCalYear(y) }}
-                onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
+                onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}}
                 onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
               >▶</button>
             </div>
@@ -934,16 +991,6 @@ function pearson(a,b){
   }
   const den = Math.sqrt(da*db)
   return den>0 ? num/den : 0
-}
-function riskOfRuin(wrPct, rr){
-  const wr = wrPct/100
-  const expectancy = wr*rr - (1-wr)
-  const x = expectancy / (rr + 1 || 1)
-  const base = (1 - x) / (1 + x)
-  if (!isFinite(base) || base <= 0) return 0
-  const riskPerTrade = 0.01
-  const r = Math.pow(base, 1 / Math.max(1e-6, riskPerTrade))
-  return Math.max(0, Math.min(1, r))
 }
 
 /* ---------- helpers UI ---------- */
