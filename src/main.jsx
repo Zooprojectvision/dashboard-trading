@@ -5,4 +5,3 @@ import './styles.css'
 
 const root = document.getElementById('root')
 createRoot(root).render(<App />)
-
