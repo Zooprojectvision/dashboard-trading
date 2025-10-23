@@ -141,17 +141,16 @@ const stdev = (a)=>{ if(a.length<=1) return 0; const m=mean(a); return Math.sqrt
 const downsideDev = (a)=>{ if(!a.length) return 0; const neg=a.map(x=>Math.min(0,x)); const mneg=mean(neg); return Math.sqrt(mean(neg.map(x=>(x-mneg)*(x-mneg)))) }
 const pearson = (x,y)=>{ const n=Math.min(x.length,y.length); if(n<2) return 0; const mx=mean(x.slice(0,n)), my=mean(y.slice(0,n)); let num=0,dx=0,dy=0; for(let i=0;i<n;i++){const a=x[i]-mx,b=y[i]-my; num+=a*b; dx+=a*a; dy+=b*b} return (dx>0&&dy>0)? num/Math.sqrt(dx*dy):0 }
 const fix2 = (x)=>Number((x||0).toFixed(2))
-
 /* ===================== Modèle principal ===================== */
 function useDashboardModel(){
   const colors = makeColors()
 
-  // --- Démo : référentiels
+  // Référentiels
   const ASSETS = ["XAUUSD", "DAX", "US500", "USTEC", "US30"]
   const BROKERS = ["Darwinex", "ICMarkets", "Pepperstone"]
   const STRATS  = ["Strategy 1", "Strategy 2", "Breakout"]
 
-  // --- Démo : trades simulés (multi-jours, MFE/MAE)
+  // Trades démo
   const demoTrades = useMemo(()=>{
     const rows=[], today=new Date()
     for(let i=150;i>=1;i--){
@@ -174,7 +173,7 @@ function useDashboardModel(){
     return rows
   },[])
 
-  // --- Démo : flux (apports/retraits/fees)
+  // Cashflows démo
   const CAPITAL_INITIAL_USD = 100000
   const demoCashflows = [
     { date:'2025-01-05', type:'deposit',         amount: 2000, ccy:'USD', note:'Apport' },
@@ -184,7 +183,15 @@ function useDashboardModel(){
     { date:'2025-05-20', type:'withdrawal',      amount: -800, ccy:'USD', note:'Retrait' }
   ]
 
-  /* --------- États et filtres --------- */
+  // Cashflows personnalisés (formulaire)
+  const [customCashflows, setCustomCashflows] = useState([])
+  const combinedCashflows = useMemo(
+    () => [...demoCashflows, ...customCashflows].sort((a,b)=>a.date.localeCompare(b.date)),
+    [demoCashflows, customCashflows]
+  )
+  const addCashflow = (cf) => setCustomCashflows(prev => [...prev, cf])
+
+  /* Filtres */
   const [asset,setAsset]=useState("All")
   const [broker,setBroker]=useState("All")
   const [strategy,setStrategy]=useState("All")
@@ -205,7 +212,7 @@ function useDashboardModel(){
     return true
   }),[demoTrades,asset,broker,strategy,dateFrom,dateTo])
 
-  /* --------- Devises & conversion --------- */
+  /* Devises & conversion */
   const [displayCcy,setDisplayCcy]=useState('USD')
   const fxFallback={ USD:{USD:1,EUR:0.93,CHF:0.88}, EUR:{USD:1/0.93,EUR:1,CHF:0.88/0.93}, CHF:{USD:1/0.88,EUR:0.93/0.88,CHF:1} }
   const [rates,setRates]=useState(null)
@@ -221,12 +228,12 @@ function useDashboardModel(){
   const convert=(val,from='USD',to=displayCcy)=>{ if(val==null) return 0; if(from===to) return Number(val.toFixed(2)); const table=rates||fxFallback; const r=(table[from]&&table[from][to])?table[from][to]:1; return Number((val*r).toFixed(2)) }
   const fmtLocal=(v,ccy=displayCcy)=>{ try{ return new Intl.NumberFormat(undefined,{style:'currency',currency:ccy,minimumFractionDigits:2,maximumFractionDigits:2}).format(v??0)}catch{return `${(v??0).toFixed(2)} ${ccy}`} }
 
-  /* --------- Cashflows & équité --------- */
+  /* Cashflows & équité */
   const cashflowsInRange=useMemo(()=>{
-    return demoCashflows
+    return combinedCashflows
       .filter(c=>(!dateFrom||c.date>=dateFrom)&&(!dateTo||c.date<=dateTo))
       .map(c=>({...c, amount_disp: convert(c.amount,c.ccy,displayCcy)}))
-  },[demoCashflows,dateFrom,dateTo,displayCcy,rates])
+  },[combinedCashflows,dateFrom,dateTo,displayCcy,rates])
 
   const cashByDate=useMemo(()=>{
     const m=new Map(); for(const c of cashflowsInRange){ m.set(c.date,(m.get(c.date)||0)+(c.amount_disp||0)) }
@@ -236,7 +243,7 @@ function useDashboardModel(){
 
   const capitalInitialDisp=useMemo(()=>convert(CAPITAL_INITIAL_USD,'USD',displayCcy),[displayCcy,rates])
 
-  // PnL par date d'OUVERTURE (pour la série equity jour)
+  // PnL par date d'OUVERTURE
   const pnlByDate = useMemo(()=>{
     const m=new Map()
     for(const t of filtered){ const v=convert(t.pnl,t.ccy,displayCcy); m.set(t.date,(m.get(t.date)||0)+v) }
@@ -244,12 +251,12 @@ function useDashboardModel(){
   },[filtered,displayCcy,rates])
   const pnlMap = useMemo(()=>{ const m=new Map(); pnlByDate.forEach(x=>m.set(x.date,x.pnl)); return m },[pnlByDate])
 
-  // Dates fusionnées PnL & cash
+  // Fusion dates PnL & cash
   const mergedDates = useMemo(()=>{
     const s=new Set(); pnlByDate.forEach(x=>s.add(x.date)); cashByDate.forEach(x=>s.add(x.date)); return Array.from(s).sort((a,b)=>a.localeCompare(b))
   },[pnlByDate,cashByDate])
 
-  // Équité (capital initial + PnL + flux), une seule courbe
+  // Équité (capital initial + PnL + flux)
   const equityWithFlowsSeries = useMemo(()=>{
     let eq=capitalInitialDisp, prevCashCum=0; const out=[]
     for(const d of mergedDates){
@@ -262,13 +269,12 @@ function useDashboardModel(){
     return out
   },[mergedDates,pnlMap,cashCumMap,capitalInitialDisp])
 
-  /* --------- KPI --------- */
+  /* KPI */
   const totalPnlDisp = useMemo(()=> sum(filtered.map(t=>convert(t.pnl,t.ccy,displayCcy))), [filtered,displayCcy,rates])
   const cashFlowTotal = useMemo(()=> sum(cashflowsInRange.map(c=>c.amount_disp||0)), [cashflowsInRange])
   const capitalBase = useMemo(()=> capitalInitialDisp + cashFlowTotal, [capitalInitialDisp,cashFlowTotal])
   const capitalGlobal = useMemo(()=> capitalBase + totalPnlDisp, [capitalBase,totalPnlDisp])
 
-  // Max DD sur la courbe equity_with_flows
   const { peakEquity, maxDDAbs } = useMemo(()=>{
     if(!equityWithFlowsSeries.length) return { peakEquity:0, maxDDAbs:0 }
     let peak=equityWithFlowsSeries[0].equity_with_flows, mdd=0
@@ -288,7 +294,6 @@ function useDashboardModel(){
   const expectancy = useMemo(()=> filtered.length? totalPnlDisp/filtered.length : 0, [totalPnlDisp,filtered.length])
   const globalReturnPct = useMemo(()=> capitalBase>0? (totalPnlDisp/capitalBase)*100 : 0, [totalPnlDisp,capitalBase])
 
-  // Durées moyennes
   const avgWinDurMin = useMemo(()=>{
     const mins = wins.map(t=> (new Date(t.close_time).getTime()-new Date(t.open_time).getTime())/60000 ).filter(v=>isFinite(v))
     return mins.length? mean(mins) : 0
@@ -298,7 +303,7 @@ function useDashboardModel(){
     return mins.length? mean(mins) : 0
   },[losses])
 
-  // Retours journaliers (date de clôture) pour Sharpe/Sortino
+  // Retours journaliers (clôture) pour Sharpe/Sortino
   const dailyPnl = useMemo(()=>{
     const m=new Map()
     for(const t of filtered){ const d=(t.close_time?t.close_time.slice(0,10):t.date); const v=convert(t.pnl,t.ccy,displayCcy); m.set(d,(m.get(d)||0)+v) }
@@ -309,14 +314,14 @@ function useDashboardModel(){
   const sortino = useMemo(()=>{ const dd=downsideDev(dailyReturns); return dd>0? (mean(dailyReturns)/dd)*Math.sqrt(252):0 },[dailyReturns])
   const recovery = useMemo(()=> maxDDAbs>0? totalPnlDisp/maxDDAbs : 0, [totalPnlDisp,maxDDAbs])
 
-  // MFE/MAE moyens (info rapide)
+  // MFE/MAE moyens
   const mfeMaeAvg = useMemo(()=>{
     const avgMFE = mean(filtered.map(t=>Math.abs(convert(t.mfe||0,t.ccy,displayCcy))))
     const avgMAE = mean(filtered.map(t=>Math.abs(convert(t.mae||0,t.ccy,displayCcy))))
     return { avgMFE:fix2(avgMFE), avgMAE:fix2(avgMAE) }
   },[filtered,displayCcy,rates])
 
-  // Histogrammes Heures/Jours/Mois (gains/pertes séparés)
+  // Histogrammes
   const gainsLossByHour = useMemo(()=>{
     const arr=Array.from({length:24},(_,h)=>({ hour:`${String(h).padStart(2,'0')}:00`, gain:0, loss:0, n:0, wins:0 }))
     for(const t of filtered){
@@ -353,7 +358,7 @@ function useDashboardModel(){
     return arr.map(x=>({ ...x, gain:fix2(x.gain), loss:fix2(x.loss), wr:x.n? (x.wins/x.n)*100:0 }))
   },[filtered,displayCcy,rates])
 
-  // Corrélation par stratégie (retours journaliers)
+  // Corrélation par stratégie
   const strategyDailyReturns = useMemo(()=>{
     const map=new Map()
     for(const t of filtered){
@@ -381,7 +386,7 @@ function useDashboardModel(){
     return out
   },[gainsLossByHour])
 
-  // Calendrier (sélection mois/année)
+  // Calendrier (mois/année)
   const today=new Date()
   const [calYear,setCalYear]=useState(today.getFullYear())
   const [calMonth,setCalMonth]=useState(today.getMonth())
@@ -415,7 +420,10 @@ function useDashboardModel(){
     correlationMatrix, hourAlerts,
 
     // calendrier
-    dailyPnl, calYear, setCalYear, calMonth, setCalMonth
+    dailyPnl, calYear, setCalYear, calMonth, setCalMonth,
+
+    // actions
+    addCashflow
   }
 }
 /* ===================== Composant App (UI) ===================== */
@@ -423,16 +431,20 @@ export default function App(){
   const m = useDashboardModel()
   const c = m.colors
 
-  // === Langue (FR / EN / ES) persistée ===
-  const [lang, setLang] = React.useState(() => localStorage.getItem('zp_lang') || 'fr')
-  React.useEffect(()=> localStorage.setItem('zp_lang', lang), [lang])
-  const t = React.useMemo(()=> makeTranslator(lang), [lang])
+  // Langue
+  const [lang, setLang] = useState(() => localStorage.getItem('zp_lang') || 'fr')
+  useEffect(()=> localStorage.setItem('zp_lang', lang), [lang])
+  const t = useMemo(()=> makeTranslator(lang), [lang])
 
-  // === Titre personnalisable + icône crayon ===
-  const [userTitle, setUserTitle] = React.useState(() => localStorage.getItem('zp_custom_title') || '')
-  const [editingTitle, setEditingTitle] = React.useState(false)
-  React.useEffect(()=> localStorage.setItem('zp_custom_title', userTitle), [userTitle])
+  // Titre personnalisable
+  const [userTitle, setUserTitle] = useState(() => localStorage.getItem('zp_custom_title') || '')
+  const [editingTitle, setEditingTitle] = useState(false)
+  useEffect(()=> localStorage.setItem('zp_custom_title', userTitle), [userTitle])
   const titleToShow = (userTitle && userTitle.trim()) ? userTitle.trim() : t('titleDefault')
+
+  // Formulaire & alertes
+  const [showForm, setShowForm] = useState(false)
+  const [showAlerts, setShowAlerts] = useState(false)
 
   const fmtPct = (v)=>`${v>=0?'+':''}${(v||0).toFixed(2)}%`
 
@@ -480,7 +492,7 @@ export default function App(){
           <button style={btn(c)} onClick={()=>window.location.reload()}>{I18N[lang].buttons.refresh}</button>
           <button style={btn(c)} onClick={m.resetFilters}>{I18N[lang].buttons.reset}</button>
 
-          {/* Sélecteur de langue */}
+          {/* Langue */}
           <select aria-label={I18N[lang].buttons.language} style={{...sel(c), width:120}} value={lang} onChange={e=>setLang(e.target.value)}>
             <option value="fr">Français</option>
             <option value="en">English</option>
@@ -491,6 +503,24 @@ export default function App(){
           <select style={sel(c)} value={m.displayCcy} onChange={e=>m.setDisplayCcy(e.target.value)}>
             <option>USD</option><option>EUR</option><option>CHF</option>
           </select>
+
+          {/* Formulaire flux */}
+          <button style={btn(c)} onClick={()=>setShowForm(true)}>+ Revenus & charges</button>
+
+          {/* Clochette alertes */}
+          <button
+            style={{...btn(c), position:'relative'}}
+            onClick={()=>setShowAlerts(v=>!v)}
+            title="Voir les alertes horaires"
+          >
+            🔔
+            {m.hourAlerts && m.hourAlerts.length>0 && (
+              <span style={{
+                position:'absolute', top:-6, right:-6, background:c.pink, color:'#000',
+                borderRadius:12, padding:'2px 6px', fontSize:10, fontWeight:700
+              }}>{m.hourAlerts.length}</span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -574,7 +604,7 @@ export default function App(){
         </div>
       </div>
 
-      {/* Courbe d’Équité (une seule courbe + points de flux) */}
+      {/* Équité */}
       <div style={{ ...m.card, height: 420, marginTop: 16 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div style={kpiTitle(c)}>{I18N[lang].charts.equity}</div>
@@ -588,7 +618,7 @@ export default function App(){
             <Legend wrapperStyle={{ fontSize: 12, color: c.muted, paddingTop: 4 }} />
             <Line type="monotone" dataKey="equity_with_flows" name="Equity" dot={false} stroke="#ffffff" strokeWidth={3} isAnimationActive={false} />
             {m.cashflowsInRange
-              .filter(cf=>['deposit','withdrawal','prop_fee','prop_payout','darwin_mgmt_fee'].includes(cf.type))
+              .filter(cf=>['deposit','withdrawal','prop_fee','prop_payout','darwin_mgmt_fee','other_income','other_expense'].includes(cf.type))
               .map((cfi,i)=>{
                 const y = m.equityWithFlowsSeries.find(p=>p.date===cfi.date)?.equity_with_flows
                 if(!y) return null
@@ -599,20 +629,20 @@ export default function App(){
         </ResponsiveContainer>
       </div>
 
-      {/* Histogrammes Heure / Jour / Mois */}
+      {/* Histogrammes */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px,1fr))', gap:14, marginTop:16 }}>
         <BarCard title={I18N[lang].charts.barHour}  data={m.gainsLossByHour}  xKey="hour"  colors={c} fmt={m.fmtLocal} />
         <BarCard title={I18N[lang].charts.barDay}   data={m.gainsLossByDay}   xKey="day"   colors={c} fmt={m.fmtLocal} />
         <BarCard title={I18N[lang].charts.barMonth} data={m.gainsLossByMonth} xKey="month" colors={c} fmt={m.fmtLocal} />
       </div>
 
-      {/* Alertes horaires */}
+      {/* Alertes */}
       <div style={{ ...m.card, marginTop: 24 }}>
         <div style={kpiTitle(c)}>{I18N[lang].charts.alerts}</div>
         <AlertsCard colors={c} hourAlerts={m.hourAlerts} fmt={m.fmtLocal} />
       </div>
 
-      {/* Calendrier détaillé (mois courant) */}
+      {/* Calendrier */}
       <div style={{ ...m.card, marginTop: 24 }}>
         <CalendarCard
           colors={c}
@@ -627,6 +657,22 @@ export default function App(){
           calMonth={m.calMonth} setCalMonth={m.setCalMonth}
         />
       </div>
+
+      {/* Modales/tiroirs */}
+      {showForm && (
+        <CashflowFormModal
+          colors={c}
+          onClose={()=>setShowForm(false)}
+          onSave={(cf)=>{ m.addCashflow(cf); setShowForm(false) }}
+        />
+      )}
+      {showAlerts && (
+        <AlertsDrawer
+          colors={c}
+          hourAlerts={m.hourAlerts}
+          onClose={()=>setShowAlerts(false)}
+        />
+      )}
 
       <div style={{ textAlign:'center', color:c.muted, fontSize:12, marginTop:20 }}>
         ZooProjectVision © {new Date().getFullYear()}
@@ -662,7 +708,9 @@ function EquityTooltip({ active, payload, label, colors, fmt, cashflows }) {
                (c.type==='withdrawal' && 'Retrait') ||
                (c.type==='prop_fee' && 'Prop Fee') ||
                (c.type==='prop_payout' && 'Prop Payout') ||
-               (c.type==='darwin_mgmt_fee' && 'Darwinex Fee') || 'Flux'}: {c.amount>=0?'+':''}{fmt(c.amount_disp)}
+               (c.type==='darwin_mgmt_fee' && 'Darwinex Fee') ||
+               (c.type==='other_income' && 'Autre Revenu') ||
+               (c.type==='other_expense' && 'Autre Charge') || 'Flux'}: {c.amount>=0?'+':''}{fmt(c.amount_disp)}
             </div>
           ))}
         </div>
@@ -733,21 +781,17 @@ function CalendarCard({
   const firstDay = new Date(calYear, calMonth, 1)
   const lastDay  = new Date(calYear, calMonth+1, 0)
   const firstStr = firstDay.toISOString().slice(0,10)
-  const lastStr  = lastDay.toISOString().slice(0,10)
 
-  // baseline = dernière equity avant le 1er jour
   let baseline = capitalInitialDisp
   for (const p of equityWithFlowsSeries){ if(p.date < firstStr) baseline = p.equity_with_flows; else break }
 
-  // map pnl (par date de clôture)
   const pnlMap = new Map(dailyPnl.map(x=>[x.date, x.pnl]))
   const cashByDay = new Map()
   cashflows.forEach(c=> cashByDay.set(c.date, (cashByDay.get(c.date)||[]).concat([c])) )
 
-  // calcul jours
   const days=[]
   const d = new Date(firstDay); let peak=baseline, eq=baseline
-  while(d<=lastDay){
+  while(d<=new Date(calYear, calMonth+1, 0)){
     const ds = d.toISOString().slice(0,10)
     const eqKnown = equityMap.get(ds)
     if(typeof eqKnown==='number'){ eq = eqKnown }
@@ -782,7 +826,7 @@ function CalendarCard({
     <div>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
         <div style={{ color: colors.muted, fontWeight:400, fontSize:13 }}>
-          {I18N[lang].charts.calendar} / {cal.months[calMonth]} {calYear}
+          {I18N[lang].charts.calendar} / {I18N[lang].calendar.months[calMonth]} {calYear}
         </div>
         <div style={{ display:'flex', gap:8 }}>
           <button style={btn(colors)} onClick={()=>{ let m=calMonth-1, y=calYear; if(m<0){m=11;y--} setCalMonth(m); setCalYear(y) }}>◀</button>
@@ -793,7 +837,7 @@ function CalendarCard({
       {/* Bandeau synthèse mois & année */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10, marginBottom:12 }}>
         <div style={{ border:`1px solid ${colors.border}`, borderRadius:10, padding:10, background:'#121213' }}>
-          <div style={{ color:colors.muted, fontSize:12, marginBottom:6 }}>{cal.monthly}</div>
+          <div style={{ color:colors.muted, fontSize:12, marginBottom:6 }}>{I18N[lang].calendar.monthly}</div>
           <div style={{ fontSize:16 }}>
             <span style={{ color: monthly.sum>=0?colors.turq:colors.pink }}>{fmt(monthly.sum, displayCcy)}</span>
             {'  •  '}
@@ -801,7 +845,7 @@ function CalendarCard({
           </div>
         </div>
         <div style={{ border:`1px solid ${colors.border}`, borderRadius:10, padding:10, background:'#121213' }}>
-          <div style={{ color:colors.muted, fontSize:12, marginBottom:6 }}>{cal.yearly}</div>
+          <div style={{ color:colors.muted, fontSize:12, marginBottom:6 }}>{I18N[lang].calendar.yearly}</div>
           <div style={{ fontSize:16 }}>
             <span style={{ color: yearly.sum>=0?colors.turq:colors.pink }}>{fmt(yearly.sum, displayCcy)}</span>
             {'  •  '}
@@ -809,14 +853,14 @@ function CalendarCard({
           </div>
         </div>
         <div style={{ border:`1px solid ${colors.border}`, borderRadius:10, padding:10, background:'#121213' }}>
-          <div style={{ color:colors.muted, fontSize:12, marginBottom:6 }}>{cal.capitalBase}</div>
+          <div style={{ color:colors.muted, fontSize:12, marginBottom:6 }}>{I18N[lang].calendar.capitalBase}</div>
           <div style={{ fontSize:16 }}>{fmt(baseline, displayCcy)}</div>
         </div>
       </div>
 
       {/* Entêtes jours */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:8, marginBottom:8, color:colors.muted, fontSize:12 }}>
-        {cal.dow.map(d=> <div key={d} style={{ textAlign:'center' }}>{d}</div>)}
+        {I18N[lang].calendar.dow.map(d=> <div key={d} style={{ textAlign:'center' }}>{d}</div>)}
       </div>
 
       {/* Grille jours */}
@@ -831,7 +875,7 @@ function CalendarCard({
             <div key={cell.date} title={[
               cell.date,
               `PNL: ${fmt(cell.pnl, displayCcy)} (${(cell.pct>=0?'+':'')+(cell.pct||0).toFixed(2)}%)`,
-              `${cal.dd}: ${Math.abs(cell.ddPct||0).toFixed(2)}%`,
+              `${I18N[lang].calendar.dd}: ${Math.abs(cell.ddPct||0).toFixed(2)}%`,
               cell.flows.length ? `Flux: ${cell.flows.map(f=>(f.amount>=0?'+':'')+fmt(f.amount_disp, displayCcy)).join(', ')}` : ''
             ].filter(Boolean).join('\n')}
               style={{ height: 88, border: `1px solid ${colors.border}`, borderRadius: 10, padding: 8, background: '#121213', position:'relative' }}
@@ -839,12 +883,12 @@ function CalendarCard({
               <div style={{ fontSize:12, color: colors.muted }}>{String(dayNum).padStart(2,'0')}</div>
               <div style={{ marginTop:4, fontSize:12, color: pos ? colors.turq : colors.pink }}>{fmt(cell.pnl, displayCcy)}</div>
               <div style={{ fontSize:11, color: pos ? colors.turq : colors.pink }}>{(cell.pct>=0?'+':'')+(cell.pct||0).toFixed(2)}%</div>
-              <div style={{ fontSize:11, color: colors.text }}>{cal.dd}: {Math.abs(cell.ddPct||0).toFixed(2)}%</div>
+              <div style={{ fontSize:11, color: colors.text }}>{I18N[lang].calendar.dd}: {Math.abs(cell.ddPct||0).toFixed(2)}%</div>
               {cell.flows.length>0 && (
                 <div style={{ position:'absolute', right:8, top:8, width:8, height:8, borderRadius:'50%', background: cell.flows.some(f=>f.amount<0) ? colors.pink : colors.turq }} />
               )}
-              {isBest && <Badge label={cal.top} colors={colors} turq />}
-              {isWorst && <Badge label={cal.flop} colors={colors} />}
+              {isBest && <Badge label={I18N[lang].calendar.top} colors={colors} turq />}
+              {isWorst && <Badge label={I18N[lang].calendar.flop} colors={colors} />}
             </div>
           )
         })}
@@ -861,8 +905,109 @@ function Badge({ label, colors, turq=false }){
     }}>{label}</div>
   )
 }
+/* ===================== Modale: Formulaire Revenus & charges ===================== */
+function CashflowFormModal({ colors, onClose, onSave }){
+  const [form, setForm] = useState({
+    date: new Date().toISOString().slice(0,10),
+    type: 'deposit',
+    amount: '',
+    ccy: 'USD',
+    note: ''
+  })
+  const update = (k,v)=> setForm(s=>({...s, [k]:v}))
+  const submit = ()=>{
+    const amt = Number(form.amount)
+    if(!form.date || !form.type || !isFinite(amt)) return
+    onSave({ date: form.date, type: form.type, amount: amt, ccy: form.ccy, note: form.note })
+  }
+  const row = { display:'grid', gridTemplateColumns:'120px 1fr', gap:8, alignItems:'center' }
+  const label = { color: colors.muted, fontSize:12, textAlign:'right' }
+  const input = { padding:'8px 10px', fontSize:13, color:colors.text, background:'#0f0f10', border:`1px solid ${colors.border}`, borderRadius:10, outline:'none' }
 
-/* ===================== Helpers locaux ===================== */
+  return (
+    <div style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50
+    }}>
+      <div style={{ width:520, background:colors.panel, border:`1px solid ${colors.border}`, borderRadius:14, padding:16 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={{ color:colors.text, fontSize:16 }}>Ajouter un flux (revenu / charge)</div>
+          <button onClick={onClose} style={{...btn(colors)}}>Fermer</button>
+        </div>
+
+        <div style={{ display:'grid', gap:10 }}>
+          <div style={row}>
+            <div style={label}>Date</div>
+            <input type="date" value={form.date} onChange={e=>update('date', e.target.value)} style={input} />
+          </div>
+          <div style={row}>
+            <div style={label}>Type</div>
+            <select value={form.type} onChange={e=>update('type', e.target.value)} style={input}>
+              <option value="deposit">Dépôt</option>
+              <option value="withdrawal">Retrait</option>
+              <option value="prop_fee">Prop Fee (coût)</option>
+              <option value="prop_payout">Prop Payout (revenu)</option>
+              <option value="darwin_mgmt_fee">Darwinex Mgmt Fee</option>
+              <option value="other_income">Autre Revenu</option>
+              <option value="other_expense">Autre Charge</option>
+            </select>
+          </div>
+          <div style={row}>
+            <div style={label}>Montant</div>
+            <input type="number" placeholder="ex: 500" value={form.amount} onChange={e=>update('amount', e.target.value)} style={input} />
+          </div>
+          <div style={row}>
+            <div style={label}>Devise</div>
+            <select value={form.ccy} onChange={e=>update('ccy', e.target.value)} style={input}>
+              <option>USD</option><option>EUR</option><option>CHF</option>
+            </select>
+          </div>
+          <div style={row}>
+            <div style={label}>Note</div>
+            <input placeholder="Optionnel" value={form.note} onChange={e=>update('note', e.target.value)} style={input} />
+          </div>
+        </div>
+
+        <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:14 }}>
+          <button onClick={submit} style={btn(colors)}>Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ===================== Tiroir: Alertes ===================== */
+function AlertsDrawer({ colors, hourAlerts, onClose }){
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.35)', zIndex:40 }} onClick={onClose}>
+      <div
+        onClick={(e)=>e.stopPropagation()}
+        style={{ position:'absolute', right:0, top:0, height:'100%', width:380, background:'#121213', borderLeft:`1px solid ${colors.border}`, padding:14, overflowY:'auto' }}
+      >
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={{ color:colors.text, fontSize:16 }}>Alertes horaires</div>
+          <button onClick={onClose} style={btn(colors)}>Fermer</button>
+        </div>
+
+        {(!hourAlerts || hourAlerts.length===0) ? (
+          <div style={{ color:colors.muted, fontSize:13 }}>Aucune alerte pour le filtre courant.</div>
+        ) : (
+          <div style={{ display:'grid', gap:10 }}>
+            {hourAlerts.map(a=>(
+              <div key={a.hour} style={{ border:`1px solid ${colors.border}`, borderRadius:10, padding:10, background:'#0f0f10' }}>
+                <div style={{ color:colors.text, fontSize:14, marginBottom:6 }}>Heure : <span style={{ color: colors.pink }}>{a.hour}</span></div>
+                <div style={{ color:colors.muted, fontSize:12 }}>Trades : {a.n} • WR : {a.wr.toFixed(1)}%</div>
+                <div style={{ color: a.net>=0?colors.turq:colors.pink, fontSize:12 }}>Net : {fmt(a.net)}</div>
+                <div style={{ color:colors.muted, fontSize:12, marginTop:6 }}>Conseil : réduire l’exposition à cette heure, vérifier les entrées/sorties.</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ===================== Helper format monétaire (fallback) ===================== */
 function fmt(v, ccy='USD'){
   try { return new Intl.NumberFormat(undefined,{ style:'currency', currency:ccy, minimumFractionDigits:2, maximumFractionDigits:2 }).format(v ?? 0) }
   catch { return `${(v??0).toFixed(2)} ${ccy}` }
