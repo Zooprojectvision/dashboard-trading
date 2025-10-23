@@ -437,30 +437,85 @@ const hourlyAlerts = useMemo(()=>{
   }
 }
 
-/* ===================== BLOC 1 — EN-TÊTE & ACTIONS ===================== */
-function HeaderSection({ resetFilters, displayCcy, setDisplayCcy }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 12 }}>
-      <div>
-        <h1 style={{ color: colors.text, fontWeight: 400, margin: 0, fontSize: 36 }}>ZooProjectVision</h1>
-        <p style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>Dashboard de performance trading — multi-actifs, multi-brokers, multi-stratégies</p>
-      </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: 'wrap', alignItems:'center' }}>
-        <button style={btn}
-          onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
-          onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
-          onClick={()=>window.location.reload()}
-        >Actualiser</button>
-        <button style={btn}
-          onMouseEnter={(e)=>e.currentTarget.style.background='rgba(201,164,75,0.10)'}
-          onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
-          onClick={resetFilters}
-        >Réinitialiser Filtres</button>
-        <div style={{ color: colors.muted, fontSize:12, border:`1px solid ${colors.gold}`, padding:'6px 10px', borderRadius:10 }}>
-      </div>
-    </div>
-  )
-}
+/* ===================== Bloc 1 — Titre Principal ===================== */
+
+<div
+  style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 16px',
+    marginBottom: 16,
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+  }}
+>
+  {/* ---- Titre principal ---- */}
+  <h1
+    style={{
+      color: '#38e1d3', // turquoise gloss
+      fontSize: 26,
+      fontWeight: 400,
+      textTransform: 'none',
+      letterSpacing: '0.5px',
+      margin: 0,
+      fontFamily: 'Inter, Avenir Next, sans-serif',
+    }}
+  >
+    ZooProjectVision
+  </h1>
+
+  {/* ---- Boutons d’action ---- */}
+  <div style={{ display: 'flex', gap: 10 }}>
+    <button
+      style={{
+        background: 'transparent',
+        border: '1px solid #c9a44b',
+        color: '#c9a44b',
+        padding: '6px 12px',
+        borderRadius: 8,
+        cursor: 'pointer',
+        transition: '0.2s',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(201,164,75,0.15)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      Actualiser
+    </button>
+
+    <button
+      style={{
+        background: 'transparent',
+        border: '1px solid #c9a44b',
+        color: '#c9a44b',
+        padding: '6px 12px',
+        borderRadius: 8,
+        cursor: 'pointer',
+        transition: '0.2s',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(201,164,75,0.15)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      Exporter CSV
+    </button>
+
+    <button
+      style={{
+        background: 'transparent',
+        border: '1px solid #c9a44b',
+        color: '#c9a44b',
+        padding: '6px 12px',
+        borderRadius: 8,
+        cursor: 'pointer',
+        transition: '0.2s',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(201,164,75,0.15)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      Réinitialiser Filtres
+    </button>
+  </div>
+</div>
+
 
 /* ===================== BLOC 2 — FILTRES ===================== */
 function FiltersSection({
