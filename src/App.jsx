@@ -190,7 +190,6 @@ function useDashboardData() {
     return m
   }, [cashByDate])
 
-  const CAPITAL_INITIAL_USD = 100000
   const capitalInitialDisp = useMemo(()=> convert(CAPITAL_INITIAL_USD, 'USD', displayCcy), [displayCcy, rates])
 
   // PnL / dates
