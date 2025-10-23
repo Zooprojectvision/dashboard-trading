@@ -291,6 +291,30 @@ export default function App() {
       if (!isFinite(capitalBase) || capitalBase<=0) return 0
       return (totalPnlDisp / capitalBase) * 100
     }, [totalPnlDisp, capitalBase])
+// Durées moyennes (en minutes) — gains / pertes
+const avgWinDurMin = useMemo(() => {
+  const mins = filtered
+    .filter(t => t.pnl > 0)
+    .map(t => {
+      const o = t.open_time ? new Date(t.open_time).getTime() : NaN
+      const c = t.close_time ? new Date(t.close_time).getTime() : NaN
+      return (isFinite(o) && isFinite(c)) ? (c - o) / 60000 : null
+    })
+    .filter(v => v != null)
+  return mins.length ? mins.reduce((a,b)=>a+b,0) / mins.length : 0
+}, [filtered])
+
+const avgLossDurMin = useMemo(() => {
+  const mins = filtered
+    .filter(t => t.pnl < 0)
+    .map(t => {
+      const o = t.open_time ? new Date(t.open_time).getTime() : NaN
+      const c = t.close_time ? new Date(t.close_time).getTime() : NaN
+      return (isFinite(o) && isFinite(c)) ? (c - o) / 60000 : null
+    })
+    .filter(v => v != null)
+  return mins.length ? mins.reduce((a,b)=>a+b,0) / mins.length : 0
+}, [filtered])
 
     /* ===================== MTD / YTD / Weekdays ===================== */
     function inMonth(d, y, m){ const [Y,M] = d.split('-').map(x=>+x); return (Y===y && M===m) }
