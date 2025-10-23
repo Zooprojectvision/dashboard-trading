@@ -124,13 +124,6 @@ function useDashboardData() {
     return true
   }), [tradesAll, asset, broker, strategy, dateFrom, dateTo])
 
-  // Devises
-  const [displayCcy, setDisplayCcy] = useState('USD')
-  const fxFallback = {
-    USD: { USD:1,   EUR:0.93, CHF:0.88 },
-    EUR: { USD:1/0.93, EUR:1, CHF:0.88/0.93 },
-    CHF: { USD:1/0.88, EUR:0.93/0.88, CHF:1 }
-  }
   const [rates, setRates] = useState(null)
   useEffect(() => {
     const key = 'fx_cache_v1'
@@ -399,21 +392,7 @@ function useDashboardData() {
     return { total: fix2(pos), n: filtered.length }
   }, [filtered, displayCcy, rates])
 
-  /* ===================== Alertes horaires (zones à éviter) ===================== */
-const coverageDays = mergedDates.length
-
-const hourlyAlerts = useMemo(()=>{
-  if (coverageDays < 180) return []
-  const bad = []
-  for (const x of gainsLossByHour){
-    if (x.n >= 10) {
-      const net = x.gain - x.loss
-      if (net < 0) bad.push({ hour: x.hour, trades:x.n, net })
-    }
-  }
-  return bad.sort((a,b)=>a.net - b.net)
-}, [coverageDays, gainsLossByHour])
-
+  
 
   // Listes pour sélecteurs
   return {
