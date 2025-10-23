@@ -46,42 +46,85 @@ const toneBySign = (v) => (v < 0 ? 'red' : (v > 0 ? 'green' : null))
 const ddTone = (ddPct) => (ddPct <= 10 ? 'green' : (ddPct <= 20 ? 'orange' : 'red'))
 
 /* ===================== MODELE DE DONNÉES (logique centralisée) ===================== */
+/* ===================== Données principales du Dashboard ===================== */
 function useDashboardData() {
-  // Démo — tu remplaceras par tes données réelles
-  const ASSETS = ["XAUUSD", "DAX", "US500", "USTEC", "US30"]
-  const BROKERS = ["Darwinex", "ICMarkets", "Pepperstone"]
-  const STRATS  = ["Strategy 1", "Strategy 2", "Breakout"]
+  const [trades, setTrades] = useState([])
+  const [cashflow, setCashflow] = useState([])
 
-  const demoTrades = useMemo(() => {
-    const rows = []
-    const today = new Date()
-    for (let i = 190; i >= 1; i--) {
-      const d = new Date(today); d.setDate(d.getDate() - i)
-      const date = d.toISOString().slice(0, 10)
-      for (let k = 0; k < 6; k++) {
-        const asset    = ASSETS[(i + k) % ASSETS.length]
-        const broker   = BROKERS[(i + k * 2) % BROKERS.length]
-        const strategy = STRATS[(i + k * 3) % STRATS.length]
-        let pnl = (Math.random() - 0.5) * (Math.random() < 0.15 ? 2500 : 900)
-        pnl = Number(pnl.toFixed(2))
-        const openH = Math.floor(Math.random()*24)
-        const openM = Math.floor(Math.random()*60)
-        const open = new Date(d.getFullYear(), d.getMonth(), d.getDate(), openH, openM)
-        const durMin = 15 + Math.floor(Math.random()* (60*8))
-        const close = new Date(open.getTime() + durMin*60*1000)
-        rows.push({
-          date,
-          asset, broker, strategy,
-          pnl, ccy: 'USD',
-          open_time: open.toISOString(),
-          close_time: close.toISOString(),
-          // MAE/MFE demo (absolus)
-          mae: Number((Math.abs(pnl)*(0.5+Math.random()*0.6)).toFixed(2)),
-          mfe: Number((Math.abs(pnl)*(0.7+Math.random()*0.8)).toFixed(2)),
-        })
-      }
+  // === Devise d'affichage (fixe à USD, l'onglet Devise a été supprimé) ===
+  const [displayCcy] = useState('USD')
+
+  // === Taux de change fictifs pour conversion ===
+  const rates = {
+    USD: 1.0,
+    EUR: 0.92,
+    CHF: 0.85
+  }
+
+  // === Fonctions utilitaires ===
+  const convert = useCallback((value, toCcy = displayCcy) => {
+    const rate = rates[toCcy] || 1
+    return value * rate
+  }, [displayCcy])
+
+  const fmt = useCallback((value, digits = 2) => {
+    if (value === undefined || value === null || isNaN(value)) return '-'
+    return `${convert(value).toLocaleString('fr-FR', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    })} ${displayCcy}`
+  }, [convert, displayCcy])
+
+  // === Capital initial & Cashflow ===
+  const CAPITAL_INITIAL_USD = 100000
+
+  const totalCashFlow = useMemo(() => {
+    return cashflow.reduce((acc, x) => acc + x.amount, 0)
+  }, [cashflow])
+
+  // === Capital global (initial + entrées/sorties) ===
+  const capitalGlobal = useMemo(() => CAPITAL_INITIAL_USD + totalCashFlow, [CAPITAL_INITIAL_USD, totalCashFlow])
+
+  // === PnL & statistiques ===
+  const totalPnL = useMemo(() => trades.reduce((sum, t) => sum + t.pnl, 0), [trades])
+
+  const rentabiliteGlobale = useMemo(() => {
+    return ((totalPnL / capitalGlobal) * 100).toFixed(2)
+  }, [totalPnL, capitalGlobal])
+
+  const maxDD = useMemo(() => {
+    let peak = 0
+    let maxDrawdown = 0
+    let currentEquity = 0
+    for (const t of trades) {
+      currentEquity += t.pnl
+      peak = Math.max(peak, currentEquity)
+      const drawdown = peak - currentEquity
+      maxDrawdown = Math.max(maxDrawdown, drawdown)
     }
-    return rows
+    return maxDrawdown
+  }, [trades])
+
+  const maxDDPercent = useMemo(() => ((maxDD / capitalGlobal) * 100).toFixed(2), [maxDD, capitalGlobal])
+
+  // === Retourne toutes les données prêtes à afficher ===
+  return {
+    trades,
+    setTrades,
+    cashflow,
+    setCashflow,
+    displayCcy, // reste utilisé pour formatage
+    fmt,
+    convert,
+    capitalGlobal,
+    totalPnL,
+    rentabiliteGlobale,
+    maxDD,
+    maxDDPercent,
+    CAPITAL_INITIAL_USD
+  }
+}
+
   }, [])
 
   const CAPITAL_INITIAL_USD = 100000
