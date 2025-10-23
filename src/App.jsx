@@ -399,25 +399,21 @@ function useDashboardData() {
     return { total: fix2(pos), n: filtered.length }
   }, [filtered, displayCcy, rates])
 
-  // Alertes horaires
-  const mergedDates = useMemo(()=>{
-    const s = new Set()
-    pnlByDate.forEach(x=>s.add(x.date))
-    cashByDate.forEach(x=>s.add(x.date))
-    return Array.from(s).sort((a,b)=>a.localeCompare(b))
-  }, [pnlByDate, cashByDate])
-  const coverageDays = mergedDates.length
-  const hourlyAlerts = useMemo(()=>{
-    if (coverageDays < 180) return []
-    const bad = []
-    for (const x of gainsLossByHour){
-      if (x.n >= 10) {
-        const net = x.gain - x.loss
-        if (net < 0) bad.push({ hour: x.hour, trades:x.n, net })
-      }
+  /* ===================== Alertes horaires (zones à éviter) ===================== */
+const coverageDays = mergedDates.length
+
+const hourlyAlerts = useMemo(()=>{
+  if (coverageDays < 180) return []
+  const bad = []
+  for (const x of gainsLossByHour){
+    if (x.n >= 10) {
+      const net = x.gain - x.loss
+      if (net < 0) bad.push({ hour: x.hour, trades:x.n, net })
     }
-    return bad.sort((a,b)=>a.net - b.net)
-  }, [coverageDays, gainsLossByHour])
+  }
+  return bad.sort((a,b)=>a.net - b.net)
+}, [coverageDays, gainsLossByHour])
+
 
   // Listes pour sélecteurs
   return {
