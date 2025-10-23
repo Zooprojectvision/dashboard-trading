@@ -457,11 +457,6 @@ function HeaderSection({ resetFilters, displayCcy, setDisplayCcy }) {
           onClick={resetFilters}
         >Réinitialiser Filtres</button>
         <div style={{ color: colors.muted, fontSize:12, border:`1px solid ${colors.gold}`, padding:'6px 10px', borderRadius:10 }}>
-          Devise:&nbsp;
-          <select value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)} style={{...sel, width:'auto', display:'inline-block'}}>
-            {['USD','EUR','CHF'].map(c=><option key={c}>{c}</option>)}
-          </select>
-        </div>
       </div>
     </div>
   )
