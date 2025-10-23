@@ -1,13 +1,16 @@
-/* Reset léger + lisibilité */
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 body {
   margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
   background: #0a0a0b;
   color: #e8ecef;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-button, select, input { font-family: inherit; }
-
+*::-webkit-scrollbar { height: 10px; width: 10px; }
+*::-webkit-scrollbar-track { background: #0f0f10; }
+*::-webkit-scrollbar-thumb { background: #2a2a2b; border-radius: 10px; }
+*::-webkit-scrollbar-thumb:hover { background: #3a3a3b; }
+a { color: #20e3d6; text-decoration: none; }
+a:hover { text-decoration: underline; }
