@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  BarChart, Bar, Legend, ReferenceDot, PieChart, Pie, Cell
+  BarChart, Bar, Legend, ReferenceDot, PieChart, Pie, Cell, ReferenceArea
 } from 'recharts'
 
 export default function App(){
@@ -116,7 +116,7 @@ export default function App(){
     const [eqView,setEqView]=useState('equity') // 'equity' | 'pnl' | 'strat'
     const pnlCumul=useMemo(()=>{ let cum=0; return pnlByDate.map(d=>{ cum+=d.pnl; return { date:d.date, pnl_cum:round2(cum) } }) },[pnlByDate])
 
-    // Par stratégie (index rebasé 100)
+    // Par stratégie (index rebasé 100) et PnL cumulé par stratégie
     const byStratSeries=useMemo(()=>{
       const byStrat=new Map()
       for(const t of filtered){ const key=t.strategy; const v=convert(t.pnl,t.ccy||'USD',displayCcy); if(!byStrat.has(key)) byStrat.set(key,new Map()); const m=byStrat.get(key); m.set(t.date,(m.get(t.date)||0)+v) }
@@ -128,7 +128,6 @@ export default function App(){
       return {dates, series:out}
     },[filtered,displayCcy,capitalInitialDisp])
 
-    // PnL cumulé par stratégie
     const byStratPnl = useMemo(()=>{
       const byStrat = new Map()
       for(const t of filtered){
@@ -201,23 +200,23 @@ export default function App(){
     const verdictReturn   = colorVerdict(retPeriod, { good: 0, warnLo: -0.05 })
     const verdictPace     = colorVerdict(paceAnnual, { good: 0.20, warnLo: 0.08 })
     const verdictCapDelta = colorVerdict(capitalGlobal-capitalBase, { good: 0, warnAbs: capitalBase*0.005 }) // +/-0.5%
-    const verdictDD       = colorVerdict(-maxDDPct/100, { good: 0, warnLo: -0.25 }) // plus proche de 0 est mieux
+    const verdictDD       = colorVerdict(-maxDDPct/100, { good: 0, warnLo: -0.25 })
     const recovery        = maxDDAbs>0? ((equityHL.at(-1)?.equity_trading||capitalInitialDisp)-capitalInitialDisp)/maxDDAbs : 0
     const verdictRecov    = classBy(recovery, [1.5, 0.7])
     const sharpe=calcSharpe(equityHL)
     const sortino=calcSortino(equityHL)
     const verdictSharpe   = classBy(sharpe, [1.0, 0.5])
     const verdictSortino  = classBy(sortino,[1.2, 0.8])
-    const verdictExpect   = classBy(expectancy, [0.01, -0.01]) // petite zone neutre
+    const verdictExpect   = classBy(expectancy, [0.01, -0.01])
     const corrAvg = corrMatrix.avg ?? 0
-    const verdictCorr     = classByRev(corrAvg, [0.20, 0.50]) // plus petit est mieux
+    const verdictCorr     = classByRev(corrAvg, [0.20, 0.50])
 
     /* ====== Risque de ruine (KPI secondaire) ====== */
     const ruin = useMemo(()=>{
       const WR=wr; const q=1-WR
       const avgLossAbs = avgLoss || 0.001
       const r = capitalBase>0 ? (avgLossAbs/capitalBase) : 0.002
-      const seuil=0.30 // 30%
+      const seuil=0.30
       const N = Math.ceil(Math.log(1-seuil)/Math.log(Math.max(1e-6,1-r)))
       const T = filtered.length
       const pSeq = Math.pow(q, N)
@@ -238,6 +237,96 @@ export default function App(){
       names.forEach((n,i)=> map[n] = base[i % base.length])
       return map
     },[byStratPnl])
+
+    /* ================== Fuseau horaire par broker ================== */
+    const brokerTZ = {
+      Darwinex: 'Europe/Madrid',
+      ICMarkets: 'Australia/Sydney',
+      Pepperstone: 'Australia/Melbourne'
+    }
+    // helpers TZ
+    const getHourInTZ = (iso, tz) => {
+      if(!iso) return null
+      try{
+        const parts = new Intl.DateTimeFormat('en-GB',{hour:'2-digit',hour12:false,timeZone:tz}).formatToParts(new Date(iso))
+        const h = Number(parts.find(p=>p.type==='hour')?.value || '0')
+        return isFinite(h)? h : null
+      }catch{ return null }
+    }
+    const getWeekdayInTZ = (iso, tz) => {
+      if(!iso) return null
+      try{
+        const parts = new Intl.DateTimeFormat('fr-FR',{weekday:'short', timeZone:tz}).formatToParts(new Date(iso))
+        const w = parts.find(p=>p.type==='weekday')?.value?.toLowerCase() || ''
+        const map = { 'lun.':1, 'mar.':2, 'mer.':3, 'jeu.':4, 'ven.':5, 'sam.':6, 'dim.':7 }
+        return map[w] || null
+      }catch{ return null }
+    }
+    const getMonthInTZ = (iso, tz) => {
+      if(!iso) return null
+      try{
+        const parts = new Intl.DateTimeFormat('fr-FR',{month:'2-digit', timeZone:tz}).formatToParts(new Date(iso))
+        const m = Number(parts.find(p=>p.type==='month')?.value || '1')
+        return isFinite(m)? m : null
+      }catch{ return null }
+    }
+
+    /* =========== Fenêtre par défaut pour les nouveaux graphiques (30j si pas de dates) =========== */
+    const default30From = useMemo(()=>{
+      if(dateFrom || dateTo) return null
+      const d = new Date()
+      d.setDate(d.getDate()-30)
+      return d.toISOString().slice(0,10)
+    },[dateFrom,dateTo])
+
+    const filteredForTimeAgg = useMemo(()=>{
+      if(default30From){
+        return filtered.filter(t => t.date >= default30From)
+      }
+      return filtered
+    },[filtered, default30From])
+
+    /* =========== Agrégations heure / weekday / mois (en TZ broker) =========== */
+    const hourlyAgg = useMemo(()=>{
+      const base = Array.from({length:24}, (_,h)=>({ key: String(h).padStart(2,'0')+':00', gain:0, loss:0 }))
+      const idx = (h)=> (h>=0 && h<=23)? h : null
+      for(const t of filteredForTimeAgg){
+        const tz = brokerTZ[t.broker] || 'UTC'
+        const h = idx(getHourInTZ(t.open_time || (t.date+'T00:00:00Z'), tz))
+        const v = convert(t.pnl, t.ccy||'USD', displayCcy)
+        if(h==null) continue
+        if(v>=0) base[h].gain += v; else base[h].loss += Math.abs(v)
+      }
+      return base.map(b=> ({...b, gain:round2(b.gain), loss:round2(b.loss), net: round2(b.gain - b.loss)}))
+    },[filteredForTimeAgg, displayCcy])
+
+    const weekdayAgg = useMemo(()=>{
+      const names = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
+      const base = names.map((n,i)=>({ key:n, idx:i+1, gain:0, loss:0 }))
+      for(const t of filteredForTimeAgg){
+        const tz = brokerTZ[t.broker] || 'UTC'
+        const w = getWeekdayInTZ(t.open_time || (t.date+'T00:00:00Z'), tz)
+        const v = convert(t.pnl, t.ccy||'USD', displayCcy)
+        const b = base.find(x=>x.idx===w)
+        if(!b) continue
+        if(v>=0) b.gain += v; else b.loss += Math.abs(v)
+      }
+      return base.map(b=> ({...b, gain:round2(b.gain), loss:round2(b.loss), net: round2(b.gain - b.loss)}))
+    },[filteredForTimeAgg, displayCcy])
+
+    const monthAgg = useMemo(()=>{
+      const names = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']
+      const base = names.map((n,i)=>({ key:n, idx:i+1, gain:0, loss:0 }))
+      for(const t of filteredForTimeAgg){
+        const tz = brokerTZ[t.broker] || 'UTC'
+        const m = getMonthInTZ(t.open_time || (t.date+'T00:00:00Z'), tz)
+        const v = convert(t.pnl, t.ccy||'USD', displayCcy)
+        const b = base.find(x=>x.idx===m)
+        if(!b) continue
+        if(v>=0) b.gain += v; else b.loss += Math.abs(v)
+      }
+      return base.map(b=> ({...b, gain:round2(b.gain), loss:round2(b.loss), net: round2(b.gain - b.loss)}))
+    },[filteredForTimeAgg, displayCcy])
 
     /* ================== UI Etat ================== */
     const [showManagedForm,setShowManagedForm]=useState(false)
@@ -313,21 +402,21 @@ export default function App(){
           <KPI title="Capital Tiers Sous Gestion" value={fmtC(sumManaged(managed, displayCcy, convert))} help="Somme des capitaux tiers actifs (début ≤ aujourd’hui ≤ fin/—). N’influence pas la courbe d’équité." />
         </div>
 
-        {/* RATIOS PRIORITAIRES — Cadre combiné WR & RR (EI) */}
+        {/* RATIOS PRIORITAIRES — KPI Win Rate & RR */}
         <div className={`card ${verdictEI}`} style={{marginTop:16}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
             <div className="kpi-title">Win Rate & Risk/Reward</div>
             <Help text="Verdict via Edge Index: EI = WR*RR − (1−WR). Vert ≥ +0.05, Jaune [−0.05;+0.05], Rouge < −0.05. Expectancy par trade affichée en devise."/>
           </div>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12}}>
-            {/* Donut WR */}
-            <div className="card" style={{height:220}}>
+            {/* Donut WR — ajusté V4 */}
+            <div className="card" style={{height:240, position:'relative'}}>
               <div className="kpi-title">Win Rate</div>
               <div className="donut-wrap">
                 <ResponsiveContainer width="100%" height="80%">
                   <PieChart>
                     <Pie data={[{name:'Gagnants', value:winnersCount},{name:'Perdants', value:losersCount}]}
-                         dataKey="value" innerRadius={60} outerRadius={90} stroke="none">
+                         dataKey="value" innerRadius={60} outerRadius={88} stroke="none">
                       <Cell fill={C.pos} /><Cell fill={C.neg} />
                     </Pie>
                   </PieChart>
@@ -336,7 +425,7 @@ export default function App(){
               </div>
             </div>
             {/* Barres gagnants/perdants */}
-            <div className="card" style={{height:220}}>
+            <div className="card" style={{height:240}}>
               <div className="kpi-title">Gagnants / Perdants</div>
               <ResponsiveContainer width="100%" height="80%">
                 <BarChart data={[{type:'Gagnants', n:winnersCount},{type:'Perdants', n:losersCount}]}>
@@ -393,14 +482,10 @@ export default function App(){
                          labelStyle={{color:C.text}} itemStyle={{color:C.text}}
                          formatter={(v,n)=>[fmtC(v), n]} />
                 <Legend wrapperStyle={{fontSize:'var(--font-size)', color:C.text}} />
-                {/* Courbe principale (blanc fin) */}
                 <Line type="monotone" dataKey="equity_trading" name="Équité (trading seul)" dot={false} stroke={C.white} strokeWidth={1.8} isAnimationActive={false} />
-                {/* Avec flux (gris clair pointillé) */}
                 <Line type="monotone" dataKey="equity_with_flows" name="Équité (avec flux)" dot={false} stroke="#B6BCC1" strokeWidth={1.4} strokeDasharray="5 4" />
-                {/* HWM/LWM pointillés */}
                 <Line type="monotone" dataKey="hwm" name="HWM" dot={false} stroke={C.pos} strokeWidth={1.2} strokeDasharray="4 3" />
                 <Line type="monotone" dataKey="lwm" name="LWM" dot={false} stroke={C.neg} strokeWidth={1.0} strokeDasharray="4 3" />
-                {/* Points de flux (seulement des points) */}
                 {cashflowsInRange.map((c,i)=>{
                   const y = equityWithFlowsAt(equityHL,c.date)
                   if(y==null) return null
@@ -459,6 +544,82 @@ export default function App(){
           </div>
         </div>
 
+        {/* NOUVEAUX GRAPHIQUES — PRIORITAIRES */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr', gap:12, marginTop:16}}>
+          {/* Horaire */}
+          <div className="card">
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+              <div className="kpi-title">Gains / Pertes — Par Heure (TZ broker)</div>
+              <Help text="Somme des PnL par heure d’ouverture (00–23) selon le fuseau du broker. Contours/halos rouges = heures net négatif."/>
+            </div>
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={hourlyAgg} margin={{left:8,right:8,top:8,bottom:8}}>
+                {/* halos de non-rentabilité */}
+                {hourlyAgg.filter(x=>x.net<0).map((x,i)=>{
+                  const idx = hourlyAgg.findIndex(h=>h.key===x.key)
+                  return <ReferenceArea key={'hbad'+i} x1={idx-0.5} x2={idx+0.5} fill="rgba(255,95,162,0.08)" stroke="rgba(255,95,162,0.6)" />
+                })}
+                <CartesianGrid stroke="#2b2b2b" />
+                <XAxis dataKey="key" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+                <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+                <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}}
+                         formatter={(v,n)=>[fmtC(v), n==='gain'?'Gains':'Pertes']} />
+                <Legend wrapperStyle={{ color:C.text }} />
+                <Bar dataKey="gain" name="Gains" fill={C.pos} />
+                <Bar dataKey="loss" name="Pertes" fill={C.neg} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Jour de semaine */}
+          <div className="card">
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+              <div className="kpi-title">Gains / Pertes — Par Jour De Semaine (TZ broker)</div>
+              <Help text="Agrégé sur la période active: tous les lundis, tous les mardis, etc. Halo rouge = jour net négatif."/>
+            </div>
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={weekdayAgg} margin={{left:8,right:8,top:8,bottom:8}}>
+                {weekdayAgg.filter(x=>x.net<0).map((x,i)=>{
+                  const idx = weekdayAgg.findIndex(h=>h.key===x.key)
+                  return <ReferenceArea key={'wbad'+i} x1={idx-0.5} x2={idx+0.5} fill="rgba(255,95,162,0.08)" stroke="rgba(255,95,162,0.6)" />
+                })}
+                <CartesianGrid stroke="#2b2b2b" />
+                <XAxis dataKey="key" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+                <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+                <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}}
+                         formatter={(v,n)=>[fmtC(v), n==='gain'?'Gains':'Pertes']} />
+                <Legend wrapperStyle={{ color:C.text }} />
+                <Bar dataKey="gain" name="Gains" fill={C.pos} />
+                <Bar dataKey="loss" name="Pertes" fill={C.neg} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Mensuel */}
+          <div className="card">
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+              <div className="kpi-title">Gains / Pertes — Par Mois (TZ broker)</div>
+              <Help text="Agrégé par mois (Jan..Déc) sur l’intervalle actif (peut couvrir plusieurs années). Halo rouge = mois net négatif."/>
+            </div>
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={monthAgg} margin={{left:8,right:8,top:8,bottom:8}}>
+                {monthAgg.filter(x=>x.net<0).map((x,i)=>{
+                  const idx = monthAgg.findIndex(h=>h.key===x.key)
+                  return <ReferenceArea key={'mbad'+i} x1={idx-0.5} x2={idx+0.5} fill="rgba(255,95,162,0.08)" stroke="rgba(255,95,162,0.6)" />
+                })}
+                <CartesianGrid stroke="#2b2b2b" />
+                <XAxis dataKey="key" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+                <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+                <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}}
+                         formatter={(v,n)=>[fmtC(v), n==='gain'?'Gains':'Pertes']} />
+                <Legend wrapperStyle={{ color:C.text }} />
+                <Bar dataKey="gain" name="Gains" fill={C.pos} />
+                <Bar dataKey="loss" name="Pertes" fill={C.neg} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
         {/* MFE/MAE */}
         <div className="card" style={{height:360, marginTop:16}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
@@ -478,7 +639,7 @@ export default function App(){
           </ResponsiveContainer>
         </div>
 
-        {/* Heatmap corrélation + glissante */}
+        {/* Corrélation */}
         <div className="card" style={{marginTop:16}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
             <div className="kpi-title">Corrélation Des Stratégies</div>
@@ -541,8 +702,7 @@ export default function App(){
               const pnl=pnlDayMap.get(dt)
               const trades=countMap.get(dt)
               const ret=dailyRetMap.get(dt)
-              const dd = ddDailyMap.get(dt) // ≤ 0
-              // dd montant à la date (peak jusqu'à dt - equity dt)
+              const dd = ddDailyMap.get(dt)
               const hist = equityHL.filter(x=>x.date<=dt).map(x=>x.equity_trading)
               const peakTill = hist.length ? Math.max(...hist) : 0
               const eqAt = (equityMap.get(dt) || 0)
@@ -607,7 +767,7 @@ export default function App(){
         )}
 
         {/* FOOTER */}
-        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V3</div>
+        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4</div>
       </div>
     )
   }catch(e){
