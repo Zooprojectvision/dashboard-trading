@@ -619,6 +619,17 @@ function colorVerdict(value, {good=0, bad=0, warnLo=null, warnAbs=null}){
 }
 function classBy(x, [g, w]){ if(x>=g) return 'good'; if(x>=w) return 'warn'; return 'bad' }
 function classByRev(x, [g, w]){ if(x<=g) return 'good'; if(x<=w) return 'warn'; return 'bad' }
+/* Génère toutes les dates (YYYY-MM-DD) du mois donné (index 0-11), week-ends inclus */
+function monthDays(year, monthIndex){
+  const end = new Date(year, monthIndex + 1, 0).getDate() // dernier jour du mois
+  const arr = []
+  for (let d = 1; d <= end; d++){
+    const dt = new Date(year, monthIndex, d)
+    // ISO local → garde YYYY-MM-DD (on ne met pas de timezone Z pour rester cohérent avec le reste)
+    arr.push(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).toISOString().slice(0,10))
+  }
+  return arr
+}
 
 /* ===== Corrélation ===== */
 function buildCorrMatrix(filtered, displayCcy, convert){
