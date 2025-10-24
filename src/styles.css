@@ -1,269 +1,188 @@
-/* =========================
-   ZooProjectVision — V2 CSS
-   Palette minimaliste, Inter, 13px
-   Cadres tricolores (good/warn/bad)
-   ========================= */
+/* Inter + reset minimal */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 :root{
-  --bg: #0a0a0b;           /* fond noir gloss */
-  --panel: #141414;        /* cartes gris foncé */
-  --border: #242424;       /* bordure cartes */
+  --bg: #0a0a0b;
+  --panel: #141414;
+  --border: #242424;
   --text: #e8ecef;         /* gris clair global */
-  --axis: #cfd5da;         /* axes très clairs */
-  --white: #ffffff;        /* blanc pur (titre principal & capital initial) */
-
-  /* gloss verts / roses */
-  --green: #20e3d6;
-  --green-2: #18b8ad;
-  --pink: #ff5fa2;
-  --pink-2: #ff7cbf;
-
-  /* états cadres */
-  --good-bg: rgba(32,227,214,0.10);
-  --warn-bg: rgba(201,164,75,0.10);
-  --bad-bg:  rgba(255,95,162,0.10);
-
-  --shadow: 0 0 0 1px var(--border) inset;
+  --axis: #d2d6db;         /* axes très clairs */
+  --white: #ffffff;        /* blanc pour titre principal & capital initial */
+  --green: #20e3d6;        /* vert gloss gains */
+  --pink: #ff5fa2;         /* rose gloss pertes */
+  --muted: #b6bcc1;
+  --font-size: 13.5px;     /* taille uniforme du dashboard */
   --radius: 16px;
-  --font-size: 13px;
 }
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
-
 body{
-  margin: 0;
+  margin:0;
   background: var(--bg);
   color: var(--text);
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  font-size: var(--font-size);
-  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* =========================
-   Layout général
-   ========================= */
-.container{
-  min-height: 100vh;
-  max-width: 1540px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-/* =========================
-   Titres & sous-titres
-   ========================= */
-.title-main{
-  margin: 0;
-  font-weight: 600;
-  font-size: 28px;            /* seul titre plus grand */
-  color: var(--white);        /* blanc pur */
-  letter-spacing: 0.2px;
-}
-
-.subtitle{
-  margin: 4px 0 0;
-  color: #b6bcc1;             /* gris neutre */
-  font-size: 12px;
-}
-
-/* Sous-titre éditable */
-.inline-edit{
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.inline-edit input{
-  background: #0f0f10;
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 10px;
-  outline: none;
-  padding: 6px 10px;
   font-size: var(--font-size);
+  letter-spacing: 0.1px;
 }
 
-/* Titres de cartes / labels — en gris clair & Capitalization */
-.kpi-title{
-  margin: 0 0 8px 0;
-  color: var(--text);
+/* Conteneur */
+.container{ max-width: 1540px; margin:0 auto; padding:20px; }
+
+/* Titres */
+.title-main{
+  margin:0;
+  font-size: 28px;         /* plus grand que le reste */
   font-weight: 500;
-  font-size: 13px;
-  letter-spacing: 0.2px;
-  text-transform: capitalize;    /* ex: "Capital Initial" */
+  color: var(--white);      /* blanc */
+  letter-spacing: .2px;
+}
+.subtitle{
+  margin: 6px 0 0;
+  color: var(--text);
+}
+.inline-edit{ display:flex; align-items:center; gap:8px; }
+.inline-edit input{
+  background:#0f0f10; border:1px solid var(--border); color:var(--text);
+  border-radius:10px; padding:6px 8px; font-size:var(--font-size);
 }
 
-/* =========================
-   Cartes
-   ========================= */
+/* Cartes & éléments */
 .card{
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px;
-  position: relative;
+}
+.kpi-title{
+  color: var(--text);
+  font-weight: 500;
+  margin: 0 0 6px;
+  font-size: var(--font-size);
 }
 
-/* États tricolores (appliqués comme classe additionnelle) */
-.card.good{ background: linear-gradient(0deg, var(--good-bg), var(--good-bg)), var(--panel); }
-.card.warn{ background: linear-gradient(0deg, var(--warn-bg), var(--warn-bg)), var(--panel); }
-.card.bad { background: linear-gradient(0deg, var(--bad-bg),  var(--bad-bg)),  var(--panel); }
-
-/* =========================
-   Boutons, inputs, selects
-   ========================= */
+/* Boutons & champs */
 .btn{
-  border: 1px solid var(--border);
+  border:1px solid #c9a44b;
   background: transparent;
   color: var(--text);
-  padding: 8px 12px;
-  border-radius: 10px;
-  cursor: pointer;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
   font-size: var(--font-size);
-  transition: background 160ms ease;
+  transition: background .16s ease;
 }
-.btn:hover{ background: rgba(201,164,75,0.10); } /* léger hover doré neutre */
+.btn:hover{ background: rgba(201,164,75,0.10); }
 
 .select, .input{
-  width: 100%;
-  padding: 8px 10px;
+  width:100%;
+  padding:8px 10px;
   font-size: var(--font-size);
-  color: var(--text);
-  background: #0f0f10;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  outline: none;
+  color:var(--text);
+  background:#0f0f10;
+  border:1px solid var(--border);
+  border-radius:10px;
+  outline:none;
 }
 
-/* =========================
-   Aide (icône ? + bulle)
-   ========================= */
-.help{
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px; height: 18px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  cursor: pointer;
-  color: var(--text);
-  font-size: 12px;
-  user-select: none;
-}
-.help-bubble{
-  position: absolute;
-  top: 30px;
-  right: 10px;
-  z-index: 2;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 10px;
-  padding: 8px 10px;
-  max-width: 320px;
-  box-shadow: var(--shadow);
-}
-
-/* =========================
-   Table (heatmap corrélation)
-   ========================= */
+/* Table (corrélation) */
 .table{
-  width: 100%;
+  width:100%;
   border-collapse: collapse;
-  border-spacing: 0;
-  font-size: var(--font-size);
+  min-width: 520px;
 }
 .table th, .table td{
-  border: 1px solid var(--border);
-  padding: 8px 10px;
-  text-align: center;
+  border:1px solid var(--border);
+  padding:8px 10px;
+  text-align:center;
   color: var(--text);
-  background: #0f0f10;
 }
 .table th{
-  background: #111214;
-  font-weight: 500;
+  background:#101012;
+  font-weight:600;
 }
 
-/* =========================
-   Calendrier
-   ========================= */
-.cal-head{
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  margin-bottom: 8px;
-  color: #b6bcc1;
-  font-size: 12px;
+/* Donut center */
+.donut-wrap{ position:relative; width:100%; height:100%; }
+.donut-center{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:600;
+  color: var(--text);
 }
-.cal-grid{
-  display: grid;
+
+/* Help bubble (apparition au survol) */
+.help-wrap{ position:relative; display:inline-flex; align-items:center; }
+.help{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:18px; height:18px; border-radius:50%;
+  border:1px solid var(--border);
+  font-size:12px;
+  color:var(--text);
+  cursor:help;
+}
+.help-bubble{
+  position:absolute; top:120%; right:0;
+  background: var(--panel);
+  border:1px solid var(--border);
+  color: var(--text);
+  border-radius:10px;
+  padding:8px 10px;
+  width: 280px; max-width: 70vw;
+  opacity:0; pointer-events:none;
+  transition: opacity .15s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  z-index:10;
+}
+.help-wrap:hover .help-bubble{ opacity:1; pointer-events:auto; }
+
+/* Calendrier */
+.cal-head{
+  display:grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap:8px;
+  margin-bottom:6px;
+}
+.cal-head > div{ text-align:center; color:var(--muted); font-size:12px; }
+
+.cal-grid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap:8px;
 }
 .cal-cell{
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
-  background: #0f0f10;
-  padding: 10px 8px;
-  min-height: 92px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:10px 8px;
+  background:#0f0f10;
 }
-.cal-date{
-  font-size: 11px;
-  opacity: .9;
-}
-.cal-pnl-pos{
-  font-size: 12px;
-  color: var(--green);
-}
-.cal-pnl-neg{
-  font-size: 12px;
-  color: var(--pink);
-}
-.cal-trades, .cal-dd{
-  font-size: 11px;
-  color: #bfc5c9;
-}
+.cal-date{ font-size:11px; opacity:.9; }
+.cal-pnl-pos{ color: var(--green); font-weight:600; }
+.cal-pnl-neg{ color: var(--pink); font-weight:600; }
+.cal-trades{ font-size:12px; color:#bfc5c9; margin-top:2px; }
+.cal-dd{ font-size:11px; color:#bfc5c9; }
 
-/* =========================
-   Modales
-   ========================= */
+/* Modales */
 .modal{
-  position: fixed;
-  inset: 0;
+  position:fixed; inset:0;
   background: rgba(0,0,0,.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  z-index: 10;
+  display:flex; align-items:center; justify-content:center;
+  padding:16px;
+  z-index:100;
 }
 .modal-card{
-  width: min(720px, 100%);
+  width:min(720px, 100%);
   background: var(--panel);
-  border: 1px solid var(--border);
+  border:1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px;
+  padding:12px;
 }
 
-/* =========================
-   Formattage utilitaire
-   ========================= */
-b, strong{ color: var(--text); }
+/* Verdict tricolore (cadres) */
+.card.good{ box-shadow: 0 0 0 2px rgba(32,227,214,0.25) inset; }
+.card.warn{ box-shadow: 0 0 0 2px rgba(201,164,75,0.25) inset; }
+.card.bad { box-shadow: 0 0 0 2px rgba(255,95,162,0.25) inset; }
 
-/* Les axes Recharts héritent de var(--axis) via JS (props stroke) */
-/* Les valeurs positives/négatives sont gérées en JS par couleurs gloss */
-/* Capital Initial et Titre principal en blanc — via JSX / classes */
-
-button, select, input { font-family: inherit; }
-
-/* Responsive petites largeurs */
-@media (max-width: 900px){
-  .container{ padding: 14px; }
-  .title-main{ font-size: 24px; }
-}
+/* Recharts axes & tooltips héritent de var(--axis)/var(--text) via inline styles dans App.jsx */
