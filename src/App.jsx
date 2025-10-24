@@ -56,7 +56,7 @@ export default function App(){
     const [userCashflows,setUserCashflows]=useState(()=>{ try{const r=localStorage.getItem('zp_user_cashflows'); return r?JSON.parse(r):[]}catch{return[]} })
     useEffect(()=>{ try{localStorage.setItem('zp_user_cashflows',JSON.stringify(userCashflows))}catch{} },[userCashflows])
 
-    /* ====== Capital tiers sous gestion (nouveau KPI + formulaire) ====== */
+    /* ====== Capital tiers sous gestion ====== */
     const [managed, setManaged]=useState(()=>{ try{const r=localStorage.getItem('zp_managed_capital'); return r?JSON.parse(r):[]}catch{return[]} })
     useEffect(()=>{ try{localStorage.setItem('zp_managed_capital',JSON.stringify(managed))}catch{} },[managed])
 
@@ -73,7 +73,7 @@ export default function App(){
     const strats=useMemo(()=>Array.from(new Set(tradesAll.map(t=>t.strategy))),[tradesAll])
     const filtered=useMemo(()=>tradesAll.filter(t=>{ if(asset!=='All'&&t.asset!==asset) return false; if(broker!=='All'&&t.broker!==broker) return false; if(strategy!=='All'&&t.strategy!==strategy) return false; if(dateFrom&&t.date<dateFrom) return false; if(dateTo&&t.date>dateTo) return false; return true }),[tradesAll,asset,broker,strategy,dateFrom,dateTo])
 
-    /* ================== Cashflows & conversion ================== */
+    /* ================== Cashflows ================== */
     const [showFlow,setShowFlow]=useState(false)
     const [flow,setFlow]=useState({ date:new Date().toISOString().slice(0,10), type:'deposit', amount:'', ccy:displayCcy, note:'' })
     useEffect(()=>{ setFlow(f=>({...f, ccy:displayCcy})) },[displayCcy])
@@ -91,7 +91,7 @@ export default function App(){
     const cashflowsInRange=useMemo(()=> allCashflows.filter(c=>{ if(dateFrom&&c.date<dateFrom) return false; if(dateTo&&c.date>dateTo) return false; return true }).map(c=>({...c, amount_disp:convert(c.amount,c.ccy,displayCcy)})), [allCashflows,dateFrom,dateTo,displayCcy])
     const submitFlow=(e)=>{ e.preventDefault(); const amt=Number(flow.amount); if(!flow.date||!flow.type||isNaN(amt)){ alert('merci de compléter date / type / montant'); return } setUserCashflows(p=>p.concat([{date:flow.date,type:flow.type,amount:amt,ccy:flow.ccy||displayCcy,note:flow.note||''}])); setShowFlow(false); setFlow({date:new Date().toISOString().slice(0,10),type:'deposit',amount:'',ccy:displayCcy,note:''}) }
 
-    /* ================== Capital de base & KPIs ================== */
+    /* ================== Capital & KPIs ================== */
     const capitalInitialDisp=useMemo(()=> convert(CAPITAL_INITIAL_USD,'USD',displayCcy),[displayCcy])
     const cashFlowTotal=useMemo(()=> cashflowsInRange.reduce((a,c)=>a+(c.amount_disp||0),0),[cashflowsInRange])
     const capitalBase=useMemo(()=> round2(capitalInitialDisp+cashFlowTotal),[capitalInitialDisp,cashFlowTotal])
@@ -127,6 +127,27 @@ export default function App(){
       }
       return {dates, series:out}
     },[filtered,displayCcy,capitalInitialDisp])
+
+    // PnL cumulé par stratégie
+    const byStratPnl = useMemo(()=>{
+      const byStrat = new Map()
+      for(const t of filtered){
+        const key = t.strategy
+        const v = convert(t.pnl, t.ccy||'USD', displayCcy)
+        if(!byStrat.has(key)) byStrat.set(key, new Map())
+        const m = byStrat.get(key)
+        m.set(t.date, (m.get(t.date)||0) + v)
+      }
+      const dates = Array.from(new Set(filtered.map(t=>t.date))).sort()
+      const out = {}
+      for(const s of byStrat.keys()){
+        let cum = 0
+        const arr = []
+        for(const d of dates){ cum += (byStrat.get(s).get(d)||0); arr.push({ date:d, value: round2(cum) }) }
+        out[s] = arr
+      }
+      return { dates, series: out }
+    }, [filtered, displayCcy])
 
     /* ====== Ratios & qualité ====== */
     const wins=filtered.filter(t=>t.pnl>0).length
@@ -206,8 +227,32 @@ export default function App(){
     },[wr,avgLoss,capitalBase,filtered.length])
     const verdictRuin = classByRev(ruin.ROR, [0.05, 0.20])
 
+    /* ====== Vue Stratégies: sous-mode ====== */
+    const [stratMode, setStratMode] = useState('index') // 'index' | 'pnl'
+
+    /* ====== Palette couleurs stratégies ====== */
+    const stratColors = useMemo(()=>{
+      const base = ['#ffffff','#8a8f94','#20e3d6','#ff5fa2','#c9a44b','#7dd3fc','#a78bfa','#34d399','#fbbf24','#fb7185','#60a5fa','#22c55e']
+      const names = Object.keys(byStratPnl.series||{})
+      const map = {}
+      names.forEach((n,i)=> map[n] = base[i % base.length])
+      return map
+    },[byStratPnl])
+
     /* ================== UI Etat ================== */
     const [showManagedForm,setShowManagedForm]=useState(false)
+
+    /* ====== Calendrier résumé mois ====== */
+    const ymLabel = `${calYear}-${String(calMonth+1).padStart(2,'0')}`
+    const monthPnl = useMemo(()=>{ let s=0; for(const [d,v] of pnlDayMap){ if(d.startsWith(ymLabel)) s+=v } return s },[pnlDayMap,ymLabel])
+    const { monthDDPct, monthDDAbs } = useMemo(()=>{
+      const pts = equityHL.filter(p => p.date.startsWith(ymLabel))
+      if(!pts.length) return { monthDDPct: 0, monthDDAbs: 0 }
+      let peakM = pts[0].equity_trading, maxDropAbs=0
+      for(const p of pts){ peakM=Math.max(peakM,p.equity_trading); const drop=peakM-p.equity_trading; if(drop>maxDropAbs) maxDropAbs=drop }
+      const pct = peakM>0 ? (maxDropAbs/peakM)*100 : 0
+      return { monthDDPct: pct, monthDDAbs: maxDropAbs }
+    },[equityHL,ymLabel])
 
     /* ================== Render ================== */
     return (
@@ -241,7 +286,9 @@ export default function App(){
             <button className="btn" onClick={()=>setShowFlow(true)}>Ajouter Flux</button>
             <button className="btn" onClick={()=>setShowManagedForm(true)}>Capital Tiers</button>
             <button className="btn" onClick={resetFilters}>Réinitialiser</button>
-            <Field label="Devise"><select className="select" value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)}>{['USD','EUR','CHF'].map(c=><option key={c}>{c}</option>)}</select></Field>
+            <select className="select" value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)}>
+              {['CHF','EUR','USD'].map(c=><option key={c}>{c}</option>)}
+            </select>
           </div>
         </div>
 
@@ -276,48 +323,41 @@ export default function App(){
             {/* Donut WR */}
             <div className="card" style={{height:220}}>
               <div className="kpi-title">Win Rate</div>
-              <ResponsiveContainer width="100%" height="80%">
-                <PieChart>
-                  <Pie data={[{name:'Gagnants', value:winnersCount},{name:'Perdants', value:losersCount}]}
-                       dataKey="value" innerRadius={60} outerRadius={90} stroke="none">
-                    <Cell fill={C.pos} />
-                    <Cell fill={C.neg} />
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{textAlign:'center', marginTop:-70, color:C.text}}>{(wr*100).toFixed(1)}%</div>
+              <div className="donut-wrap">
+                <ResponsiveContainer width="100%" height="80%">
+                  <PieChart>
+                    <Pie data={[{name:'Gagnants', value:winnersCount},{name:'Perdants', value:losersCount}]}
+                         dataKey="value" innerRadius={60} outerRadius={90} stroke="none">
+                      <Cell fill={C.pos} /><Cell fill={C.neg} />
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="donut-center">{(wr*100).toFixed(1)}%</div>
+              </div>
             </div>
             {/* Barres gagnants/perdants */}
             <div className="card" style={{height:220}}>
               <div className="kpi-title">Gagnants / Perdants</div>
               <ResponsiveContainer width="100%" height="80%">
-                <BarChart data={[{type:'Gagnants', n:winnersCount},{type:'Perdants', n:losersCount}]}> 
+                <BarChart data={[{type:'Gagnants', n:winnersCount},{type:'Perdants', n:losersCount}]}>
                   <CartesianGrid stroke="#2b2b2b" />
                   <XAxis dataKey="type" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                   <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                   <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}} />
-                  <Bar dataKey="n">
-                    <Cell fill={C.pos} /><Cell fill={C.neg} />
-                  </Bar>
+                  <Bar dataKey="n"><Cell fill={C.pos} /><Cell fill={C.neg} /></Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
             {/* RR + Expectancy */}
             <div className="card" style={{display:'flex', flexDirection:'column', justifyContent:'space-between'}}>
-              <div>
-                <div className="kpi-title">Risk/Reward (RR)</div>
-                <div style={{color:C.text}}>{rr.toFixed(2)}</div>
-              </div>
-              <div>
-                <div className="kpi-title">Expectancy / Trade</div>
-                <div style={{color:C.text}}>{fmtC(expectancy)}</div>
-              </div>
+              <div><div className="kpi-title">Risk/Reward (RR)</div><div style={{color:C.text}}>{rr.toFixed(2)}</div></div>
+              <div><div className="kpi-title">Expectancy / Trade</div><div style={{color:C.text}}>{fmtC(expectancy)}</div></div>
               <div style={{opacity:.85, color:'#bfc5c9'}}>Edge Index: {EI.toFixed(3)}</div>
             </div>
           </div>
         </div>
 
-        {/* AUTRES RATIOS (cadres tricolores, valeurs neutres) */}
+        {/* AUTRES RATIOS */}
         <div style={{display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:12, marginTop:12}}>
           <KPI title="Return (Période)" value={`${(retPeriod*100).toFixed(2)}%`} className={verdictReturn} help="PnL / (capital initial + cash-flows) sur la période filtrée." />
           <KPI title="Pace Annuel (vs 20%)" value={`${(paceAnnual*100).toFixed(2)}%`} className={verdictPace} help="Projection annualisée: (1+R)^(365/jours)−1." />
@@ -333,11 +373,16 @@ export default function App(){
         {/* COURBE D’ÉQUITÉ — 3 VUES */}
         <div className="card" style={{height:460, marginTop:16}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
-            <div className="kpi-title">Courbe — Équité / PnL / Par Stratégie</div>
+            <div className="kpi-title">Courbe — Équité / PnL Global / Stratégie(s)</div>
             <div style={{display:'flex', gap:8}}>
-              {['equity','pnl','strat'].map(k=> <button key={k} className="btn" onClick={()=>setEqView(k)}>{k==='equity'?'Équité':k==='pnl'?'PnL':'Stratégie'}</button>)}
+              {['equity','pnl','strat'].map(k => (
+                <button key={k} className="btn" onClick={()=>setEqView(k)}>
+                  {k==='equity' ? 'Équité' : k==='pnl' ? 'PnL Global' : 'Stratégie(s)'}
+                </button>
+              ))}
             </div>
           </div>
+
           {eqView==='equity' && (
             <ResponsiveContainer width="100%" height="85%">
               <LineChart data={equityHL} margin={{left:8,right:8,top:8,bottom:8}}>
@@ -365,6 +410,7 @@ export default function App(){
               </LineChart>
             </ResponsiveContainer>
           )}
+
           {eqView==='pnl' && (
             <ResponsiveContainer width="100%" height="85%">
               <LineChart data={pnlCumul} margin={{left:8,right:8,top:8,bottom:8}}>
@@ -376,20 +422,36 @@ export default function App(){
               </LineChart>
             </ResponsiveContainer>
           )}
+
           {eqView==='strat' && (
-            <ResponsiveContainer width="100%" height="85%">
-              <LineChart margin={{left:8,right:8,top:8,bottom:8}}>
-                <CartesianGrid stroke="#2b2b2b" />
-                <XAxis dataKey="date" type="category" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} allowDuplicatedCategory={false} />
-                <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-                <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}} />
-                {Object.keys(byStratSeries.series).map((s,i)=> (
-                  <Line key={s} data={byStratSeries.series[s]} dataKey="value" name={s}
-                        dot={false} stroke={i===0?C.white:'#8a8f94'} strokeWidth={i===0?1.8:1.0} strokeDasharray={i===0?undefined:'4 3'} />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+            <>
+              <div style={{display:'flex', gap:8, justifyContent:'flex-end', marginBottom:6}}>
+                <button className="btn" onClick={()=>setStratMode('index')}>Index (base 100)</button>
+                <button className="btn" onClick={()=>setStratMode('pnl')}>PnL</button>
+              </div>
+              <ResponsiveContainer width="100%" height="80%">
+                <LineChart margin={{left:8,right:8,top:8,bottom:8}}>
+                  <CartesianGrid stroke="#2b2b2b" />
+                  <XAxis dataKey="date" type="category" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} allowDuplicatedCategory={false} />
+                  <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+                  <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}} />
+                  {(stratMode==='index' ? Object.keys(byStratSeries.series) : Object.keys(byStratPnl.series)).map((s,i)=> (
+                    <Line
+                      key={s}
+                      data={(stratMode==='index'? byStratSeries.series[s] : byStratPnl.series[s])}
+                      dataKey="value"
+                      name={s}
+                      dot={false}
+                      stroke={stratColors[s] || (i===0?C.white:'#8a8f94')}
+                      strokeWidth={i===0?1.8:1.0}
+                      strokeDasharray={i===0?undefined:'4 3'}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </>
           )}
+
           <div style={{display:'flex', gap:16, color:C.text, marginTop:6}}>
             <span>Peak: <b style={{color:C.text}}>{fmtC(peak)}</b></span>
             <span>Trough: <b style={{color:C.text}}>{fmtC(trough)}</b></span>
@@ -424,12 +486,7 @@ export default function App(){
           </div>
           <div style={{overflowX:'auto'}}>
             <table className="table">
-              <thead>
-                <tr>
-                  <th>Stratégie</th>
-                  {corrMatrix.names.map(n=> <th key={'h'+n}>{n}</th>)}
-                </tr>
-              </thead>
+              <thead><tr><th>Stratégie</th>{corrMatrix.names.map(n=> <th key={'h'+n}>{n}</th>)}</tr></thead>
               <tbody>
                 {corrMatrix.names.map((r,i)=> (
                   <tr key={'r'+r}>
@@ -474,6 +531,10 @@ export default function App(){
               <button className="btn" onClick={()=>{ let m=calMonth+1, y=calYear; if(m>11){m=0;y++}  setCalMonth(m); setCalYear(y) }}>▶</button>
             </div>
           </div>
+          <div style={{display:'flex', gap:12, color:'#b6bcc1', fontSize:12, margin:'4px 0 10px'}}>
+            <span>PNL mois : <span style={{color: numColor(monthPnl)}}>{fmtC(monthPnl)}</span></span>
+            <span>Max DD mois : <span style={{color: 'var(--text)'}}>{monthDDPct.toFixed(2)}%</span> · <span style={{color:'var(--text)'}}>{fmtC(monthDDAbs)}</span></span>
+          </div>
           <div className="cal-head">{['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=><div key={d}>{d}</div>)}</div>
           <div className="cal-grid">
             {calDates.map(dt=>{
@@ -481,7 +542,11 @@ export default function App(){
               const trades=countMap.get(dt)
               const ret=dailyRetMap.get(dt)
               const dd = ddDailyMap.get(dt) // ≤ 0
-              const ddAbs = (equityMap.get(dt)!=null) ? Math.max(0, ( (Math.max(...equityHL.filter(x=>x.date<=dt).map(x=>x.equity_trading))||0) - (equityMap.get(dt)||0) )) : 0
+              // dd montant à la date (peak jusqu'à dt - equity dt)
+              const hist = equityHL.filter(x=>x.date<=dt).map(x=>x.equity_trading)
+              const peakTill = hist.length ? Math.max(...hist) : 0
+              const eqAt = equityMap.get(dt)||0
+              const ddAbs = peakTill>0 ? Math.max(0, peakTill - eqAt) : 0
               const pos = (pnl ?? 0) >= 0
               return (
                 <div key={dt} className="cal-cell">
@@ -542,7 +607,7 @@ export default function App(){
         )}
 
         {/* FOOTER */}
-        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V2</div>
+        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V3</div>
       </div>
     )
   }catch(e){
@@ -554,19 +619,30 @@ export default function App(){
 /* ================== Petits composants ================== */
 function Field({label, children}){ return (<div><div className="kpi-title">{label}</div>{children}</div>) }
 function KPI({title, value, color, className='', help}){
-  const [show, setShow]=useState(false)
   return (
     <div className={`card ${className}`} style={{position:'relative'}}>
       <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
         <div className="kpi-title">{title}</div>
-        {help && <span className="help" onClick={()=>setShow(s=>!s)}>?</span>}
+        {help && (
+          <span className="help-wrap">
+            <span className="help" title="aide">?</span>
+            <span className="help-bubble">{help}</span>
+          </span>
+        )}
       </div>
-      {show && help && <div className="help-bubble">{help}</div>}
       <div style={{color: color||'var(--text)'}}>{value}</div>
     </div>
   )
 }
-function Help({text}){ const [s,setS]=useState(false); return (<span className="help" onClick={()=>setS(v=>!v)} title="aide">?{s&&<span className="help-bubble">{text}</span>}</span>) }
+
+function Help({text}){
+  return (
+    <span className="help-wrap">
+      <span className="help" title="aide">?</span>
+      <span className="help-bubble">{text}</span>
+    </span>
+  )
+}
 
 function ManagedForm({onAdd, displayCcy}){
   const [e,setE]=useState({ source:'Darwinex', amount:'', ccy:displayCcy, start:new Date().toISOString().slice(0,10), end:'', note:'' })
@@ -611,21 +687,41 @@ function calcSortino(equity){ const rets=[]; for(let i=1;i<equity.length;i++){ c
 function equityWithFlowsAt(series,date){ const p=series.find(x=>x.date===date); return p? p.equity_with_flows : undefined }
 
 function colorVerdict(value, {good=0, bad=0, warnLo=null, warnAbs=null}){
-  // Si warnAbs fourni: neutre si |value| <= warnAbs
   if(warnAbs!=null){ if(Math.abs(value)<=warnAbs) return 'warn'; return value>0? 'good' : 'bad' }
-  // Sinon bornes sur valeur (good = seuil à dépasser si positif, bad si sous seuil négatif)
   if(warnLo!=null){ if(value>=good) return 'good'; if(value>=warnLo) return 'warn'; return 'bad' }
   if(value>good) return 'good'; if(value<bad) return 'bad'; return 'warn'
 }
 function classBy(x, [g, w]){ if(x>=g) return 'good'; if(x>=w) return 'warn'; return 'bad' }
 function classByRev(x, [g, w]){ if(x<=g) return 'good'; if(x<=w) return 'warn'; return 'bad' }
-/* Génère toutes les dates (YYYY-MM-DD) du mois donné (index 0-11), week-ends inclus */
+
+/* ===== Corrélation ===== */
+function buildCorrMatrix(filtered, displayCcy, convert){
+  const byDayByStrat=new Map()
+  for(const t of filtered){ const d=t.date; if(!byDayByStrat.has(d)) byDayByStrat.set(d,new Map()); const m=byDayByStrat.get(d); const v=convert(t.pnl,t.ccy||'USD',displayCcy); m.set(t.strategy,(m.get(t.strategy)||0)+v) }
+  const stratSet=new Set(); for(const m of byDayByStrat.values()) for(const k of m.keys()) stratSet.add(k)
+  const names=Array.from(stratSet)
+  const byStrat={}, dates=Array.from(byDayByStrat.keys()).sort()
+  for(const s of names){ byStrat[s]=dates.map(d=> byDayByStrat.get(d).get(s)??0) }
+  const matrix = names.map((r,i)=> names.map((c,j)=> pearson(byStrat[names[i]], byStrat[names[j]])))
+  const pairs=[]
+  for(let i=0;i<names.length;i++) for(let j=i+1;j<names.length;j++) pairs.push(matrix[i][j])
+  const avg = pairs.length? mean(pairs.filter(Number.isFinite)) : 0
+  return { names, matrix, series:byStrat, dates, avg }
+}
+function pearson(a,b){ const n=Math.min(a.length,b.length); if(n===0) return 0; const ax=a.slice(0,n), bx=b.slice(0,n); const ma=mean(ax), mb=mean(bx); let num=0,da=0,db=0; for(let i=0;i<n;i++){ const x=ax[i]-ma, y=bx[i]-mb; num+=x*y; da+=x*x; db+=y*y } const den=Math.sqrt(da*db); return den>0? num/den : 0 }
+function pairsOf(arr){ const out=[]; for(let i=0;i<arr.length;i++) for(let j=i+1;j<arr.length;j++) out.push(`${arr[i]}|${arr[j]}`); return out }
+function rollCorr(matrixObj, pair, win){ if(!pair) return []; const [a,b]=pair.split('|'); const A=matrixObj.series[a]||[], B=matrixObj.series[b]||[]; const dates=matrixObj.dates||[]; const out=[]; for(let i=win;i<=A.length;i++){ const sA=A.slice(i-win,i), sB=B.slice(i-win,i); out.push({ date:dates[i-1], corr: pearson(sA,sB) }) } return out }
+function heatCorr(v){ const x=Math.max(-1,Math.min(1,v)); const g = x>0? Math.floor(255*(1-x)) : 255; const r = x>0? 255 : Math.floor(255*(1+ x)); const b = 180; return `rgba(${r},${g},${b},0.25)` }
+
+/* ===== Managed capital helpers ===== */
+function sumManaged(list, displayCcy, convert){ const today=new Date().toISOString().slice(0,10); let sum=0; for(const e of list){ const active = e.start<=today && (!e.end || today<=e.end); if(active){ sum += convert(Number(e.amount)||0, e.ccy||'USD', displayCcy) } } return round2(sum) }
+
+/* ===== Calendrier util ===== */
 function monthDays(year, monthIndex){
-  const end = new Date(year, monthIndex + 1, 0).getDate() // dernier jour du mois
+  const end = new Date(year, monthIndex + 1, 0).getDate()
   const arr = []
   for (let d = 1; d <= end; d++){
     const dt = new Date(year, monthIndex, d)
-    // ISO local → garde YYYY-MM-DD (on ne met pas de timezone Z pour rester cohérent avec le reste)
     arr.push(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).toISOString().slice(0,10))
   }
   return arr
