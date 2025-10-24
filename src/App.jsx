@@ -545,7 +545,7 @@ export default function App(){
               // dd montant à la date (peak jusqu'à dt - equity dt)
               const hist = equityHL.filter(x=>x.date<=dt).map(x=>x.equity_trading)
               const peakTill = hist.length ? Math.max(...hist) : 0
-              const eqAt = equityMap.get(dt)||0
+              const eqAt = (equityMap.get(dt) || 0)
               const ddAbs = peakTill>0 ? Math.max(0, peakTill - eqAt) : 0
               const pos = (pnl ?? 0) >= 0
               return (
@@ -726,25 +726,3 @@ function monthDays(year, monthIndex){
   }
   return arr
 }
-
-/* ===== Corrélation ===== */
-function buildCorrMatrix(filtered, displayCcy, convert){
-  const byDayByStrat=new Map()
-  for(const t of filtered){ const d=t.date; if(!byDayByStrat.has(d)) byDayByStrat.set(d,new Map()); const m=byDayByStrat.get(d); const v=convert(t.pnl,t.ccy||'USD',displayCcy); m.set(t.strategy,(m.get(t.strategy)||0)+v) }
-  const stratSet=new Set(); for(const m of byDayByStrat.values()) for(const k of m.keys()) stratSet.add(k)
-  const names=Array.from(stratSet)
-  const byStrat={}, dates=Array.from(byDayByStrat.keys()).sort()
-  for(const s of names){ byStrat[s]=dates.map(d=> byDayByStrat.get(d).get(s)??0) }
-  const matrix = names.map((r,i)=> names.map((c,j)=> pearson(byStrat[names[i]], byStrat[names[j]])))
-  const pairs=[]
-  for(let i=0;i<names.length;i++) for(let j=i+1;j<names.length;j++) pairs.push(matrix[i][j])
-  const avg = pairs.length? mean(pairs.filter(Number.isFinite)) : 0
-  return { names, matrix, series:byStrat, dates, avg }
-}
-function pearson(a,b){ const n=Math.min(a.length,b.length); if(n===0) return 0; const ax=a.slice(0,n), bx=b.slice(0,n); const ma=mean(ax), mb=mean(bx); let num=0,da=0,db=0; for(let i=0;i<n;i++){ const x=ax[i]-ma, y=bx[i]-mb; num+=x*y; da+=x*x; db+=y*y } const den=Math.sqrt(da*db); return den>0? num/den : 0 }
-function pairsOf(arr){ const out=[]; for(let i=0;i<arr.length;i++) for(let j=i+1;j<arr.length;j++) out.push(`${arr[i]}|${arr[j]}`); return out }
-function rollCorr(matrixObj, pair, win){ if(!pair) return []; const [a,b]=pair.split('|'); const A=matrixObj.series[a]||[], B=matrixObj.series[b]||[]; const dates=matrixObj.dates||[]; const out=[]; for(let i=win;i<=A.length;i++){ const sA=A.slice(i-win,i), sB=B.slice(i-win,i); out.push({ date:dates[i-1], corr: pearson(sA,sB) }) } return out }
-function heatCorr(v){ const x=Math.max(-1,Math.min(1,v)); const g = x>0? Math.floor(255*(1-x)) : 255; const r = x>0? 255 : Math.floor(255*(1+ x)); const b = 180; return `rgba(${r},${g},${b},0.25)` }
-
-/* ===== Managed capital helpers ===== */
-function sumManaged(list, displayCcy, convert){ const today=new Date().toISOString().slice(0,10); let sum=0; for(const e of list){ const active = e.start<=today && (!e.end || today<=e.end); if(active){ sum += convert(Number(e.amount)||0, e.ccy||'USD', displayCcy) } } return round2(sum) }
