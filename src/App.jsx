@@ -432,11 +432,12 @@ export default function App(){
                   <CartesianGrid stroke="#2b2b2b" />
                   <XAxis dataKey="type" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                   <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-                <Tooltip
-  contentStyle={{ background:C.panel, border:`1px solid var(--border)`, color:C.text, borderRadius:10 }}
-  formatter={(v, n) => [fmtC(v), n]}   // ← ICI: utiliser n directement
+               <Tooltip
+  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
+  labelStyle={{ color: C.text }}
+  itemStyle={{ color: C.text }}
+  formatter={(value, name) => [fmtC(value), name]}
 />
-
                   <Bar dataKey="n"><Cell fill={C.pos} /><Cell fill={C.neg} /></Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -482,11 +483,12 @@ export default function App(){
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-                <Tooltip
-  contentStyle={{ background:C.panel, border:`1px solid var(--border)`, color:C.text, borderRadius:10 }}
-  formatter={(v, n) => [fmtC(v), n]}   // ← ICI: utiliser n directement
+               <Tooltip
+  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
+  labelStyle={{ color: C.text }}
+  itemStyle={{ color: C.text }}
+  formatter={(value, name) => [fmtC(value), name]}
 />
-
                          labelStyle={{color:C.text}} itemStyle={{color:C.text}}
                          formatter={(v,n)=>[fmtC(v), n]} />
                 <Legend wrapperStyle={{fontSize:'var(--font-size)', color:C.text}} />
@@ -510,11 +512,12 @@ export default function App(){
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-               <Tooltip
-  contentStyle={{ background:C.panel, border:`1px solid var(--border)`, color:C.text, borderRadius:10 }}
-  formatter={(v, n) => [fmtC(v), n]}   // ← ICI: utiliser n directement
+              <Tooltip
+  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
+  labelStyle={{ color: C.text }}
+  itemStyle={{ color: C.text }}
+  formatter={(value, name) => [fmtC(value), name]}
 />
-
                 <Line type="monotone" dataKey="pnl_cum" name="PnL Cumulatif (base 0)" dot={false} stroke={C.white} strokeWidth={1.8} />
               </LineChart>
             </ResponsiveContainer>
