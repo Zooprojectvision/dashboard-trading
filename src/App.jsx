@@ -432,12 +432,12 @@ export default function App(){
                   <CartesianGrid stroke="#2b2b2b" />
                   <XAxis dataKey="type" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                   <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-               <Tooltip
-  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
-  labelStyle={{ color: C.text }}
-  itemStyle={{ color: C.text }}
-  formatter={(value, name) => [fmtC(value), name]}
-/>
+                  <Tooltip
+                    contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
+                    labelStyle={{ color: C.text }}
+                    itemStyle={{ color: C.text }}
+                    formatter={(value, name) => [fmtC(value), name]}
+                  />
                   <Bar dataKey="n"><Cell fill={C.pos} /><Cell fill={C.neg} /></Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -483,12 +483,7 @@ export default function App(){
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-               <Tooltip
-  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
-  labelStyle={{ color: C.text }}
-  itemStyle={{ color: C.text }}
-  formatter={(value, name) => [fmtC(value), name]}
-/>
+                <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}}
                          labelStyle={{color:C.text}} itemStyle={{color:C.text}}
                          formatter={(v,n)=>[fmtC(v), n]} />
                 <Legend wrapperStyle={{fontSize:'var(--font-size)', color:C.text}} />
@@ -512,12 +507,7 @@ export default function App(){
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-              <Tooltip
-  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
-  labelStyle={{ color: C.text }}
-  itemStyle={{ color: C.text }}
-  formatter={(value, name) => [fmtC(value), name]}
-/>
+                <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}} formatter={(v)=>fmtC(v)} />
                 <Line type="monotone" dataKey="pnl_cum" name="PnL Cumulatif (base 0)" dot={false} stroke={C.white} strokeWidth={1.8} />
               </LineChart>
             </ResponsiveContainer>
@@ -577,8 +567,12 @@ export default function App(){
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="key" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-                <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}}
-                         formatter={(v,n)=>[fmtC(v), n==='gain'?'Gains':'Pertes']} />
+                <Tooltip
+                  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
+                  labelStyle={{ color: C.text }}
+                  itemStyle={{ color: C.text }}
+                  formatter={(value, name) => [fmtC(value), name]}
+                />
                 <Legend wrapperStyle={{ color:C.text }} />
                 <Bar dataKey="gain" name="Gains" fill={C.pos} />
                 <Bar dataKey="loss" name="Pertes" fill={C.neg} />
@@ -601,8 +595,12 @@ export default function App(){
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="key" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-                <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}}
-                         formatter={(v,n)=>[fmtC(v), n==='gain'?'Gains':'Pertes']} />
+                <Tooltip
+                  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
+                  labelStyle={{ color: C.text }}
+                  itemStyle={{ color: C.text }}
+                  formatter={(value, name) => [fmtC(value), name]}
+                />
                 <Legend wrapperStyle={{ color:C.text }} />
                 <Bar dataKey="gain" name="Gains" fill={C.pos} />
                 <Bar dataKey="loss" name="Pertes" fill={C.neg} />
@@ -625,8 +623,12 @@ export default function App(){
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="key" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-                <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}}
-                         formatter={(v,n)=>[fmtC(v), n==='gain'?'Gains':'Pertes']} />
+                <Tooltip
+                  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
+                  labelStyle={{ color: C.text }}
+                  itemStyle={{ color: C.text }}
+                  formatter={(value, name) => [fmtC(value), name]}
+                />
                 <Legend wrapperStyle={{ color:C.text }} />
                 <Bar dataKey="gain" name="Gains" fill={C.pos} />
                 <Bar dataKey="loss" name="Pertes" fill={C.neg} />
@@ -782,7 +784,7 @@ export default function App(){
         )}
 
         {/* FOOTER */}
-        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4</div>
+        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4.1</div>
       </div>
     )
   }catch(e){
