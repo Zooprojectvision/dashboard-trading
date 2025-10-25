@@ -1,146 +1,259 @@
-/* ================== Thème global ================== */
+/* =========================================================
+   styles.css — ZooProjectVision — V4.3.1 (baseline propre)
+   Blocs marqués [STYLE S1..S8]
+   ========================================================= */
+
+
+/* [STYLE S1] START — Variables & thème global */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
 :root{
-  --bg: #0a0a0b;
-  --panel: #141414;
-  --border: #242424;
-  --axis: #b6bcc1;       /* gris très clair pour axes */
-  --text: #e8ecef;       /* gris clair */
-  --muted: #c8d0d6;      /* gris pâle */
+  /* Couleurs de base */
+  --bg:        #0a0a0b;
+  --text:      #e8ecef;
+  --muted:     #b6bcc1;
+  --panel:     #141414;
+  --border:    #242424;
 
-  --white: #ffffff;
-  --green: #20e3d6;      /* vert gloss */
-  --green-2: #18b8ad;
-  --pink: #ff5fa2;       /* rose gloss */
-  --pink-2:#ff7cbf;
-  --orange:#ff9f43;      /* neutre/mitigé */
+  /* Accents cohérents */
+  --white:     #ffffff;
+  --axis:      #d0d3d6;   /* axes très clairs */
+  --green:     #20e3d6;   /* vert gloss */
+  --green2:    #18b8ad;
+  --pink:      #ff5fa2;   /* rose gloss */
+  --pink2:     #ff7cbf;
+  --turq:      #20e3d6;
 
-  --radius: 16px;
-  --radius-sm: 10px;
-  --gap: 12px;
-  --card-pad: 12px;
+  /* Typo & tailles */
+  --font:      'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-size: 13px;      /* taille uniforme (réduction légère possible) */
+  --radius:    12px;
+  --radius-lg: 16px;
 
-  /* Typo */
-  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-size: 13.5px;   /* taille uniforme */
-  --kpi-size: 18px;      /* chiffres KPI */
-
-  /* Axes (plus petits) */
-  --axis-font-size: 11px;
+  /* Ombres légères */
+  --shadow:    0 0 0 1px rgba(255,255,255,0.02), 0 10px 30px rgba(0,0,0,0.35);
 }
+/* [STYLE S1] END — Variables & thème global */
 
-/* Reset + base */
+
+/* [STYLE S2] START — Base & reset */
 *{ box-sizing: border-box; }
-html, body, #root { height: 100%; }
+
+html, body, #root{ height: 100%; }
+
 body{
   margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
+  font-size: var(--font-size);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-button, select, input { font-family: inherit; font-size: var(--font-size); }
 
-/* Cartes & éléments */
+h1,h2,h3,h4,h5,p{ margin: 0; }
+
+.title-brand{
+  color: var(--white);
+  font-weight: 600;
+  font-size: 28px;         /* Titre principal plus grand */
+  letter-spacing: 0.2px;
+}
+
+.subtitle{
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+/* [STYLE S2] END — Base & reset */
+
+
+/* [STYLE S3] START — Cartes / titres / valeurs */
 .card{
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--card-pad);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  box-shadow: var(--shadow);
 }
+
 .kpi-title{
-  font-weight: 400;
   color: var(--text);
-  margin: 0 0 8px;
-  font-size: var(--font-size);
-  letter-spacing: .2px;
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.2px;
 }
-.title-caps{
-  text-transform: capitalize; /* Titre : Chaque Mot En Majuscule */
-}
+
 .val{
-  font-size: var(--kpi-size);
+  font-size: 18px;
   line-height: 1.2;
 }
-.pos{ color: var(--green); }
-.neg{ color: var(--pink); }
-.muted{ color: var(--muted); }
-.label{ color: var(--muted); font-size: 12px; margin-bottom: 4px; }
 
-/* Sélecteurs & boutons */
+/* Halos “verdict” (accent sur la bordure) */
+.halo-good{
+  border-color: rgba(32, 227, 214, 0.65) !important;
+  box-shadow:
+    0 0 0 1.5px rgba(32, 227, 214, 0.55),
+    0 0 0 6px rgba(32, 227, 214, 0.08),
+    var(--shadow);
+}
+.halo-warn{
+  border-color: rgba(255, 165, 0, 0.65) !important; /* orange vif */
+  box-shadow:
+    0 0 0 1.5px rgba(255, 165, 0, 0.55),
+    0 0 0 6px rgba(255, 165, 0, 0.08),
+    var(--shadow);
+}
+.halo-bad{
+  border-color: rgba(255, 95, 162, 0.7) !important; /* rose gloss */
+  box-shadow:
+    0 0 0 1.5px rgba(255, 95, 162, 0.6),
+    0 0 0 6px rgba(255, 95, 162, 0.10),
+    var(--shadow);
+}
+.halo-neutral{
+  /* même carte, pas d’accent particulier (garde la cohérence visuelle) */
+}
+/* [STYLE S3] END — Cartes / titres / valeurs */
+
+
+/* [STYLE S4] START — Inputs & boutons */
 .sel{
   width: 100%;
   padding: 8px 10px;
-  font-size: var(--font-size);
+  font-size: 12px;
   color: var(--text);
   background: #0f0f10;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   outline: none;
 }
+
 .btn{
   border: 1px solid var(--border);
-  background: #0f0f10;
+  background: #1a1a1a;
   color: var(--text);
   padding: 8px 12px;
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   cursor: pointer;
-  font-size: var(--font-size);
-  transition: background .16s ease, border-color .16s ease;
+  font-size: 12px;
+  transition: background 160ms ease, border-color 160ms ease;
 }
-.btn:hover{ background:#151516; border-color:#2d2d2d; }
-.btn.ghost{ background: transparent; }
-.btn.sm{ padding:6px 10px; font-size:12px; }
-
-/* Mini grid */
-.mini .label{ color: var(--muted); font-size: 12px; margin-bottom: 6px; }
-.mini .val{ font-size: var(--kpi-size); }
-
-/* Drawer (si utilisé) */
-.drawer{ position: fixed; inset:0; display:flex; justify-content:flex-end; z-index:50; }
-.drawer .overlay{ position:absolute; inset:0; background:rgba(0,0,0,.55); }
-.drawer-card{
-  position:relative; width:min(720px,100%); height:100%; overflow-y:auto;
-  background:var(--panel); border-left:1px solid var(--border); padding:var(--card-pad);
+.btn:hover{
+  background: rgba(255,255,255,0.05);
+  border-color: #2e2e2e;
 }
-.drawer-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
-.drawer-title{ font-size:14px; color:var(--text); }
-.drawer-actions{ display:flex; gap:8px; }
+.btn.ghost{
+  background: transparent;
+}
+.btn.sm{
+  padding: 6px 10px;
+  font-size: 12px;
+}
 
-/* Verdicts (pourtours “brillants”) */
-.halo-good{ box-shadow: 0 0 0 2px rgba(32,227,214,.55) inset; }
-.halo-warn{ box-shadow: 0 0 0 2px rgba(255,159,67,.55) inset; }
-.halo-bad { box-shadow: 0 0 0 2px rgba(255,95,162,.6) inset; }
+.help{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px; height: 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  opacity: .85;
+  cursor: help;
+}
+/* [STYLE S4] END — Inputs & boutons */
 
-/* Modale */
+
+/* [STYLE S5] START — Bordures verdict (calendrier, cartes H/J/M) */
+.cal-cell{
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+/* On réutilise halo-good/halo-warn/halo-bad pour les cellules calendrier */
+.cal-cell.halo-good{ border-color: rgba(32,227,214,0.55); }
+.cal-cell.halo-warn{ border-color: rgba(255,165,0,0.55); }
+.cal-cell.halo-bad{  border-color: rgba(255,95,162,0.60); }
+/* [STYLE S5] END — Bordures verdict (calendrier, cartes H/J/M) */
+
+
+/* [STYLE S6] START — Modale & formulaires */
 .modal-overlay{
-  position: fixed; inset: 0; background: rgba(0,0,0,.6);
-  display:flex; align-items:center; justify-content:center; padding:16px; z-index:60;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 50;
 }
+
 .modal-card{
-  width:min(720px, 100%);
-  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
-  padding:var(--card-pad);
-}
-.form-label{ display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted); }
-
-/* Utilitaires */
-.row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.center{ display:flex; align-items:center; justify-content:center; }
-.right{ text-align:right; }
-hr.div{ border:none; border-top:1px solid var(--border); margin:10px 0; }
-
-/* Recharts : réduire la taille des ticks partout */
-.recharts-cartesian-axis .recharts-text tspan{
-  font-size: var(--axis-font-size);
+  width: min(720px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  box-shadow: var(--shadow);
 }
 
-/* Tables compactes */
-.table-compact{ width:100%; border-collapse:collapse; }
-.table-compact th, .table-compact td{
-  padding:6px 8px; border-bottom:1px solid var(--border); font-size:var(--font-size);
+.form-label{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);
 }
-.table-compact th{ color:var(--muted); font-weight:500; text-align:left; }
+/* [STYLE S6] END — Modale & formulaires */
 
-/* Accessibilité */
-:focus-visible{ outline:2px solid #6aa9ff; outline-offset:2px; }
+
+/* [STYLE S7] START — Recharts (axes & ticks compacts) */
+.recharts-cartesian-axis-line{
+  stroke: var(--axis) !important;
+  opacity: 0.9;
+}
+.recharts-cartesian-axis-tick line{
+  stroke: var(--axis) !important;
+  opacity: 0.9;
+}
+.recharts-cartesian-axis-tick text{
+  fill: var(--axis) !important;
+  font-size: 10px !important;     /* plus compact */
+  opacity: 0.95;
+}
+.recharts-legend-wrapper{
+  color: var(--text) !important;
+  font-size: 12px !important;
+}
+.recharts-default-tooltip{
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: 10px !important;
+}
+/* [STYLE S7] END — Recharts (axes & ticks compacts) */
+
+
+/* [STYLE S8] START — Tables compactes (si besoin) */
+.table-compact{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: var(--text);
+}
+.table-compact th,
+.table-compact td{
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+}
+.table-compact th{
+  background: #171717;
+  color: var(--muted);
+  font-weight: 500;
+}
+.table-compact tr:nth-child(even){
+  background: #111113;
+}
+/* [STYLE S8] END — Tables compactes (si besoin) */
