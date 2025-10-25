@@ -933,7 +933,7 @@ export default function App(){
           </div>
         )}
 
-                {/* MODAL — Ajouter un flux */}
+                        {/* MODAL — Ajouter un flux */}
         {showForm && (
           <div className="modal-overlay" onClick={()=>setShowForm(false)}>
             <div className="modal-card" onClick={(e)=>e.stopPropagation()}>
@@ -979,6 +979,46 @@ export default function App(){
     return <div style={{ color: '#ff5fa2', padding: 16 }}>Erreur dans App.jsx : {String(e.message || e)}</div>
   }
 }
+
+/* ====================== Helpers d'import CSV (après le composant) ====================== */
+function parseCSV(text){
+  const lines = String(text||'').trim().split(/\r?\n/); if(!lines.length) return []
+  const headers = lines.shift().split(',').map(h=>h.trim().replace(/^"|"$/g,''))
+  const rows=[]
+  for(const line of lines){
+    const cols = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || []
+    const obj = {}
+    headers.forEach((h, i) => obj[h] = (cols[i]||'').replace(/^"|"$/g,''))
+    rows.push(obj)
+  }
+  return rows
+}
+
+function mapMT5Rows(rows){
+  return rows.map((r)=>{
+    const date = (r['Time'] || r['Open time'] || r['Open Time'] || r['Date'] || '').slice(0,10)
+    const asset = r['Symbol'] || r['Instrument'] || r['Symbol name'] || 'UNKNOWN'
+    const broker = r['Broker'] || 'Unknown'
+    const strategy = r['Strategy'] || 'Unknown'
+    const pnl = Number(r['Profit'] || r['PnL'] || r['PL'] || r['Net P/L'] || 0)
+    const openTime = r['Time'] || r['Open time'] || r['Open Time'] || ''
+    const closeTime = r['Close time'] || r['Close Time'] || ''
+    const mfeRaw = Number(r['MFE'] || r['MFE Profit'] || r['Max Favorable Excursion'] || 0)
+    const maeRaw = Number(r['MAE'] || r['MAE Profit'] || r['Max Adverse Excursion'] || 0)
+    const commission = Number(r['Commission'] || r['Commission, USD'] || r['Commissions'] || 0)
+    const swap = Number(r['Swap'] || r['Storage'] || 0)
+    return {
+      date, asset, broker, strategy,
+      pnl: Number((pnl||0).toFixed(2)), ccy:'USD',
+      open_time: openTime, close_time: closeTime,
+      mfe: Number((Math.abs(mfeRaw)||0).toFixed(2)),
+      mae: Number((Math.abs(maeRaw)||0).toFixed(2)),
+      commission: Number((commission||0).toFixed(2)),
+      swap: Number((swap||0).toFixed(2)),
+    }
+  }).filter(r=>r.date)
+}
+
 
 /* ====================== Helpers d'import CSV (après le composant) ====================== */
 function parseCSV(text){
