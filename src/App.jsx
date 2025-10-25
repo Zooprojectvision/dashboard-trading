@@ -629,23 +629,25 @@ export default function App(){
         </div>
 
         {/* MFE/MAE */}
-        <div className="card" style={{height:360, marginTop:16}}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-            <div className="kpi-title">MFE / MAE — Quotidien (moyenne)</div>
-            <Help text="MFE: meilleur gain latent. MAE: pire perte latente. Moyennés par jour après filtres."/>
-          </div>
-          <ResponsiveContainer width="100%" height="88%">
-            <LineChart data={mfeMaeDaily} margin={{left:8,right:8,top:8,bottom:8}}>
-              <CartesianGrid stroke="#2b2b2b" />
-              <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-              <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-              <Tooltip contentStyle={{background:C.panel,border:`1px solid var(--border)`,color:C.text,borderRadius:10}} formatter={(v,n)=>[fmtC(v), n==='avgMFE'?'MFE moyen':'MAE moyen']} />
-              <Legend wrapperStyle={{ color:C.text }} />
-              <Line type="monotone" dataKey="avgMFE" name="MFE Moyen" dot={false} stroke={C.pos} strokeWidth={2} />
-              <Line type="monotone" dataKey="avgMAE" name="MAE Moyen" dot={false} stroke={C.neg} strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+<div className="card" style={{height:360, marginTop:16}}>
+  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+    <div className="kpi-title">MFE / MAE — Quotidien (moyenne)</div>
+    <Help text="MFE: meilleur gain latent. MAE: pire perte latente. Moyennés par jour après filtres."/>
+  </div>
+  <ResponsiveContainer width="100%" height="88%">
+    <LineChart data={mfeMaeDaily} margin={{left:8,right:8,top:8,bottom:8}}>
+      <CartesianGrid stroke="#2b2b2b" />
+      <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+      <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+      {/* ⬇️ Tooltip remplacé par la version custom (labels blancs + valeurs vert/rose) */}
+      <Tooltip content={<MFEMaeTooltip C={C} fmtC={fmtC} />} />
+      <Legend wrapperStyle={{ color:C.text }} />
+      <Line type="monotone" dataKey="avgMFE" name="MFE Moyen" dot={false} stroke={C.pos} strokeWidth={2} />
+      <Line type="monotone" dataKey="avgMAE" name="MAE Moyen" dot={false} stroke={C.neg} strokeWidth={2} />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
+
 
         {/* Corrélation */}
         <div className="card" style={{marginTop:16}}>
@@ -860,23 +862,41 @@ function ManagedForm({onAdd, displayCcy}){
 }
 
 /* ================== Helpers calcul ================== */
-function round2(x){ return Math.round((x??0)*100)/100 }
-function mean(a){ if(!a.length) return 0; return a.reduce((x,y)=>x+y,0)/a.length }
-function stddev(a){ if(!a.length) return 0; const m=mean(a); const v=mean(a.map(x=>(x-m)*(x-m))); return Math.sqrt(v) }
-function daysBetween(a,b){ if(!a||!b) return 0; const d1=new Date(a), d2=new Date(b); return Math.floor((d2-d1)/86400000) }
+function round2(x){ /* ... */ }
+function mean(a){ /* ... */ }
+function stddev(a){ /* ... */ }
+function daysBetween(a,b){ /* ... */ }
 
-function calcSharpe(equity){ const rets=[]; for(let i=1;i<equity.length;i++){ const p=equity[i-1].equity_trading, c=equity[i].equity_trading; rets.push(p>0 ? (c-p)/p : 0) } const mu=mean(rets), sd=stddev(rets); return sd>0? (mu/sd)*Math.sqrt(252) : 0 }
-function calcSortino(equity){ const rets=[]; for(let i=1;i<equity.length;i++){ const p=equity[i-1].equity_trading, c=equity[i].equity_trading; rets.push(p>0 ? (c-p)/p : 0) } const mu=mean(rets), neg=rets.filter(r=>r<0), sdDown=stddev(neg); return sdDown>0? (mu/sdDown)*Math.sqrt(252) : 0 }
+function calcSharpe(equity){ /* ... */ }
+function calcSortino(equity){ /* ... */ }
 
-function equityWithFlowsAt(series,date){ const p=series.find(x=>x.date===date); return p? p.equity_with_flows : undefined }
+function equityWithFlowsAt(series,date){ /* ... */ }
 
-function colorVerdict(value, {good=0, bad=0, warnLo=null, warnAbs=null}){
-  if(warnAbs!=null){ if(Math.abs(value)<=warnAbs) return 'warn'; return value>0? 'good' : 'bad' }
-  if(warnLo!=null){ if(value>=good) return 'good'; if(value>=warnLo) return 'warn'; return 'bad' }
-  if(value>good) return 'good'; if(value<bad) return 'bad'; return 'warn'
+function colorVerdict(value, {good=0, bad=0, warnLo=null, warnAbs=null}){ /* ... */ }
+function classBy(x, [g, w]){ /* ... */ }
+function classByRev(x, [g, w]){ /* ... */ }
+
+/* === ICI : ajoute le composant de tooltip custom MFE/MAE === */
+function MFEMaeTooltip({ active, payload, label, C, fmtC }) {
+  if (!active || !payload || !payload.length) return null
+  return (
+    <div style={{ background:'var(--panel)', border:'1px solid var(--border)', borderRadius:10, padding:'8px 10px', color:'var(--white)' }}>
+      {label != null && <div style={{ marginBottom: 6 }}>{label}</div>}
+      {payload.map((p, i) => {
+        const isMFE = p.dataKey === 'avgMFE'
+        const name = isMFE ? 'MFE Moyen' : 'MAE Moyen'
+        const valStyle = { color: isMFE ? 'var(--green)' : 'var(--pink)' }
+        return (
+          <div key={i} style={{ display:'flex', justifyContent:'space-between', gap:12 }}>
+            <span style={{ color:'var(--white)' }}>{name}</span>
+            <b style={valStyle}>{fmtC(p.value)}</b>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
-function classBy(x, [g, w]){ if(x>=g) return 'good'; if(x>=w) return 'warn'; return 'bad' }
-function classByRev(x, [g, w]){ if(x<=g) return 'good'; if(x<=w) return 'warn'; return 'bad' }
+
 
 /* ===== Corrélation ===== */
 function buildCorrMatrix(filtered, displayCcy, convert){
