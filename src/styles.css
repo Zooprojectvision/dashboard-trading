@@ -1,201 +1,169 @@
-/* =========================================================
-   styles.css — ZooProjectVision — V4.3.1 (baseline + updates)
-   Blocs marqués [STYLE S1..S8]
-   ========================================================= */
+/* ========== styles.css — ZooProjectVision ========== */
 
-
-/* [STYLE S1] START — Variables & thème global */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
+/* ----- Variables & thème ----- */
 :root{
-  /* Couleurs de base */
-  --bg:        #0a0a0b;
-  --text:      #e8ecef;
-  --muted:     #b6bcc1;
-  --panel:     #141414;
-  --border:    #242424;
+  --bg: #0a0a0b;
+  --panel: #141414;
+  --border: #242424;
+  --text: #e8ecef;
+  --muted: #b6bcc1;
+  --axis: #c9cdd1;
 
-  /* Accents cohérents */
-  --white:     #ffffff;
-  --axis:      #d0d3d6;   /* axes très clairs */
-  --green:     #20e3d6;   /* vert gloss */
-  --green2:    #18b8ad;
-  --pink:      #ff5fa2;   /* rose gloss */
-  --pink2:     #ff7cbf;
-  --turq:      #20e3d6;
+  --white: #ffffff;
+  --green: #20e3d6;   /* vert gloss */
+  --green-2: #18b8ad;
+  --pink:  #ff5fa2;   /* rose gloss */
+  --pink-2:#ff7cbf;
 
-  /* Typo & tailles */
-  --font:      'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-size: 13px;      /* taille uniforme */
-  --radius:    12px;
-  --radius-lg: 16px;
+  --radius: 16px;
 
-  /* Ombres légères */
-  --shadow:    0 0 0 1px rgba(255,255,255,0.02), 0 10px 30px rgba(0,0,0,0.35);
+  /* typo (même taille partout, sauf titres) */
+  --font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-size: 13px;         /* texte global */
+  --font-size-kpi: 18px;     /* valeur KPI */
+  --font-size-title: 13px;   /* sous-titres */
+  --font-size-brand: 28px;   /* titre principal */
 }
-/* [STYLE S1] END — Variables & thème global */
 
-
-/* [STYLE S2] START — Base & reset */
+/* ----- Reset léger ----- */
 *{ box-sizing: border-box; }
-
-html, body, #root{ height: 100%; }
-
+html, body, #root{ height:100%; }
 body{
-  margin: 0;
+  margin:0;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font);
+  font-family: var(--font-family);
   font-size: var(--font-size);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+button, select, input{ font-family: inherit; font-size: inherit; color: inherit; }
 
-h1,h2,h3,h4,h5,p{ margin: 0; }
-
-.title-brand{
-  color: var(--white);
-  font-weight: 600;
-  font-size: 32px;         /* Titre principal (légèrement > 28px) */
-  letter-spacing: 0.2px;
+/* ----- Layout racine ----- */
+.wrap{
+  min-height:100vh;
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
+/* ----- Header ----- */
+.header{
+  display:flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap:12px;
+  margin-bottom:12px;
+}
+.brand{
+  margin:0;
+  font-size: var(--font-size-brand);
+  font-weight: 600;
+  color: var(--white);
+}
 .subtitle{
+  margin: 4px 0 0;
   color: var(--muted);
   font-size: 12px;
-  margin-top: 4px;
 }
-/* [STYLE S2] END — Base & reset */
+.header-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
 
-
-/* [STYLE S3] START — Cartes / titres / valeurs */
+/* ----- Cartes / KPI / cellules ----- */
 .card{
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   padding: 12px;
-  box-shadow: var(--shadow);
 }
-
 .kpi-title{
-  color: var(--text);
-  font-size: 13px;
   font-weight: 500;
-  margin: 0 0 8px 0;
-  letter-spacing: 0.2px;
-  text-transform: capitalize; /* ⇐ Titres en Majuscule De Chaque Mot */
+  color: var(--text);
+  margin: 0 0 8px;
+  font-size: var(--font-size-title);
+  letter-spacing: .2px;
+  text-transform: none; /* on garde la casse depuis React */
 }
-
 .val{
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: var(--font-size-kpi);
+  line-height: 1.15;
+  color: var(--text);
+}
+.cal-cell{
+  background: #0f0f10;
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
-/* Halos “verdict” (accent bordure — PAS d’épaississement) */
+/* ----- Bordures “verdict” (accentuées, sans remplissage) ----- */
 .halo-good{
-  border-color: rgba(32, 227, 214, 0.65) !important;
-  box-shadow:
-    0 0 0 1.5px rgba(32, 227, 214, 0.55),
-    0 0 0 6px rgba(32, 227, 214, 0.08),
-    var(--shadow);
+  box-shadow: 0 0 0 2px rgba(32,227,214,0.55) inset; /* vert brillant */
 }
 .halo-warn{
-  border-color: rgba(255, 165, 0, 0.65) !important; /* orange vif */
-  box-shadow:
-    0 0 0 1.5px rgba(255, 165, 0, 0.55),
-    0 0 0 6px rgba(255, 165, 0, 0.08),
-    var(--shadow);
+  box-shadow: 0 0 0 2px rgba(255,179,71,0.55) inset;  /* orange brillant */
 }
 .halo-bad{
-  border-color: rgba(255, 95, 162, 0.7) !important; /* rose gloss */
-  box-shadow:
-    0 0 0 1.5px rgba(255, 95, 162, 0.6),
-    0 0 0 6px rgba(255, 95, 162, 0.10),
-    var(--shadow);
+  box-shadow: 0 0 0 2px rgba(255,95,162,0.60) inset;  /* rouge/rose brillant */
 }
 .halo-neutral{
-  /* pas d’accent particulier */
+  box-shadow: 0 0 0 1px rgba(200,206,212,0.45) inset;
 }
-/* [STYLE S3] END — Cartes / titres / valeurs */
 
+/* ----- Grilles utilitaires ----- */
+.grid-6{
+  display:grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap:12px;
+  margin-top:12px;
+}
+.grid-4{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:12px;
+  margin-top:12px;
+}
 
-/* [STYLE S4] START — Inputs & boutons */
+/* ----- Boutons / Selects ----- */
+.btn{
+  position: relative;
+  border: 1px solid var(--border);
+  background: #0f0f10;
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.btn:hover{ background: rgba(255,255,255,0.04); border-color: #2e2e2e; }
+.btn:active{ transform: translateY(0.5px); }
+
+.btn.ghost{
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn.sm{
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
 .sel{
   width: 100%;
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: var(--font-size);
   color: var(--text);
   background: #0f0f10;
   border: 1px solid var(--border);
   border-radius: 10px;
   outline: none;
-  appearance: none;          /* rendu plus cohérent */
 }
 
-/* Inputs date en blanc (contraste visuel demandé) */
-.sel[type="date"]{
-  background: #ffffff;
-  color: #111;
-  border: 1px solid var(--border);
-}
-.sel[type="date"]::-webkit-calendar-picker-indicator{
-  filter: invert(0);         /* icône sombre sur fond blanc */
-}
-
-/* Boutons unifiés */
-.btn{
-  border: 1px solid var(--border);
-  background: #1a1a1a;
-  color: var(--text);
-  padding: 8px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: background 160ms ease, border-color 160ms ease, transform 80ms ease;
-}
-.btn:hover{
-  background: rgba(255,255,255,0.05);
-  border-color: #2e2e2e;
-}
-.btn:active{
-  transform: translateY(0.5px);
-}
-.btn.ghost{
-  background: transparent;
-}
-.btn.sm{
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-/* Icône aide (info-bulle au survol) */
-.help{
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px; height: 18px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--text);
-  opacity: .85;
-  cursor: help;
-}
-/* [STYLE S4] END — Inputs & boutons */
-
-
-/* [STYLE S5] START — Bordures verdict (calendrier, cartes H/J/M) */
-.cal-cell{
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-/* On réutilise halo-good/halo-warn/halo-bad pour les cellules calendrier */
-.cal-cell.halo-good{ border-color: rgba(32,227,214,0.55); }
-.cal-cell.halo-warn{ border-color: rgba(255,165,0,0.55); }
-.cal-cell.halo-bad{  border-color: rgba(255,95,162,0.60); }
-/* [STYLE S5] END — Bordures verdict (calendrier, cartes H/J/M) */
-
-
-/* [STYLE S6] START — Modale & formulaires */
+/* ----- Modales ----- */
 .modal-overlay{
   position: fixed;
   inset: 0;
@@ -204,18 +172,17 @@ h1,h2,h3,h4,h5,p{ margin: 0; }
   align-items: center;
   justify-content: center;
   padding: 16px;
-  z-index: 50;
+  z-index: 1000;
 }
-
 .modal-card{
-  width: min(720px, 100%);
+  width: min(920px, 100%);
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   padding: 12px;
-  box-shadow: var(--shadow);
 }
 
+/* ----- Labels de formulaire ----- */
 .form-label{
   display: flex;
   flex-direction: column;
@@ -223,54 +190,32 @@ h1,h2,h3,h4,h5,p{ margin: 0; }
   font-size: 12px;
   color: var(--text);
 }
-/* [STYLE S6] END — Modale & formulaires */
+.form-label > span{
+  color: var(--muted);
+}
 
-
-/* [STYLE S7] START — Recharts (axes & ticks plus lisibles) */
-.recharts-cartesian-axis-line{
-  stroke: var(--axis) !important;
-  opacity: 0.95;
-}
-.recharts-cartesian-axis-tick line{
-  stroke: var(--axis) !important;
-  opacity: 0.95;
-}
-.recharts-cartesian-axis-tick text{
-  fill: var(--axis) !important;
-  font-size: 12px !important;    /* ++ lisibilité vs 10px */
-  opacity: 1;
-}
-.recharts-legend-wrapper{
-  color: var(--text) !important;
-  font-size: 12px !important;
-}
+/* ----- Recharts (ajustements légers) ----- */
+/* Les axes sont surtout réglés via props (tick={{fontSize:11}}). Ici, on affine tooltips */
 .recharts-default-tooltip{
   background: var(--panel) !important;
   border: 1px solid var(--border) !important;
-  color: var(--text) !important;
   border-radius: 10px !important;
+  color: var(--text) !important;
 }
-/* [STYLE S7] END — Recharts (axes & ticks plus lisibles) */
+.recharts-legend-item-text{
+  color: var(--text) !important;
+  font-size: 12px !important;
+}
 
+/* ----- Liens ----- */
+a{
+  color: var(--green);
+  text-decoration: none;
+}
+a:hover{ text-decoration: underline; }
 
-/* [STYLE S8] START — Tables compactes (si besoin) */
-.table-compact{
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  color: var(--text);
-}
-.table-compact th,
-.table-compact td{
-  border: 1px solid var(--border);
-  padding: 6px 8px;
-}
-.table-compact th{
-  background: #171717;
-  color: var(--muted);
-  font-weight: 500;
-}
-.table-compact tr:nth-child(even){
-  background: #111113;
-}
-/* [STYLE S8] END — Tables compactes (si besoin) */
+/* ----- Utilitaires ----- */
+.muted{ color: var(--muted); }
+.center{ display:flex; align-items:center; justify-content:center; }
+
+/* ========== fin styles.css ========== */
