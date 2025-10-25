@@ -933,7 +933,7 @@ export default function App(){
           </div>
         )}
 
-        {/* MODAL — Ajouter un flux */}
+                {/* MODAL — Ajouter un flux */}
         {showForm && (
           <div className="modal-overlay" onClick={()=>setShowForm(false)}>
             <div className="modal-card" onClick={(e)=>e.stopPropagation()}>
@@ -972,7 +972,7 @@ export default function App(){
           </div>
         )}
 
-      </div> {/* /root wrapper */}
+      </div>
     )
   } catch(e){
     console.error(e)
