@@ -5,16 +5,11 @@ import {
 } from "recharts"
 
 /**
- * ZooProjectVision — V4.3
- * - FX live (exchangerate.host) avec cache 24h + fallback
- * - Bordures+fond “verdict” Vert / Orange / Rouge (KPI, Ratios, Gains/Pertes, Calendrier)
- * - Win Rate donut centré
- * - Heatmap corrélation (dégradé rouge→orange→vert), KPI “Corrélation Moyenne” coloré
- * - Équité: ligne “trading seul” (blanc), ligne “avec flux” (gris pointillé) laissée telle quelle, points de flux vert/rose
- * - Stratégies: vues Index (base 100) + PnL absolu, lignes fines pleines palette discrète
- * - Tooltips MFE/MAE (“MFE Moyen” / “MAE Moyen” en blanc; valeurs vert/rose)
- * - Gains/Pertes Heure/Jour/Mois avec verdict par bucket (net)
- * - Persistance: trades, cashflows, capital tiers, sous-titre
+ * ZooProjectVision — V4.3.1
+ * + Aide/Guide auto-MAJ (cache 24h, forcage manuel)
+ * + Drawer “Flux — Synthèse” (agrégats, table, top mouvements, export)
+ * + Sélecteur de langue FR/EN/ES (guide + formats), fallback FR
+ * ~ V4.3 conservée (FX live, verdicts, donut WR centré, heatmap, etc.)
  */
 
 /* ===================== Thème & couleurs ===================== */
@@ -26,18 +21,29 @@ const C = {
   border: "#2a2a2a",
   axis: "#cfd3d6", // gris très clair pour les axes
   white: "#ffffff",
-  green: "#20e3d6",     // vert gloss
+  green: "#20e3d6",
   green2: "#18b8ad",
-  pink: "#ff5fa2",      // rose gloss
+  pink: "#ff5fa2",
   pink2: "#ff7cbf",
-  orange: "#ffab49",    // orange neutre
-  // verdict borders (glow subtil appliqué via CSS)
+  orange: "#ffab49",
   good: "#22e6c9",
   warn: "#ff9f3f",
   bad: "#ff4f86",
 }
 
-/* ===================== Helpers UI (bordure verdict) ===================== */
+/* ===================== i18n minimal (UI principale FR pour l’instant) ===================== */
+const LANGS = ["fr", "en", "es"]
+const LS_LANG = "zp_lang"
+function normLang(s) { const x=(s||"fr").slice(0,2).toLowerCase(); return LANGS.includes(x)?x:"fr" }
+function fmtLocale(lang){
+  switch(lang){
+    case "en": return "en-US"
+    case "es": return "es-ES"
+    default: return "fr-FR"
+  }
+}
+
+/* ===================== Helpers verdict ===================== */
 function verdictClass(kind) {
   if (kind === "good") return "verdict-good"
   if (kind === "warn") return "verdict-warn"
@@ -45,23 +51,22 @@ function verdictClass(kind) {
   return ""
 }
 function verdictOf(value, rules) {
-  // rules: { mode:'sign'|'range'|'lte'|'gte', ... }
   if (!rules) return null
   const v = Number(value) || 0
   switch (rules.mode) {
-    case "sign": // >0 vert, =0 orange, <0 rouge
+    case "sign":
       if (v > 0) return "good"
       if (v === 0) return "warn"
       return "bad"
-    case "ddpct": // <15 good; 15–20 warn; >20 bad
+    case "ddpct":
       if (v < 15) return "good"
       if (v <= 20) return "warn"
       return "bad"
-    case "ei": // ≥ +0.05 good; [-0.05,+0.05) warn; < -0.05 bad
+    case "ei":
       if (v >= 0.05) return "good"
       if (v >= -0.05) return "warn"
       return "bad"
-    case "expectancy": // >0 good; ~0 warn; <0 bad
+    case "expectancy":
       if (v > 0) return "good"
       if (Math.abs(v) < 1e-8) return "warn"
       return "bad"
@@ -77,7 +82,7 @@ function verdictOf(value, rules) {
       if (v >= 1.5) return "good"
       if (v >= 0.7) return "warn"
       return "bad"
-    case "corrMean": // plus bas = mieux
+    case "corrMean":
       if (v <= 0.20) return "good"
       if (v <= 0.50) return "warn"
       return "bad"
@@ -104,39 +109,16 @@ function pearson(a, b) {
   const den = Math.sqrt(da * db)
   return den > 0 ? num / den : 0
 }
-function daysBetween(a, b) {
-  if (!a || !b) return 0
-  const d1 = new Date(a), d2 = new Date(b)
-  return Math.floor((d2 - d1) / 86400000)
-}
-function calcSharpe(equity) {
-  const rets = []
-  for (let i = 1; i < equity.length; i++) {
-    const p = equity[i - 1].equity_trading, c = equity[i].equity_trading
-    rets.push(p > 0 ? (c - p) / p : 0)
-  }
-  const mu = mean(rets), sd = stddev(rets)
-  return sd > 0 ? (mu / sd) * Math.sqrt(252) : 0
-}
-function calcSortino(equity) {
-  const rets = []
-  for (let i = 1; i < equity.length; i++) {
-    const p = equity[i - 1].equity_trading, c = equity[i].equity_trading
-    rets.push(p > 0 ? (c - p) / p : 0)
-  }
-  const mu = mean(rets), neg = rets.filter(r => r < 0), sdDown = stddev(neg)
-  return sdDown > 0 ? (mu / sdDown) * Math.sqrt(252) : 0
-}
 
 /* ===================== FX live (cache 24h + fallback) ===================== */
-const FXCACHE_KEY = "zp_fx_cache_v2" // {at, data}
+const FXCACHE_KEY = "zp_fx_cache_v2"
 const fxFallback = {
   USD: { USD: 1, EUR: 0.93, CHF: 0.88 },
   EUR: { USD: 1 / 0.93, EUR: 1, CHF: 0.88 / 0.93 },
   CHF: { USD: 1 / 0.88, EUR: 0.93 / 0.88, CHF: 1 }
 }
 function buildFxMatrix(baseUSD) {
-  const { EUR, CHF } = baseUSD // {EUR:x, CHF:y}
+  const { EUR, CHF } = baseUSD
   return {
     USD: { USD: 1, EUR, CHF },
     EUR: { USD: 1 / EUR, EUR: 1, CHF: CHF / EUR },
@@ -194,13 +176,10 @@ const LS_TRADES = "zp_user_trades"
 const LS_CASH = "zp_user_cashflows"
 const LS_TIER = "zp_managed_capital"
 const LS_SUB = "zp_subtitle"
+const LS_GUIDE = "zp_guide_cache_v1" // {at, data}
 
-function loadLS(key, fallback) {
-  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback } catch { return fallback }
-}
-function saveLS(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* ignore */ }
-}
+function loadLS(key, fallback) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback } catch { return fallback } }
+function saveLS(key, value) { try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* ignore */ } }
 
 /* ===================== CSV import (MT4/5) ===================== */
 function parseCSV(text) {
@@ -236,30 +215,32 @@ function mapMT5Rows(rows) {
   }).filter(r => r.date)
 }
 
-/* ===================== TZ helpers (agrégations heure/jour/mois) ===================== */
+/* ===================== TZ helpers ===================== */
 const brokerTZ = { Darwinex: "Europe/Madrid", ICMarkets: "Australia/Sydney", Pepperstone: "Australia/Melbourne", Unknown: "UTC" }
 function toTZ(dateISO, tz) {
   const d = new Date(dateISO); if (!isFinite(d)) return d
-  // Format to parts in target tz, then rebuild Date in local but using parts for consistent “clock” info
   const fmt = new Intl.DateTimeFormat("en-GB", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
   const parts = fmt.formatToParts(d).reduce((acc, p) => (acc[p.type] = p.value, acc), {})
   const local = new Date(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}Z`)
   return local
 }
 function getHourInTZ(dateISO, tz) { const dd = toTZ(dateISO, tz); return isFinite(dd) ? dd.getUTCHours() : 0 }
-function getWeekdayInTZ(dateISO, tz) { // 0=Mon..6=Sun
-  const dd = toTZ(dateISO, tz); if (!isFinite(dd)) return 0
-  const day = dd.getUTCDay() // 0=Sun..6=Sat
-  return (day + 6) % 7
-}
+function getWeekdayInTZ(dateISO, tz) { const dd = toTZ(dateISO, tz); if (!isFinite(dd)) return 0; const day = dd.getUTCDay(); return (day + 6) % 7 }
 function getMonthInTZ(dateISO, tz) { const dd = toTZ(dateISO, tz); return isFinite(dd) ? dd.getUTCMonth() : 0 }
 
 /* ===================== App ===================== */
 export default function App() {
+  /* ---------- Langue ---------- */
+  const [lang, setLang] = useState(() => {
+    const saved = loadLS(LS_LANG, null)
+    if (saved) return normLang(saved)
+    return normLang(navigator.language || "fr")
+  })
+  useEffect(() => { saveLS(LS_LANG, lang) }, [lang])
+
   /* ---------- Sous-titre (éditable) ---------- */
   const [subtitle, setSubtitle] = useState(() => loadLS(LS_SUB, "Dashboard de performance trading — multi-actifs, multi-brokers, multi-stratégies"))
   const [editSub, setEditSub] = useState(false)
-  const subRef = useRef(null)
 
   /* ---------- Données utilisateur ---------- */
   const [userTrades, setUserTrades] = useState(() => loadLS(LS_TRADES, []))
@@ -268,12 +249,11 @@ export default function App() {
   const [userCashflows, setUserCashflows] = useState(() => loadLS(LS_CASH, []))
   useEffect(() => { saveLS(LS_CASH, userCashflows) }, [userCashflows])
 
-  const [tierCapital, setTierCapital] = useState(() => loadLS(LS_TIER, [])) // [{source, amount, from, to}]
+  const [tierCapital, setTierCapital] = useState(() => loadLS(LS_TIER, []))
   useEffect(() => { saveLS(LS_TIER, tierCapital) }, [tierCapital])
 
   const demoTrades = useMemo(() => genDemoTrades(), [])
   const tradesAll = useMemo(() => demoTrades.concat(userTrades), [demoTrades, userTrades])
-
   const allCashflows = useMemo(() => demoCashflows.concat(userCashflows), [userCashflows])
 
   /* ---------- Filtres ---------- */
@@ -311,11 +291,8 @@ export default function App() {
         .then(j => {
           if (j && j.rates && j.rates.EUR && j.rates.CHF) {
             const data = buildFxMatrix({ EUR: j.rates.EUR, CHF: j.rates.CHF })
-            setRates(data)
-            saveLS(FXCACHE_KEY, { at: now, data })
-          } else {
-            setRates(fxFallback)
-          }
+            setRates(data); saveLS(FXCACHE_KEY, { at: now, data })
+          } else setRates(fxFallback)
         })
         .catch(() => setRates(fxFallback))
     }
@@ -329,7 +306,7 @@ export default function App() {
   }
   const fmtC = (v, ccy = displayCcy) => {
     try {
-      return new Intl.NumberFormat(undefined, { style: "currency", currency: ccy, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v ?? 0)
+      return new Intl.NumberFormat(fmtLocale(lang), { style: "currency", currency: ccy, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v ?? 0)
     } catch {
       return `${(v ?? 0).toFixed(2)} ${ccy}`
     }
@@ -371,7 +348,7 @@ export default function App() {
     return WR * RR - (1 - WR)
   }, [wins, filtered.length, avgWin, avgLoss])
 
-  /* ---------- Équité (trading seul vs avec flux) ---------- */
+  /* ---------- Équité ---------- */
   function groupByDateSumPnlDisp(rows) {
     const m = new Map()
     for (const r of rows) {
@@ -383,56 +360,31 @@ export default function App() {
   const pnlByDate = useMemo(() => groupByDateSumPnlDisp(filtered), [filtered, displayCcy, rates])
   const cashByDate = useMemo(() => {
     const m = new Map()
-    for (const c of cashflowsInRange) {
-      m.set(c.date, (m.get(c.date) || 0) + (c.amount_disp || 0))
-    }
+    for (const c of cashflowsInRange) m.set(c.date, (m.get(c.date) || 0) + (c.amount_disp || 0))
     return Array.from(m, ([date, cash]) => ({ date, cash })).sort((a, b) => a.date.localeCompare(b.date))
   }, [cashflowsInRange])
   const pnlMap = useMemo(() => { const m = new Map(); pnlByDate.forEach(p => m.set(p.date, p.pnl)); return m }, [pnlByDate])
-  const cashCumMap = useMemo(() => {
-    let cum = 0; const m = new Map()
-    for (const c of cashByDate) { cum += c.cash; m.set(c.date, round2(cum)) }
-    return m
-  }, [cashByDate])
-  const mergedDates = useMemo(() => {
-    const s = new Set()
-    pnlByDate.forEach(x => s.add(x.date))
-    cashByDate.forEach(x => s.add(x.date))
-    return Array.from(s).sort((a, b) => a.localeCompare(b))
-  }, [pnlByDate, cashByDate])
+  const cashCumMap = useMemo(() => { let cum = 0; const m = new Map(); for (const c of cashByDate) { cum += c.cash; m.set(c.date, round2(cum)) } return m }, [cashByDate])
+  const mergedDates = useMemo(() => { const s = new Set(); pnlByDate.forEach(x => s.add(x.date)); cashByDate.forEach(x => s.add(x.date)); return Array.from(s).sort((a, b) => a.localeCompare(b)) }, [pnlByDate, cashByDate])
   const equityMerged = useMemo(() => {
     let eqTrading = capitalInitialDisp
     const out = []
     for (const d of mergedDates) {
       eqTrading += (pnlMap.get(d) || 0)
       const cashCum = (cashCumMap.get(d) || 0)
-      out.push({
-        date: d,
-        equity_trading: round2(eqTrading),
-        equity_with_flows: round2(eqTrading + cashCum)
-      })
+      out.push({ date: d, equity_trading: round2(eqTrading), equity_with_flows: round2(eqTrading + cashCum) })
     }
     return out
   }, [mergedDates, pnlMap, cashCumMap, capitalInitialDisp])
-
   const equitySeriesHL = useMemo(() => {
     let h = -Infinity, l = Infinity
-    return equityMerged.map(p => {
-      h = Math.max(h, p.equity_trading)
-      l = Math.min(l, p.equity_trading)
-      return { ...p, hwm: round2(h), lwm: round2(l) }
-    })
+    return equityMerged.map(p => { h = Math.max(h, p.equity_trading); l = Math.min(l, p.equity_trading); return { ...p, hwm: round2(h), lwm: round2(l) } })
   }, [equityMerged])
 
   const { peakEquity, troughEquity, maxDDAbs } = useMemo(() => {
     if (!equitySeriesHL.length) return { peakEquity: 0, troughEquity: 0, maxDDAbs: 0 }
-    let peakSeen = equitySeriesHL[0].equity_trading
-    let maxDrop = 0
-    for (const p of equitySeriesHL) {
-      if (p.equity_trading > peakSeen) peakSeen = p.equity_trading
-      const drop = peakSeen - p.equity_trading
-      if (drop > maxDrop) maxDrop = drop
-    }
+    let peakSeen = equitySeriesHL[0].equity_trading, maxDrop = 0
+    for (const p of equitySeriesHL) { if (p.equity_trading > peakSeen) peakSeen = p.equity_trading; const drop = peakSeen - p.equity_trading; if (drop > maxDrop) maxDrop = drop }
     const pe = Math.max(...equitySeriesHL.map(e => e.equity_trading))
     const tr = Math.min(...equitySeriesHL.map(e => e.equity_trading))
     return { peakEquity: pe, troughEquity: tr, maxDDAbs: maxDrop }
@@ -442,31 +394,40 @@ export default function App() {
     if (!isFinite(capitalBase) || capitalBase <= 0) return 0
     return (totalPnlDisp / capitalBase) * 100
   }, [totalPnlDisp, capitalBase])
-
   const maxDDPct = useMemo(() => {
     if (!isFinite(peakEquity) || peakEquity <= 0) return 0
     return (maxDDAbs / peakEquity) * 100
   }, [maxDDAbs, peakEquity])
+  function equityWithFlowsAt(date) { const p = equitySeriesHL.find(x => x.date === date); return p ? p.equity_with_flows : undefined }
 
-  function equityWithFlowsAt(date) {
-    const p = equitySeriesHL.find(x => x.date === date)
-    return p ? p.equity_with_flows : undefined
-  }
-
-  /* ---------- Sharpe / Sortino / Recovery / Ruin ---------- */
-  const sharpe = useMemo(() => calcSharpe(equitySeriesHL), [equitySeriesHL])
-  const sortino = useMemo(() => calcSortino(equitySeriesHL), [equitySeriesHL])
+  /* ---------- Sharpe / Sortino / Recovery / Ruine ---------- */
+  const sharpe = useMemo(() => {
+    const rets = []
+    for (let i = 1; i < equitySeriesHL.length; i++) {
+      const p = equitySeriesHL[i - 1].equity_trading, c = equitySeriesHL[i].equity_trading
+      rets.push(p > 0 ? (c - p) / p : 0)
+    }
+    const mu = mean(rets), sd = stddev(rets)
+    return sd > 0 ? (mu / sd) * Math.sqrt(252) : 0
+  }, [equitySeriesHL])
+  const sortino = useMemo(() => {
+    const rets = []
+    for (let i = 1; i < equitySeriesHL.length; i++) {
+      const p = equitySeriesHL[i - 1].equity_trading, c = equitySeriesHL[i].equity_trading
+      rets.push(p > 0 ? (c - p) / p : 0)
+    }
+    const mu = mean(rets), neg = rets.filter(r => r < 0), sdDown = stddev(neg)
+    return sdDown > 0 ? (mu / sdDown) * Math.sqrt(252) : 0
+  }, [equitySeriesHL])
   const recoveryFactor = useMemo(() => {
     const profitNet = (equitySeriesHL.at(-1)?.equity_trading || capitalInitialDisp) - capitalInitialDisp
     return maxDDAbs > 0 ? profitNet / maxDDAbs : 0
   }, [equitySeriesHL, capitalInitialDisp, maxDDAbs])
-  // Ruine simplifiée (indicative) : fonction de WR, pertes moyennes vs base (grossier)
   const ruinRisk = useMemo(() => {
     const WR = filtered.length ? wins / filtered.length : 0
     const L = avgLoss || 0
     const base = capitalBase || capitalInitialDisp
     if (base <= 0 || L <= 0) return 0
-    // approx: prob série >= k ~ (1-WR)^k ; on vise k = floor(base / (2*L))
     const k = Math.max(1, Math.floor(base / (2 * L)))
     const p = Math.pow(1 - WR, k)
     return Math.min(1, Math.max(0, p))
@@ -488,13 +449,7 @@ export default function App() {
       const avgMFE = r.n ? r.sMFE / r.n : 0
       const avgMAE = r.n ? r.sMAE / r.n : 0
       cumM += r.sMFE; cumA += r.sMAE
-      return {
-        date: r.date,
-        avgMFE: round2(avgMFE),
-        avgMAE: round2(avgMAE),
-        cumMFE: round2(cumM),
-        cumMAE: round2(cumA)
-      }
+      return { date: r.date, avgMFE: round2(avgMFE), avgMAE: round2(avgMAE), cumMFE: round2(cumM), cumMAE: round2(cumA) }
     })
   }, [filtered, displayCcy, rates])
 
@@ -563,19 +518,16 @@ export default function App() {
     const matrix = strats.map((_, i) => strats.map((__, j) => pearson(series[i], series[j])))
     return { strats, matrix }
   }, [filtered, displayCcy, rates])
-
   const corrPairs = useMemo(() => {
     const { strats, matrix } = corrMatrix
     if (!matrix.length) return []
     const vals = []
-    for (let i = 0; i < strats.length; i++) {
-      for (let j = i + 1; j < strats.length; j++) vals.push(matrix[i][j])
-    }
+    for (let i = 0; i < strats.length; i++) for (let j = i + 1; j < strats.length; j++) vals.push(matrix[i][j])
     return vals
   }, [corrMatrix])
   const corrMean = useMemo(() => (corrPairs.length ? mean(corrPairs) : 0), [corrPairs])
 
-  /* ---------- Calendrier (incl. week-ends) ---------- */
+  /* ---------- Calendrier ---------- */
   const [calYear, setCalYear] = useState(() => Number((lastDate || "").slice(0, 4)) || new Date().getFullYear())
   const [calMonth, setCalMonth] = useState(() => (Number((lastDate || "").slice(5, 7)) - 1) || new Date().getMonth())
   function monthDays(year, monthIndex) {
@@ -585,12 +537,11 @@ export default function App() {
     return arr
   }
   const calDates = useMemo(() => monthDays(calYear, calMonth), [calYear, calMonth])
-  const monthLabel = useMemo(() => new Date(calYear, calMonth, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" }), [calYear, calMonth])
+  const monthLabel = useMemo(() => new Date(calYear, calMonth, 1).toLocaleDateString(fmtLocale(lang), { month: "long", year: "numeric" }), [calYear, calMonth, lang])
   const ymNow = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`
   const monthTradesPnl = useMemo(() => filtered.filter(t => t.date.startsWith(ymNow)).reduce((s, t) => s + convert(t.pnl, t.ccy, displayCcy), 0), [filtered, ymNow, displayCcy, rates])
   const yearTradesPnl = useMemo(() => filtered.filter(t => t.date.startsWith(String(calYear))).reduce((s, t) => s + convert(t.pnl, t.ccy, displayCcy), 0), [filtered, calYear, displayCcy, rates])
 
-  // Rendements quotidiens & DD% par jour du mois courant
   const dailyReturns = useMemo(() => {
     const out = []
     for (let i = 1; i < equitySeriesHL.length; i++) {
@@ -608,7 +559,7 @@ export default function App() {
     return m
   }, [equitySeriesHL, calYear, calMonth])
 
-  /* ---------- Modals ---------- */
+  /* ---------- Modals (Flux / Capital tiers) ---------- */
   const [showFlowForm, setShowFlowForm] = useState(false)
   const [flow, setFlow] = useState({ date: new Date().toISOString().slice(0, 10), type: "darwin_mgmt_fee", amount: "", ccy: displayCcy, note: "" })
   useEffect(() => { setFlow(f => ({ ...f, ccy: displayCcy })) }, [displayCcy])
@@ -642,36 +593,110 @@ export default function App() {
     setTier({ source: "Darwinex", amount: "", from: new Date().toISOString().slice(0, 10), to: "" })
   }
 
-  /* ---------- Export CSV ---------- */
-  const exportCSV = () => {
-    const header = ["date", "asset", "broker", "strategy", `pnl_${displayCcy}`, `mfe_${displayCcy}`, `mae_${displayCcy}`]
-    const rows = filtered.map(t => [
-      t.date, t.asset, t.broker, t.strategy,
-      convert(t.pnl, t.ccy, displayCcy).toFixed(2),
-      convert(t.mfe ?? 0, t.ccy, displayCcy).toFixed(2),
-      convert(t.mae ?? 0, t.ccy, displayCcy).toFixed(2)
-    ])
-    const csv = [header, ...rows].map(r => r.join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url; a.download = `trades_filtres_${displayCcy}.csv`; a.click()
-    URL.revokeObjectURL(url)
+  /* ---------- Aide / Guide ---------- */
+  const [showGuide, setShowGuide] = useState(false)
+  const [guide, setGuide] = useState(() => loadLS(LS_GUIDE, null))
+  const guideUrl = "/guide.json" // fallback local (public/guide.json). Tu pourras remplacer par un CDN/GitHub raw.
+
+  function fetchGuide(force=false){
+    const now = Date.now()
+    if (!force && guide && guide.at && (now - guide.at < 24*60*60*1000)) return
+    fetch(guideUrl)
+      .then(r=>r.json())
+      .then(data=>{
+        const payload = { at: now, data }
+        setGuide(payload); saveLS(LS_GUIDE, payload)
+      })
+      .catch(()=>{ /* garde l’existant si offline */ })
+  }
+  useEffect(()=>{ fetchGuide(false) },[]) // charge une fois
+
+  const guideSections = useMemo(()=>{
+    const d = guide?.data
+    if(!d || !d.locales) return []
+    const loc = d.locales[lang] || d.locales["fr"]
+    return loc?.sections || []
+  },[guide, lang])
+
+  /* ---------- Drawer Flux — Synthèse ---------- */
+  const [showFlows, setShowFlows] = useState(false)
+  const [flowsUseFilterRange, setFlowsUseFilterRange] = useState(false)
+
+  const allFlowsConverted = useMemo(()=> allCashflows
+    .map(c => ({...c, amount_disp: convert(c.amount, c.ccy || "USD", displayCcy)}))
+    .sort((a,b) => a.date.localeCompare(b.date)), [allCashflows, displayCcy, rates])
+
+  const flowsRange = useMemo(()=>{
+    if (flowsUseFilterRange && (dateFrom || dateTo)) {
+      const from = dateFrom || allFlowsConverted[0]?.date
+      const to = dateTo || allFlowsConverted.at(-1)?.date
+      return [from, to]
+    }
+    // auto: min flux -> max flux
+    const from = allFlowsConverted[0]?.date
+    const to = allFlowsConverted.at(-1)?.date
+    return [from, to]
+  }, [flowsUseFilterRange, dateFrom, dateTo, allFlowsConverted])
+
+  const flowsInRange = useMemo(()=>{
+    const [from, to] = flowsRange
+    if(!from || !to) return []
+    return allFlowsConverted.filter(f => f.date >= from && f.date <= to)
+  }, [flowsRange, allFlowsConverted])
+
+  const flowsAgg = useMemo(()=>{
+    const agg = {
+      deposit: 0, withdrawal: 0, prop_fee: 0, prop_payout: 0, darwin_mgmt_fee:0,
+      business_expense:0, other_income:0, total:0,
+      counts: {}
+    }
+    for (const f of flowsInRange){
+      const v = f.amount_disp || 0
+      agg.total += v
+      agg[f.type] = (agg[f.type] || 0) + v
+      agg.counts[f.type] = (agg.counts[f.type] || 0) + 1
+    }
+    return agg
+  }, [flowsInRange])
+
+  function flowsRows(){
+    const mapName = {
+      deposit:"Dépôts", withdrawal:"Retraits", prop_fee:"Prop Fees", prop_payout:"Payouts Prop",
+      darwin_mgmt_fee:"Darwinex Fee", business_expense:"Charges", other_income:"Autres revenus"
+    }
+    const keys = ["deposit","withdrawal","prop_payout","prop_fee","darwin_mgmt_fee","business_expense","other_income"]
+    return keys.map(k=>{
+      const val = flowsAgg[k]||0, n = flowsAgg.counts[k]||0
+      const avg = n? val/n : 0
+      return { key:k, label: mapName[k]||k, amount: val, n, avg }
+    })
   }
 
-  /* ---------- Donut label centré ---------- */
-  const donutCenterRef = useRef(null)
+  const top5Flows = useMemo(()=>{
+    const sorted = [...flowsInRange].sort((a,b)=> Math.abs(b.amount_disp||0) - Math.abs(a.amount_disp||0))
+    return sorted.slice(0,5)
+  }, [flowsInRange])
+
+  /* ---------- Exports ---------- */
+  const exportFlowsCSV = ()=>{
+    const header = ["date","type",`amount_${displayCcy}`,"note"]
+    const rows = flowsInRange.map(f => [f.date, f.type, (f.amount_disp||0).toFixed(2), f.note||""])
+    const csv = [header, ...rows].map(r=>r.join(",")).join("\n")
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"})
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a"); a.href=url; a.download=`flux_${displayCcy}.csv`; a.click(); URL.revokeObjectURL(url)
+  }
 
   /* ---------- Verdits (classes) ---------- */
   const verdictPNL = verdictOf(totalPnlDisp, { mode: "sign" })
   const verdictDDpct = verdictOf(maxDDPct, { mode: "ddpct" })
-  const verdictDDabs = verdictDDpct // même couleur que DD%
+  const verdictDDabs = verdictDDpct
   const verdictEI = verdictOf(edgeIndex, { mode: "ei" })
   const verdictExpect = verdictOf(expectancy, { mode: "expectancy" })
   const verdictSharpe = verdictOf(sharpe, { mode: "sharpe" })
   const verdictSortino = verdictOf(sortino, { mode: "sortino" })
   const verdictRF = verdictOf(recoveryFactor, { mode: "rf" })
-  const verdictCorr = verdictOf(Math.abs(corrMean), { mode: "corrMean" }) // on colore par |corrMean|
+  const verdictCorr = verdictOf(Math.abs(corrMean), { mode: "corrMean" })
   const verdictRuin = verdictOf(ruinRisk, { mode: "ruin" })
 
   /* ---------- Render ---------- */
@@ -689,7 +714,7 @@ export default function App() {
               </>
             ) : (
               <form className="subtitle-edit" onSubmit={(e) => { e.preventDefault(); setEditSub(false); saveLS(LS_SUB, subtitle) }}>
-                <input ref={subRef} className="input" value={subtitle} onChange={e => setSubtitle(e.target.value)} />
+                <input className="input" value={subtitle} onChange={e => setSubtitle(e.target.value)} />
                 <button className="btn sm" type="submit">Valider</button>
                 <button className="btn ghost sm" type="button" onClick={() => setEditSub(false)}>Annuler</button>
               </form>
@@ -724,7 +749,20 @@ export default function App() {
           <button className="btn" onClick={() => setShowTierForm(true)}>capital tiers</button>
 
           {/* Export */}
-          <button className="btn" onClick={exportCSV}>export csv</button>
+          <button className="btn" onClick={exportFlowsCSV}>export flux</button>
+
+          {/* Drawer Flux — Synthèse */}
+          <button className="btn" onClick={() => setShowFlows(true)}>flux — synthèse</button>
+
+          {/* Aide / Guide */}
+          <button className="btn" onClick={() => { setShowGuide(true); fetchGuide(false) }}>aide / guide</button>
+
+          {/* Langue */}
+          <select className="input lang" value={lang} onChange={e=>setLang(normLang(e.target.value))}>
+            <option value="fr">FR</option>
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+          </select>
 
           {/* Reset filtres */}
           <button className="btn" onClick={resetFilters}>réinitialiser</button>
@@ -851,7 +889,7 @@ export default function App() {
                 </defs>
               </PieChart>
             </ResponsiveContainer>
-            <div className="donut-center" ref={donutCenterRef}>{wr.toFixed(1)}%</div>
+            <div className="donut-center">{wr.toFixed(1)}%</div>
           </div>
 
           {/* Gagnants / Perdants (comptage) */}
@@ -864,7 +902,7 @@ export default function App() {
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="type" stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-                <Tooltip content={<GLTooltip C={C} fmtC={(x) => new Intl.NumberFormat().format(x)} />} />
+                <Tooltip content={<GLTooltip C={C} fmtC={(x) => new Intl.NumberFormat(fmtLocale(lang)).format(x)} />} />
                 <Bar dataKey="n" name="Comptage" radius={[6, 6, 0, 0]}>
                   <Cell fill={`var(--green)`} />
                   <Cell fill={`var(--pink)`} />
@@ -891,7 +929,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* AUTRES RATIOS (Sharpe / Sortino / RF / Corrélation / Ruine) */}
+      {/* AUTRES RATIOS */}
       <div className="kpi-grid four">
         <div className={`card ${verdictClass(verdictSharpe)}`}>
           <div className="kpi-title">Sharpe (Ann.)</div>
@@ -911,11 +949,10 @@ export default function App() {
         </div>
       </div>
 
-      {/* COURBE D’ÉQUITÉ (avec toggle “avec flux”) */}
+      {/* COURBE D’ÉQUITÉ */}
       <div className="card tall">
         <div className="kpi-title-row">
           <div className="kpi-title">Courbe d’Équité</div>
-          {/* LIGNE “AVEC FLUX” LAISSÉE EN L’ETAT (visible par défaut) */}
         </div>
         <ResponsiveContainer width="100%" height="85%">
           <LineChart data={equitySeriesHL} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
@@ -943,7 +980,7 @@ export default function App() {
         </ResponsiveContainer>
       </div>
 
-      {/* MFE / MAE — Quotidien (moyenne) */}
+      {/* MFE / MAE — Quotidien (Moyenne) */}
       <div className="card tall">
         <div className="kpi-title-row">
           <div className="kpi-title">MFE / MAE — Quotidien (Moyenne)</div>
@@ -957,10 +994,7 @@ export default function App() {
             <Tooltip
               contentStyle={{ background: C.panel, border: "1px solid var(--border)", color: C.text, borderRadius: 10 }}
               labelStyle={{ color: C.text }} itemStyle={{ color: C.text }}
-              formatter={(v, n) => {
-                const name = (n === "avgMFE") ? "MFE Moyen" : "MAE Moyen"
-                return [fmtC(v), name]
-              }}
+              formatter={(v, n) => [fmtC(v), (n === "avgMFE") ? "MFE Moyen" : "MAE Moyen"]}
             />
             <Legend wrapperStyle={{ color: C.text }} />
             <Line type="monotone" dataKey="avgMFE" name="MFE Moyen" dot={false} stroke={C.green} strokeWidth={2} />
@@ -989,7 +1023,7 @@ export default function App() {
         </ResponsiveContainer>
       </div>
 
-      {/* GAINS / PERTES — par Heure / Jour / Mois */}
+      {/* GAINS / PERTES — Heure / Jour / Mois */}
       <div className="grid-3">
         <div className={`card tall ${verdictClass(verdictOf((byHour.reduce((s, x) => s + x.net, 0)), { mode: "sign" }))}`}>
           <div className="kpi-title">Gains / Pertes — Par Heure</div>
@@ -1059,10 +1093,8 @@ export default function App() {
         <div className="cal-grid">
           {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(d => <div key={d} className="cal-dow">{d}</div>)}
           {calDates.map(dt => {
-            const ret = dailyRetMap.get(dt) // rendement du jour (quotidien)
-            const dd = monthDDMap.get(dt) || 0 // dd% du jour (négatif ou 0 si new peak)
-            // Verdict calendrier (dd%):
-            // Rouge <= -2% ; Orange (-2% ; -1%] ; Vert > -1%
+            const ret = dailyRetMap.get(dt)
+            const dd = monthDDMap.get(dt) || 0
             let kind = "good"
             if (dd <= -0.02) kind = "bad"
             else if (dd <= -0.01) kind = "warn"
@@ -1077,6 +1109,127 @@ export default function App() {
           })}
         </div>
       </div>
+
+      {/* DRAWER — AIDE / GUIDE */}
+      {showGuide && (
+        <div className="drawer" onClick={()=>setShowGuide(false)}>
+          <div className="drawer-card" onClick={e=>e.stopPropagation()}>
+            <div className="drawer-head">
+              <div>Aide / Guide</div>
+              <div className="gap">
+                <select className="input lang" value={lang} onChange={e=>setLang(normLang(e.target.value))}>
+                  <option value="fr">FR</option>
+                  <option value="en">EN</option>
+                  <option value="es">ES</option>
+                </select>
+                <button className="btn ghost sm" onClick={()=>fetchGuide(true)}>Mettre à jour</button>
+                <button className="btn ghost sm" onClick={()=>setShowGuide(false)}>Fermer</button>
+              </div>
+            </div>
+            <div className="guide-body">
+              {guideSections.length===0 ? (
+                <div className="muted">Le guide n’est pas disponible hors ligne pour cette langue.</div>
+              ) : (
+                guideSections.map(sec=>(
+                  <details key={sec.id} open className="guide-sec">
+                    <summary className="guide-title">{sec.title}</summary>
+                    {(sec.items||[]).map((it,idx)=>(
+                      <div key={sec.id+'-'+idx} className="guide-item">
+                        <div className="guide-item-title">{it.title}</div>
+                        <div className="guide-item-text">{it.text}</div>
+                      </div>
+                    ))}
+                  </details>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DRAWER — FLUX SYNTHÈSE */}
+      {showFlows && (
+        <div className="drawer" onClick={()=>setShowFlows(false)}>
+          <div className="drawer-card wide" onClick={e=>e.stopPropagation()}>
+            <div className="drawer-head">
+              <div>Flux — Synthèse</div>
+              <div className="gap">
+                <label className="toggle">
+                  <input type="checkbox" checked={flowsUseFilterRange} onChange={e=>setFlowsUseFilterRange(e.target.checked)} />
+                  <span>Appliquer filtres (Du/Au)</span>
+                </label>
+                <button className="btn ghost sm" onClick={()=>setShowFlows(false)}>Fermer</button>
+              </div>
+            </div>
+
+            <div className="kpi-grid four">
+              <div className="card">
+                <div className="kpi-title">Total Apports</div>
+                <div className="kpi-val pos">{fmtC((flowsAgg.deposit||0) + (flowsAgg.other_income||0))}</div>
+              </div>
+              <div className="card">
+                <div className="kpi-title">Total Retraits</div>
+                <div className="kpi-val neg">{fmtC(flowsAgg.withdrawal||0)}</div>
+              </div>
+              <div className="card">
+                <div className="kpi-title">Payouts (Prop)</div>
+                <div className="kpi-val pos">{fmtC(flowsAgg.prop_payout||0)}</div>
+              </div>
+              <div className="card">
+                <div className="kpi-title">Frais (Prop + Darwinex + Charges)</div>
+                <div className="kpi-val neg">{fmtC((flowsAgg.prop_fee||0)+(flowsAgg.darwin_mgmt_fee||0)+(flowsAgg.business_expense||0))}</div>
+              </div>
+            </div>
+
+            <div className="card" style={{marginTop:12}}>
+              <div className="kpi-title">Net Flows</div>
+              <div className={`kpi-val ${flowsAgg.total>=0?'pos':'neg'}`}>{fmtC(flowsAgg.total||0)}</div>
+              <div className="muted" style={{marginTop:6}}>
+                Période : {flowsRange[0] || '—'} → {flowsRange[1] || '—'} · Devise : {displayCcy}
+              </div>
+            </div>
+
+            <div className="card" style={{marginTop:12}}>
+              <div className="kpi-title">Détail par catégorie</div>
+              <div className="table">
+                <div className="tr th">
+                  <div>Catégorie</div><div>Montant</div><div>Événements</div><div>Moyenne</div>
+                </div>
+                {flowsRows().map(r=>(
+                  <div className="tr" key={r.key}>
+                    <div>{r.label}</div>
+                    <div className={r.amount>=0?'pos':'neg'}>{fmtC(r.amount)}</div>
+                    <div>{r.n}</div>
+                    <div className={r.avg>=0?'pos':'neg'}>{fmtC(r.avg)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card" style={{marginTop:12}}>
+              <div className="kpi-title">Top 5 mouvements</div>
+              {top5Flows.length===0 ? (
+                <div className="muted">Aucun flux sur la période.</div>
+              ) : (
+                <div className="table">
+                  <div className="tr th"><div>Date</div><div>Type</div><div>Note</div><div>Montant</div></div>
+                  {top5Flows.map((f,i)=>(
+                    <div className="tr" key={i}>
+                      <div>{f.date}</div>
+                      <div>{f.type}</div>
+                      <div title={f.note||''} className="ellipsis">{f.note||'—'}</div>
+                      <div className={f.amount_disp>=0?'pos':'neg'}>{fmtC(f.amount_disp)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{marginTop:10, display:'flex', justifyContent:'flex-end'}}>
+                <button className="btn" onClick={exportFlowsCSV}>export csv flux</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL — Flux */}
       {showFlowForm && (
@@ -1194,13 +1347,9 @@ function CorrelationHeatmap({ C, corrMatrix }) {
     return <div className="muted" style={{ padding: 8 }}>Ajoute au moins 2 stratégies pour voir la corrélation.</div>
   }
   const colorFor = (v) => {
-    // v ∈ [-1,1]. On mape: rouge (1) -> orange (0.5) -> vert (0)
-    const x = (v + 1) / 2 // [0,1]
-    // Simple gradient manual: high=>red, mid=>orange, low=>green
     if (v >= 0.66) return "var(--bad-bg)"
-    if (v >= 0.33) return "rgba(255,171,73,0.20)" // orange light
-    if (v >= 0) return "rgba(34,230,201,0.14)"     // green light
-    // négatives => encore plus vertes
+    if (v >= 0.33) return "rgba(255,171,73,0.20)"
+    if (v >= 0) return "rgba(34,230,201,0.14)"
     return "rgba(34,230,201,0.22)"
   }
   return (
