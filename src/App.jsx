@@ -397,7 +397,7 @@ export default function App(){
           <KPI title="PNL (Filtré)" value={fmtC(totalPnlDisp)} color={numColor(totalPnlDisp)} />
           <KPI title="Capital Global" value={fmtC(capitalGlobal)} color={numColor(capitalGlobal-capitalBase)} />
           <KPI title="Total Trades" value={filtered.length} />
-          <KPI title="Max DD (%)" value={`${maxDDPct.toFixed(2)}%`} />
+          <KPI title="Max DD (%)" value={`${toFixedSafe(maxDDPct,2)}%`} />
           <KPI title="Max DD (Abs)" value={fmtC(maxDDAbs)} />
           <KPI title="Capital Tiers Sous Gestion" value={fmtC(sumManaged(managed, displayCcy, convert))} help="Somme des capitaux tiers actifs (début ≤ aujourd’hui ≤ fin/—). N’influence pas la courbe d’équité." />
         </div>
@@ -409,7 +409,7 @@ export default function App(){
             <Help text="Verdict via Edge Index: EI = WR*RR − (1−WR). Vert ≥ +0.05, Jaune [−0.05;+0.05], Rouge < −0.05. Expectancy par trade affichée en devise."/>
           </div>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12}}>
-            {/* Donut WR — centrage corrigé V4.2 */}
+            {/* Donut WR — centrage corrigé */}
             <div className="card" style={{height:240, position:'relative', display:'flex', flexDirection:'column'}}>
               <div className="kpi-title">Win Rate</div>
               <div style={{position:'relative', flex:'1 1 auto'}}>
@@ -426,11 +426,8 @@ export default function App(){
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                <div style={{
-                  position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
-                  pointerEvents:'none', color:'var(--text)'
-                }}>
-                  {(wr*100).toFixed(1)}%
+                <div style={{position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', pointerEvents:'none', color:'var(--text)'}}>
+                  {toFixedSafe(wr * 100, 1)}%
                 </div>
               </div>
             </div>
@@ -451,24 +448,24 @@ export default function App(){
             </div>
             {/* RR + Expectancy */}
             <div className="card" style={{display:'flex', flexDirection:'column', justifyContent:'space-between'}}>
-              <div><div className="kpi-title">Risk/Reward (RR)</div><div style={{color:C.text}}>{rr.toFixed(2)}</div></div>
+              <div><div className="kpi-title">Risk/Reward (RR)</div><div style={{color:C.text}}>{toFixedSafe(rr,2)}</div></div>
               <div><div className="kpi-title">Expectancy / Trade</div><div style={{color:C.text}}>{fmtC(expectancy)}</div></div>
-              <div style={{opacity:.85, color:'#bfc5c9'}}>Edge Index: {EI.toFixed(3)}</div>
+              <div style={{opacity:.85, color:'#bfc5c9'}}>Edge Index: {toFixedSafe(EI,3)}</div>
             </div>
           </div>
         </div>
 
         {/* AUTRES RATIOS */}
         <div style={{display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:12, marginTop:12}}>
-          <KPI title="Return (Période)" value={`${(retPeriod*100).toFixed(2)}%`} className={verdictReturn} help="PnL / (capital initial + cash-flows) sur la période filtrée." />
-          <KPI title="Pace Annuel (vs 20%)" value={`${(paceAnnual*100).toFixed(2)}%`} className={verdictPace} help="Projection annualisée: (1+R)^(365/jours)−1." />
+          <KPI title="Return (Période)" value={`${toFixedSafe(retPeriod*100,2)}%`} className={verdictReturn} help="PnL / (capital initial + cash-flows) sur la période filtrée." />
+          <KPI title="Pace Annuel (vs 20%)" value={`${toFixedSafe(paceAnnual*100,2)}%`} className={verdictPace} help="Projection annualisée: (1+R)^(365/jours)−1." />
           <KPI title="Capital Global vs Base" value={fmtC(capitalGlobal-capitalBase)} className={verdictCapDelta} help="Delta vs capital de base (capital initial converti + cashflows)." />
-          <KPI title="Sharpe (Ann.)" value={sharpe.toFixed(2)} className={verdictSharpe} />
-          <KPI title="Sortino (Ann.)" value={sortino.toFixed(2)} className={verdictSortino} />
-          <KPI title="Recovery Factor" value={recovery.toFixed(2)} className={verdictRecov} />
+          <KPI title="Sharpe (Ann.)" value={toFixedSafe(sharpe,2)} className={verdictSharpe} />
+          <KPI title="Sortino (Ann.)" value={toFixedSafe(sortino,2)} className={verdictSortino} />
+          <KPI title="Recovery Factor" value={toFixedSafe(recovery,2)} className={verdictRecov} />
           <KPI title="Expectancy" value={fmtC(expectancy)} className={verdictExpect} />
-          <KPI title="Corrélation Moyenne" value={corrAvg.toFixed(2)} className={verdictCorr} />
-          <KPI title="Risque De Ruine" value={`${(ruin.ROR*100).toFixed(1)}%`} className={verdictRuin} help={`Seuil -30%. Estimation: r≈${(ruin.r*100).toFixed(2)}%/trade, N pertes d'affilée ≈ ${ruin.N}.`} />
+          <KPI title="Corrélation Moyenne" value={toFixedSafe(corrAvg,2)} className={verdictCorr} />
+          <KPI title="Risque De Ruine" value={`${toFixedSafe(ruin.ROR*100,1)}%`} className={verdictRuin} help={`Seuil -30%. Estimation: r≈${toFixedSafe(ruin.r*100,2)}%/trade, N pertes d'affilée ≈ ${Math.max(0,ruin.N|0) }.`} />
         </div>
 
         {/* COURBE D’ÉQUITÉ — 3 VUES */}
@@ -552,7 +549,7 @@ export default function App(){
           <div style={{display:'flex', gap:16, color:C.text, marginTop:6}}>
             <span>Peak: <b style={{color:C.text}}>{fmtC(peak)}</b></span>
             <span>Trough: <b style={{color:C.text}}>{fmtC(trough)}</b></span>
-            <span>Max DD: <b style={{color:C.text}}>{maxDDPct.toFixed(2)}%</b> ({fmtC(maxDDAbs)})</span>
+            <span>Max DD: <b style={{color:C.text}}>{toFixedSafe(maxDDPct,2)}%</b> ({fmtC(maxDDAbs)})</span>
           </div>
         </div>
 
@@ -629,25 +626,24 @@ export default function App(){
         </div>
 
         {/* MFE/MAE */}
-<div className="card" style={{height:360, marginTop:16}}>
-  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-    <div className="kpi-title">MFE / MAE — Quotidien (moyenne)</div>
-    <Help text="MFE: meilleur gain latent. MAE: pire perte latente. Moyennés par jour après filtres."/>
-  </div>
-  <ResponsiveContainer width="100%" height="88%">
-    <LineChart data={mfeMaeDaily} margin={{left:8,right:8,top:8,bottom:8}}>
-      <CartesianGrid stroke="#2b2b2b" />
-      <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-      <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-      {/* ⬇️ Tooltip remplacé par la version custom (labels blancs + valeurs vert/rose) */}
-      <Tooltip content={<MFEMaeTooltip C={C} fmtC={fmtC} />} />
-      <Legend wrapperStyle={{ color:C.text }} />
-      <Line type="monotone" dataKey="avgMFE" name="MFE Moyen" dot={false} stroke={C.pos} strokeWidth={2} />
-      <Line type="monotone" dataKey="avgMAE" name="MAE Moyen" dot={false} stroke={C.neg} strokeWidth={2} />
-    </LineChart>
-  </ResponsiveContainer>
-</div>
-
+        <div className="card" style={{height:360, marginTop:16}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+            <div className="kpi-title">MFE / MAE — Quotidien (moyenne)</div>
+            <Help text="MFE: meilleur gain latent. MAE: pire perte latente. Moyennés par jour après filtres."/>
+          </div>
+          <ResponsiveContainer width="100%" height="88%">
+            <LineChart data={mfeMaeDaily} margin={{left:8,right:8,top:8,bottom:8}}>
+              <CartesianGrid stroke="#2b2b2b" />
+              <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+              <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
+              {/* Tooltip custom : libellés blancs + valeurs vert/rose */}
+              <Tooltip content={<MFEMaeTooltip C={C} fmtC={fmtC} />} />
+              <Legend wrapperStyle={{ color:C.text }} />
+              <Line type="monotone" dataKey="avgMFE" name="MFE Moyen" dot={false} stroke={C.pos} strokeWidth={2} />
+              <Line type="monotone" dataKey="avgMAE" name="MAE Moyen" dot={false} stroke={C.neg} strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
 
         {/* Corrélation */}
         <div className="card" style={{marginTop:16}}>
@@ -665,7 +661,7 @@ export default function App(){
                     {corrMatrix.names.map((c,j)=>{
                       const v = corrMatrix.matrix[i][j]
                       const col = heatCorr(v)
-                      return <td key={r+'|'+c} style={{background:col}}>{v.toFixed(2)}</td>
+                      return <td key={r+'|'+c} style={{background:col}}>{toFixedSafe(v,2)}</td>
                     })}
                   </tr>
                 ))}
@@ -704,7 +700,7 @@ export default function App(){
           </div>
           <div style={{display:'flex', gap:12, color:'#b6bcc1', fontSize:12, margin:'4px 0 10px'}}>
             <span>PNL mois : <span style={{color: numColor(monthPnl)}}>{fmtC(monthPnl)}</span></span>
-            <span>Max DD mois : <span style={{color: 'var(--text)'}}>{monthDDPct.toFixed(2)}%</span> · <span style={{color:'var(--text)'}}>{fmtC(monthDDAbs)}</span></span>
+            <span>Max DD mois : <span style={{color: 'var(--text)'}}>{toFixedSafe(monthDDPct,2)}%</span> · <span style={{color:'var(--text)'}}>{fmtC(monthDDAbs)}</span></span>
           </div>
           <div className="cal-head">{['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=><div key={d}>{d}</div>)}</div>
           <div className="cal-grid">
@@ -723,8 +719,8 @@ export default function App(){
                   <div className="cal-date">{Number(dt.slice(8,10))}</div>
                   <div className={pos? 'cal-pnl-pos':'cal-pnl-neg'}>{pnl!=null? fmtC(pnl) : '—'}</div>
                   <div className="cal-trades">{trades!=null? `${trades} trade(s)` : '—'}</div>
-                  <div className="cal-dd">{ret!=null? `${(ret*100).toFixed(2)}% jour` : '—'}</div>
-                  <div className="cal-dd">{dd!=null? `${Math.abs(dd*100).toFixed(2)}% DD · ${fmtC(ddAbs)}` : '—'}</div>
+                  <div className="cal-dd">{ret!=null? `${toFixedSafe(ret*100,2)}% jour` : '—'}</div>
+                  <div className="cal-dd">{dd!=null? `${toFixedSafe(Math.abs(dd)*100,2)}% DD · ${fmtC(ddAbs)}` : '—'}</div>
                 </div>
               )
             })}
@@ -777,7 +773,7 @@ export default function App(){
         )}
 
         {/* FOOTER */}
-        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4.2</div>
+        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4.2.1</div>
       </div>
     )
   }catch(e){
@@ -823,13 +819,14 @@ function GLTooltip({active, payload, label, C, fmtC}){
       {payload.map((p,i)=>(
         <div key={i} style={{display:'flex', justifyContent:'space-between', gap:12}}>
           <span>{p.name}</span>
-          <b style={{color: p.name==='Pertes' ? 'var(--pink)' : 'var(--green)'}}>{fmtC(p.value)}</b>
+          <b style={{color: p.name==='Pertes' ? 'var(--pink)' : 'var(--green)'}}>{fmtC(Number.isFinite(p.value)?p.value:0)}</b>
         </div>
       ))}
     </div>
   )
 }
 
+/* ===== Formulaire Managed Capital ===== */
 function ManagedForm({onAdd, displayCcy}){
   const [e,setE]=useState({ source:'Darwinex', amount:'', ccy:displayCcy, start:new Date().toISOString().slice(0,10), end:'', note:'' })
   return (
@@ -862,41 +859,23 @@ function ManagedForm({onAdd, displayCcy}){
 }
 
 /* ================== Helpers calcul ================== */
-function round2(x){ /* ... */ }
-function mean(a){ /* ... */ }
-function stddev(a){ /* ... */ }
-function daysBetween(a,b){ /* ... */ }
+function round2(x){ return Math.round((x??0)*100)/100 }
+function mean(a){ if(!a.length) return 0; return a.reduce((x,y)=>x+y,0)/a.length }
+function stddev(a){ if(!a.length) return 0; const m=mean(a); const v=mean(a.map(x=>(x-m)*(x-m))); return Math.sqrt(v) }
+function daysBetween(a,b){ if(!a||!b) return 0; const d1=new Date(a), d2=new Date(b); return Math.floor((d2-d1)/86400000) }
 
-function calcSharpe(equity){ /* ... */ }
-function calcSortino(equity){ /* ... */ }
+function calcSharpe(equity){ const rets=[]; for(let i=1;i<equity.length;i++){ const p=equity[i-1].equity_trading, c=equity[i].equity_trading; rets.push(p>0 ? (c-p)/p : 0) } const mu=mean(rets), sd=stddev(rets); return sd>0? (mu/sd)*Math.sqrt(252) : 0 }
+function calcSortino(equity){ const rets=[]; for(let i=1;i<equity.length;i++){ const p=equity[i-1].equity_trading, c=equity[i].equity_trading; rets.push(p>0 ? (c-p)/p : 0) } const mu=mean(rets), neg=rets.filter(r=>r<0), sdDown=stddev(neg); return sdDown>0? (mu/sdDown)*Math.sqrt(252) : 0 }
 
-function equityWithFlowsAt(series,date){ /* ... */ }
+function equityWithFlowsAt(series,date){ const p=series.find(x=>x.date===date); return p? p.equity_with_flows : undefined }
 
-function colorVerdict(value, {good=0, bad=0, warnLo=null, warnAbs=null}){ /* ... */ }
-function classBy(x, [g, w]){ /* ... */ }
-function classByRev(x, [g, w]){ /* ... */ }
-
-/* === ICI : ajoute le composant de tooltip custom MFE/MAE === */
-function MFEMaeTooltip({ active, payload, label, C, fmtC }) {
-  if (!active || !payload || !payload.length) return null
-  return (
-    <div style={{ background:'var(--panel)', border:'1px solid var(--border)', borderRadius:10, padding:'8px 10px', color:'var(--white)' }}>
-      {label != null && <div style={{ marginBottom: 6 }}>{label}</div>}
-      {payload.map((p, i) => {
-        const isMFE = p.dataKey === 'avgMFE'
-        const name = isMFE ? 'MFE Moyen' : 'MAE Moyen'
-        const valStyle = { color: isMFE ? 'var(--green)' : 'var(--pink)' }
-        return (
-          <div key={i} style={{ display:'flex', justifyContent:'space-between', gap:12 }}>
-            <span style={{ color:'var(--white)' }}>{name}</span>
-            <b style={valStyle}>{fmtC(p.value)}</b>
-          </div>
-        )
-      })}
-    </div>
-  )
+function colorVerdict(value, {good=0, bad=0, warnLo=null, warnAbs=null}){
+  if(warnAbs!=null){ if(Math.abs(value)<=warnAbs) return 'warn'; return value>0? 'good' : 'bad' }
+  if(warnLo!=null){ if(value>=good) return 'good'; if(value>=warnLo) return 'warn'; return 'bad' }
+  if(value>good) return 'good'; if(value<bad) return 'bad'; return 'warn'
 }
-
+function classBy(x, [g, w]){ if(x>=g) return 'good'; if(x>=w) return 'warn'; return 'bad' }
+function classByRev(x, [g, w]){ if(x<=g) return 'good'; if(x<=w) return 'warn'; return 'bad' }
 
 /* ===== Corrélation ===== */
 function buildCorrMatrix(filtered, displayCcy, convert){
@@ -929,4 +908,39 @@ function monthDays(year, monthIndex){
     arr.push(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).toISOString().slice(0,10))
   }
   return arr
+}
+
+/* ====== Sécurité affichage nombres ====== */
+function toFixedSafe(x, n = 2) {
+  return Number.isFinite(x) ? x.toFixed(n) : (0).toFixed(n);
+}
+
+/* ===== Tooltip custom MFE/MAE (libellés blancs + valeurs colorées) ===== */
+function MFEMaeTooltip({ active, payload, label, C, fmtC }) {
+  if (!active || !payload || !payload.length) return null
+  return (
+    <div
+      style={{
+        background: 'var(--panel)',
+        border: '1px solid var(--border)',
+        borderRadius: 10,
+        padding: '8px 10px',
+        color: 'var(--white)'
+      }}
+    >
+      {label != null && <div style={{ marginBottom: 6 }}>{label}</div>}
+      {payload.map((p, i) => {
+        const isMFE = p.dataKey === 'avgMFE'
+        const name = isMFE ? 'MFE Moyen' : 'MAE Moyen' // Majuscule à "Moyen"
+        const valStyle = { color: isMFE ? 'var(--green)' : 'var(--pink)' } // valeurs colorées
+        const val = Number.isFinite(p.value) ? p.value : 0
+        return (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ color: 'var(--white)' }}>{name}</span>  {/* libellés en blanc */}
+            <b style={valStyle}>{fmtC(val)}</b>                    {/* valeurs vert/rose */}
+          </div>
+        )
+      })}
+    </div>
+  )
 }
