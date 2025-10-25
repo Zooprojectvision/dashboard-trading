@@ -409,19 +409,29 @@ export default function App(){
             <Help text="Verdict via Edge Index: EI = WR*RR − (1−WR). Vert ≥ +0.05, Jaune [−0.05;+0.05], Rouge < −0.05. Expectancy par trade affichée en devise."/>
           </div>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12}}>
-            {/* Donut WR — ajusté V4 */}
-            <div className="card" style={{height:240, position:'relative'}}>
+            {/* Donut WR — centrage corrigé V4.2 */}
+            <div className="card" style={{height:240, position:'relative', display:'flex', flexDirection:'column'}}>
               <div className="kpi-title">Win Rate</div>
-              <div className="donut-wrap">
-                <ResponsiveContainer width="100%" height="80%">
+              <div style={{position:'relative', flex:'1 1 auto'}}>
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={[{name:'Gagnants', value:winnersCount},{name:'Perdants', value:losersCount}]}
-                         dataKey="value" innerRadius={60} outerRadius={88} stroke="none">
+                    <Pie
+                      data={[{name:'Gagnants', value:winnersCount},{name:'Perdants', value:losersCount}]}
+                      dataKey="value"
+                      innerRadius={58}
+                      outerRadius={82}
+                      stroke="none"
+                    >
                       <Cell fill={C.pos} /><Cell fill={C.neg} />
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="donut-center">{(wr*100).toFixed(1)}%</div>
+                <div style={{
+                  position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
+                  pointerEvents:'none', color:'var(--text)'
+                }}>
+                  {(wr*100).toFixed(1)}%
+                </div>
               </div>
             </div>
             {/* Barres gagnants/perdants */}
@@ -432,13 +442,10 @@ export default function App(){
                   <CartesianGrid stroke="#2b2b2b" />
                   <XAxis dataKey="type" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                   <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-                  <Tooltip
-                    contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
-                    labelStyle={{ color: C.text }}
-                    itemStyle={{ color: C.text }}
-                    formatter={(value, name) => [fmtC(value), name]}
-                  />
-                  <Bar dataKey="n"><Cell fill={C.pos} /><Cell fill={C.neg} /></Bar>
+                  <Tooltip content={<GLTooltip C={C} fmtC={fmtC} />} />
+                  <Bar dataKey="n">
+                    <Cell fill={C.pos} /><Cell fill={C.neg} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -559,7 +566,6 @@ export default function App(){
             </div>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={hourlyAgg} margin={{left:8,right:8,top:8,bottom:8}}>
-                {/* halos de non-rentabilité */}
                 {hourlyAgg.filter(x=>x.net<0).map((x,i)=>{
                   const idx = hourlyAgg.findIndex(h=>h.key===x.key)
                   return <ReferenceArea key={'hbad'+i} x1={idx-0.5} x2={idx+0.5} fill="rgba(255,95,162,0.08)" stroke="rgba(255,95,162,0.6)" />
@@ -567,12 +573,7 @@ export default function App(){
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="key" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-                <Tooltip
-                  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
-                  labelStyle={{ color: C.text }}
-                  itemStyle={{ color: C.text }}
-                  formatter={(value, name) => [fmtC(value), name]}
-                />
+                <Tooltip content={<GLTooltip C={C} fmtC={fmtC} />} />
                 <Legend wrapperStyle={{ color:C.text }} />
                 <Bar dataKey="gain" name="Gains" fill={C.pos} />
                 <Bar dataKey="loss" name="Pertes" fill={C.neg} />
@@ -595,12 +596,7 @@ export default function App(){
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="key" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-                <Tooltip
-                  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
-                  labelStyle={{ color: C.text }}
-                  itemStyle={{ color: C.text }}
-                  formatter={(value, name) => [fmtC(value), name]}
-                />
+                <Tooltip content={<GLTooltip C={C} fmtC={fmtC} />} />
                 <Legend wrapperStyle={{ color:C.text }} />
                 <Bar dataKey="gain" name="Gains" fill={C.pos} />
                 <Bar dataKey="loss" name="Pertes" fill={C.neg} />
@@ -623,12 +619,7 @@ export default function App(){
                 <CartesianGrid stroke="#2b2b2b" />
                 <XAxis dataKey="key" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
                 <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} />
-                <Tooltip
-                  contentStyle={{ background: C.panel, border: `1px solid var(--border)`, color: C.text, borderRadius: 10 }}
-                  labelStyle={{ color: C.text }}
-                  itemStyle={{ color: C.text }}
-                  formatter={(value, name) => [fmtC(value), name]}
-                />
+                <Tooltip content={<GLTooltip C={C} fmtC={fmtC} />} />
                 <Legend wrapperStyle={{ color:C.text }} />
                 <Bar dataKey="gain" name="Gains" fill={C.pos} />
                 <Bar dataKey="loss" name="Pertes" fill={C.neg} />
@@ -784,7 +775,7 @@ export default function App(){
         )}
 
         {/* FOOTER */}
-        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4.1</div>
+        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4.2</div>
       </div>
     )
   }catch(e){
@@ -818,6 +809,22 @@ function Help({text}){
       <span className="help" title="aide">?</span>
       <span className="help-bubble">{text}</span>
     </span>
+  )
+}
+
+/* ===== Tooltip custom Gains/Pertes (couleurs valeurs) ===== */
+function GLTooltip({active, payload, label, C, fmtC}){
+  if(!active || !payload || !payload.length) return null
+  return (
+    <div style={{ background:'var(--panel)', border:'1px solid var(--border)', borderRadius:10, padding:'8px 10px', color:'var(--text)'}}>
+      {label!=null && <div style={{marginBottom:6, opacity:.9}}>{label}</div>}
+      {payload.map((p,i)=>(
+        <div key={i} style={{display:'flex', justifyContent:'space-between', gap:12}}>
+          <span>{p.name}</span>
+          <b style={{color: p.name==='Pertes' ? 'var(--pink)' : 'var(--green)'}}>{fmtC(p.value)}</b>
+        </div>
+      ))}
+    </div>
   )
 }
 
