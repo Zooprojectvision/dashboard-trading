@@ -819,27 +819,26 @@ function Help({text}){
   )
 }
 
-/* ===== Tooltip custom Gains/Pertes — 1 ligne par catégorie, format auto ===== */
+/* ===== Tooltip custom Gains/Pertes — 1 ligne/catégorie, sans titre ===== */
 function GLTooltip({ active, payload, label, C, fmtC }) {
   if (!active || !payload || !payload.length) return null
 
-  // Savoir si on est sur un graphe "comptage" (dataKey === 'n') => format nombre simple
+  // Graphes de comptage (dataKey === 'n') => format entier
   const usesCount = payload.some(p => p.dataKey === 'n')
+  const fmtInt = v => new Intl.NumberFormat(undefined).format(v)
 
   // Agréger par catégorie (Gagnants / Perdants) pour éviter les doublons
   const agg = new Map()
   payload.forEach(p => {
-    // Catégorie : priorité au champ "type" du payload, sinon on mappe gain/loss
     const cat =
       (p.payload && p.payload.type)
         ? String(p.payload.type)
-        : (p.name === 'loss' ? 'Perdants' : p.name === 'gain' ? 'Gagnants' : (p.name || ''))
-
+        : (p.name === 'loss' ? 'Perdants'
+           : p.name === 'gain' ? 'Gagnants'
+           : (p.name || ''))
     const val = Number.isFinite(p.value) ? p.value : 0
     agg.set(cat, (agg.get(cat) || 0) + val)
   })
-
-  const fmtInt = v => new Intl.NumberFormat(undefined).format(v)
 
   return (
     <div style={{
@@ -849,6 +848,20 @@ function GLTooltip({ active, payload, label, C, fmtC }) {
       padding: '8px 10px',
       color: 'var(--text)'
     }}>
+      {[...agg.entries()].map(([cat, val], i) => {
+        const isLoss = cat.toLowerCase().startsWith('perd')
+        const valueText = usesCount ? fmtInt(val) : fmtC(val)
+        return (
+          <div key={i} style={{ display:'flex', justifyContent:'space-between', gap:12 }}>
+            <span>{cat}</span>
+            <b style={{ color: isLoss ? 'var(--pink)' : 'var(--green)' }}>{valueText}</b>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
       {label != null && <div style={{ marginBottom: 6, opacity: .9 }}>{label}</div>}
       {[...agg.entries()].map(([cat, val], i) => {
         const isLoss = cat.toLowerCase().startsWith('perd')
