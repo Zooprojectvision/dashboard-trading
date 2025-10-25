@@ -301,18 +301,27 @@ export default function App(){
     },[filteredForTimeAgg, displayCcy])
 
     const weekdayAgg = useMemo(()=>{
-      const names = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
-      const base = names.map((n,i)=>({ key:n, idx:i+1, gain:0, loss:0 }))
-      for(const t of filteredForTimeAgg){
-        const tz = brokerTZ[t.broker] || 'UTC'
-        the const w = getWeekdayInTZ(t.open_time || (t.date+'T00:00:00Z'), tz)
-        const v = convert(t.pnl, t.ccy||'USD', displayCcy)
-        const b = base.find(x=>x.idx===w)
-        if(!b) continue
-        if(v>=0) b.gain += v; else b.loss += Math.abs(v)
-      }
-      return base.map(b=> ({...b, gain:round2(b.gain), loss:round2(b.loss), net: round2(b.gain - b.loss)}))
-    },[filteredForTimeAgg, displayCcy])
+  const names = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
+  const base = names.map((n,i)=>({ key:n, idx:i+1, gain:0, loss:0 }))
+
+  for (const t of filteredForTimeAgg) {
+    const tz = brokerTZ[t.broker] || 'UTC'
+    const w = getWeekdayInTZ(t.open_time || (t.date + 'T00:00:00Z'), tz) // <-- corrigé
+    const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
+    const b = base.find(x => x.idx === w)
+    if (!b) continue
+    if (v >= 0) b.gain += v
+    else b.loss += Math.abs(v)
+  }
+
+  return base.map(b => ({
+    ...b,
+    gain: round2(b.gain),
+    loss: round2(b.loss),
+    net: round2(b.gain - b.loss)
+  }))
+}, [filteredForTimeAgg, displayCcy])
+
 
     const monthAgg = useMemo(()=>{
       const names = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']
