@@ -220,27 +220,499 @@ export default function App() {
     }), [tradesAll, asset, broker, strategy, dateFrom, dateTo])
     /* [BLOCK D] END — Filtres (actif, broker, stratégie, dates) */
 
-    /* [BLOCK E] START — Cashflows filtrés & capital */
-    const allCashflows = useMemo(() => demoCashflows.concat(userCashflows), [userCashflows])
-    const cashflowsInRange = useMemo(() => {
-      const list = allCashflows.filter(c => {
-        if (dateFrom && c.date < dateFrom) return false
-        if (dateTo && c.date > dateTo) return false
-        return true
+    {/* ================== [BLOCK E] START — KPI principaux + ratios ================== */}
+{(() => {
+  // ---------- Utils locaux (compat avec ton code existant) ----------
+  const fmtLocal = (v) => {
+    try {
+      if (typeof fmt === 'function') return fmt(v, displayCcy)
+      if (typeof fmtC === 'function') return fmtC(v)
+      return new Intl.NumberFormat(undefined, { style:'currency', currency: displayCcy || 'USD' }).format(v ?? 0)
+    } catch {
+      return `${(v ?? 0).toFixed(2)} ${displayCcy || 'USD'}`
+    }
+  }
+  const valColor = (v) => (v >= 0 ? 'var(--green)' : 'var(--pink)')
+
+  // ---------- Données Win Rate / RR ----------
+  const total = filtered.length
+  const wins = filtered.filter(t => t.pnl > 0).length
+  const losses = total - wins
+  const winRate = total ? (wins / total) * 100 : 0
+
+  const posVals = filtered
+    .filter(t => t.pnl > 0)
+    .map(t => convert(t.pnl, t.ccy || 'USD', displayCcy))
+  const negVals = filtered
+    .filter(t => t.pnl < 0)
+    .map(t => Math.abs(convert(t.pnl, t.ccy || 'USD', displayCcy)))
+
+  const avgWin = posVals.length ? posVals.reduce((a,b)=>a+b,0) / posVals.length : 0
+  const avgLoss = negVals.length ? negVals.reduce((a,b)=>a+b,0) / negVals.length : 0
+  const rr = avgLoss > 0 ? (avgWin / avgLoss) : 0
+
+  // Donut data (réduit pour éviter le clipping)
+  const donutData = [
+    { name: 'Gagnants', value: wins, color: 'var(--green)' },
+    { name: 'Perdants', value: losses, color: 'var(--pink)' }
+  ]
+
+  return (
+    <>
+      {/* KPI principaux */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginTop: 12 }}>
+        {/* Capital Initial — blanc (spécial) */}
+        <div className="card">
+          <div className="kpi-title">capital initial</div>
+          <div className="val" style={{ color: 'var(--white)' }}>{fmtLocal(capitalInitialDisp)}</div>
+        </div>
+
+        {/* Cash Flow — vert/rose selon signe */}
+        <div className="card">
+          <div className="kpi-title">cash flow</div>
+          <div className="val" style={{ color: valColor(cashFlowTotal) }}>{fmtLocal(cashFlowTotal)}</div>
+        </div>
+
+        {/* PnL (Filtré) — vert/rose */}
+        <div className="card">
+          <div className="kpi-title">pnl (filtré)</div>
+          <div className="val" style={{ color: valColor(totalPnlDisp) }}>{fmtLocal(totalPnlDisp)}</div>
+        </div>
+
+        {/* Capital Global — vert/rose vs 0 (on affiche la valeur globale) */}
+        <div className="card">
+          <div className="kpi-title">capital global</div>
+          <div className="val" style={{ color: valColor(capitalGlobal - capitalInitialDisp) }}>
+            {fmtLocal(capitalGlobal)}
+          </div>
+        </div>
+
+        {/* Max DD% — neutre (texte) */}
+        <div className="card">
+          <div className="kpi-title">max drawdown (%)</div>
+          <div className="val" style={{ color: 'var(--text)' }}>
+            {Number.isFinite(maxDDPct) ? `${maxDDPct.toFixed(2)}%` : '—'}
+          </div>
+        </div>
+
+        {/* Max DD (abs) — neutre (texte) */}
+        <div className="card">
+          <div className="kpi-title">max drawdown (abs)</div>
+          <div className="val" style={{ color: 'var(--text)' }}>
+            {Number.isFinite(maxDDAbs) ? fmtLocal(maxDDAbs) : '—'}
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Win Rate / RR — avec donut centré */}
+      <div className="card" style={{ display:'grid', gridTemplateColumns:'220px 1fr', gap:12, alignItems:'center', marginTop:12 }}>
+        <div>
+          <div className="kpi-title">win rate / rr</div>
+          <div style={{ position:'relative', height: 180 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={donutData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={55}   // ⇐ plus petit
+                  outerRadius={75}   // ⇐ plus petit
+                  paddingAngle={1}
+                  startAngle={90}
+                  endAngle={-270}
+                  stroke="none"
+                  isAnimationActive={false}
+                >
+                  {donutData.map((d, i) => (
+                    <Cell key={i} fill={d.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10 }}
+                  labelStyle={{ color: 'var(--text)' }}
+                  itemStyle={{ color: 'var(--text)' }}
+                  formatter={(v, n) => [v, n]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+
+            {/* Label centré — % win rate */}
+            <div style={{
+              position:'absolute', inset:0,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              pointerEvents:'none'
+            }}>
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontSize:18, fontWeight:600, color:'var(--text)' }}>
+                  {winRate.toFixed(1)}%
+                </div>
+                <div style={{ fontSize:12, color:'var(--muted)' }}>
+                  win&nbsp;rate
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Zone valeurs (neutres) */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10 }}>
+          <div className="card halo-neutral" style={{ padding:10 }}>
+            <div className="kpi-title">trades</div>
+            <div className="val" style={{ color:'var(--text)' }}>{total}</div>
+          </div>
+          <div className="card halo-neutral" style={{ padding:10 }}>
+            <div className="kpi-title">win rate</div>
+            <div className="val" style={{ color:'var(--text)' }}>{winRate.toFixed(1)}%</div>
+          </div>
+          <div className="card halo-neutral" style={{ padding:10 }}>
+            <div className="kpi-title">risk / reward</div>
+            <div className="val" style={{ color:'var(--text)' }}>{rr.toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+})()}
+{/* ================== [BLOCK E] END — KPI principaux + ratios ================== */}
+
+    /* ================== [BLOCK F] START — Courbes & Agrégations ================== */
+
+{/** -------------------------------------------------------
+    Utils locaux communs (format monétaire + date courte)
+    ------------------------------------------------------- */}
+{(() => {
+  const fmtMoney = (v) => {
+    try{
+      if (typeof fmt === 'function') return fmt(v, displayCcy)
+      if (typeof fmtC === 'function') return fmtC(v)
+      return new Intl.NumberFormat(undefined, { style:'currency', currency: displayCcy || 'USD' }).format(v ?? 0)
+    }catch{
+      return `${(v ?? 0).toFixed(2)} ${displayCcy || 'USD'}`
+    }
+  }
+  const shortDate = (iso) => {
+    // "YYYY-MM-DD" -> "DD/MM"
+    if (!iso) return ''
+    const y = iso.slice(0,4), m = iso.slice(5,7), d = iso.slice(8,10)
+    return `${d}/${m}`
+  }
+
+  /* =============== F2 — Courbe d’Équité =============== */
+  // Prépare séries alternatives:
+  //  a) PnL Global (depuis 0) = cumul des PnL quotidiens après filtres
+  //  b) Stratégies = cumul par stratégie (lignes fines)
+  const dailyPnl = (() => {
+    const map = new Map()
+    for (const t of filtered){
+      const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
+      map.set(t.date, (map.get(t.date) || 0) + v)
+    }
+    return Array.from(map, ([date, pnl]) => ({ date, pnl }))
+      .sort((a,b)=> a.date.localeCompare(b.date))
+  })()
+  const globalCumul = (() => {
+    let c = 0
+    return dailyPnl.map(r => ({ date: r.date, pnl_cumul: (c += r.pnл || r.pnl, c) }))
+  })()
+
+  const strategies = Array.from(new Set(filtered.map(t => t.strategy))).sort()
+  const stratCumulSeries = (() => {
+    // cumul par stratégie
+    const byDateByStrat = new Map()
+    for (const t of filtered){
+      const d = t.date
+      const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
+      if (!byDateByStrat.has(d)) byDateByStrat.set(d, new Map())
+      const m = byDateByStrat.get(d)
+      m.set(t.strategy, (m.get(t.strategy) || 0) + v)
+    }
+    const dates = Array.from(byDateByStrat.keys()).sort()
+    // initialiser cumul à 0 pour chaque strat
+    const cumul = {}; strategies.forEach(s => cumul[s] = 0)
+    return dates.map(dt => {
+      const row = { date: dt }
+      const m = byDateByStrat.get(dt)
+      strategies.forEach(s => {
+        cumul[s] += (m.get(s) || 0)
+        row[s] = cumul[s]
       })
-      return list.map(c => ({ ...c, amount_disp: convert(c.amount, c.ccy, displayCcy) }))
-    }, [allCashflows, dateFrom, dateTo, displayCcy, rates])
+      return row
+    })
+  })()
 
-    const cashFlowTotal = useMemo(() =>
-      cashflowsInRange.reduce((a, c) => a + (c.amount_disp || 0), 0),
-      [cashflowsInRange]
+  // Tooltip custom pour la courbe d’équité
+  function EqTooltip({ active, payload, label }){
+    if (!active || !payload || !payload.length) return null
+    return (
+      <div style={{ background:'var(--panel)', border:'1px solid var(--border)', borderRadius:10, padding:'8px 10px', color:'var(--text)' }}>
+        <div style={{ marginBottom:6 }}>{shortDate(label)}</div>
+        {payload.map((p,i)=>(
+          <div key={i} style={{ display:'flex', justifyContent:'space-between', gap:12 }}>
+            <span style={{ color:'var(--text)' }}>{p.name}</span>
+            <b style={{ color:'var(--text)' }}>{fmtMoney(p.value)}</b>
+          </div>
+        ))}
+      </div>
     )
+  }
 
-    const capitalInitialDisp = useMemo(() =>
-      convert(CAPITAL_INITIAL_USD, 'USD', displayCcy), [displayCcy, rates]
-    )
-    const capitalBase = useMemo(() => capitalInitialDisp + cashFlowTotal, [capitalInitialDisp, cashFlowTotal])
-    /* [BLOCK E] END — Cashflows filtrés & capital */
+  // Points de flux (scatter-like via ReferenceDot simple, sans ligne verticale)
+  const flowPoints = (showFlows && Array.isArray(cashflowsInRange))
+    ? cashflowsInRange
+        .filter(c => ['deposit','withdrawal','prop_fee','prop_payout','darwin_mgmt_fee'].includes(c.type))
+        .map(c => {
+          const y = equityWithFlowsAt(equitySeriesHL, c.date)
+          return {
+            date: c.date,
+            y,
+            color: (c.amount >= 0 ? 'var(--green)' : 'var(--pink)'),
+            label: (c.type==='deposit' ? 'Dépôt'
+                   : c.type==='withdrawal' ? 'Retrait'
+                   : c.type==='prop_fee' ? 'Prop fee'
+                   : c.type==='prop_payout' ? 'Prop payout'
+                   : 'Darwinex fee'),
+            amount: c.amount
+          }
+        })
+        .filter(p => p.y != null)
+    : []
+
+  // Toggle vue (global vs stratégies) — simple bouton radio
+  // (si tu as déjà un état similaire ailleurs, tu peux réutiliser)
+  const [curveView, setCurveView] = React.useState('global') // 'global' | 'strat'
+
+  return (
+    <>
+      {/* Titre + options */}
+      <div className="card" style={{ height: 460, marginTop: 16 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+          <div className="kpi-title">courbe d’équité</div>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <button className={`btn sm ${curveView==='global'?'':'ghost'}`} onClick={()=>setCurveView('global')}>pnl global</button>
+            <button className={`btn sm ${curveView==='strat'?'':'ghost'}`} onClick={()=>setCurveView('strat')}>stratégie(s)</button>
+            <label className="btn sm ghost" style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <input type="checkbox" checked={!!showFlows} readOnly />
+              avec flux
+            </label>
+          </div>
+        </div>
+
+        <ResponsiveContainer width="100%" height="85%">
+          <LineChart
+            data={curveView==='global' ? globalCumul : stratCumulSeries}
+            margin={{ left:8, right:8, top:8, bottom:8 }}>
+            <CartesianGrid stroke="#2b2b2b" />
+            <XAxis
+              dataKey="date"
+              tickFormatter={shortDate}
+              stroke="var(--axis)"
+              tickLine={false}
+              axisLine={{ stroke:'var(--axis)' }}
+            />
+            <YAxis
+              stroke="var(--axis)"
+              tickLine={false}
+              axisLine={{ stroke:'var(--axis)' }}
+            />
+            <Tooltip content={<EqTooltip />} />
+            <Legend wrapperStyle={{ color:'var(--text)' }} />
+
+            {/* Lignes */}
+            {curveView==='global' ? (
+              <Line type="monotone" dataKey="pnl_cumul" name="PnL Global (depuis 0)" dot={false} stroke="var(--white)" strokeWidth={1.6} isAnimationActive={false} />
+            ) : (
+              strategies.map((s,i)=>(
+                <Line
+                  key={s}
+                  type="monotone"
+                  dataKey={s}
+                  name={s}
+                  dot={false}
+                  stroke={i%2===0 ? 'var(--green)' : 'var(--pink)'}
+                  strokeWidth={1.2}
+                  isAnimationActive={false}
+                />
+              ))
+            )}
+
+            {/* Points de flux (uniquement en lecture/indication) */}
+            {flowPoints.map((p, i) => (
+              <ReferenceDot key={i} x={p.date} y={p.y} r={4} fill={p.color} stroke="none" />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* =============== F1 — Gains/Pertes par Heure/Jour/Mois =============== */}
+      {(() => {
+        // Fenêtre d’agrégation: filtres date ou défaut 30 jours
+        const today = new Date()
+        const defaultFrom = new Date(today.getTime() - 29*24*3600*1000).toISOString().slice(0,10)
+        const fromDate = (dateFrom && dateFrom.length) ? dateFrom : defaultFrom
+        const toDate   = (dateTo && dateTo.length)     ? dateTo   : today.toISOString().slice(0,10)
+
+        const inRange = filtered.filter(t => (!fromDate || t.date >= fromDate) && (!toDate || t.date <= toDate))
+
+        // HEURE
+        const byHourBase = Array.from({length:24}, (_,h)=>({ hour: `${String(h).padStart(2,'0')}:00`, gain:0, loss:0 }))
+        for(const t of inRange){
+          const d = new Date(t.open_time || (t.date+'T00:00:00Z'))
+          const h = d.getHours()
+          const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
+          const row = byHourBase[h]
+          if (v >= 0) row.gain += v; else row.loss += Math.abs(v)
+        }
+
+        // JOUR (Lun..Dim)
+        const dayNames = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
+        const byDOWBase = dayNames.map((name,idx)=>({ idx, day:name, gain:0, loss:0 }))
+        for(const t of inRange){
+          const d = new Date(t.open_time || (t.date+'T00:00:00Z'))
+          const js = d.getDay() // 0 Dim .. 6 Sam -> remap Lun=0..Dim=6
+          const dow = (js===0)?6:(js-1)
+          const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
+          const row = byDOWBase[dow]
+          if (v >= 0) row.gain += v; else row.loss += Math.abs(v)
+        }
+
+        // MOIS (Jan..Déc)
+        const monthNames = ['Jan','Fév','Mar','Avr','Mai','Jui','Jui','Aoû','Sep','Oct','Nov','Déc']
+        const byMonthBase = monthNames.map((name,idx)=>({ idx, month:name, gain:0, loss:0 }))
+        for(const t of inRange){
+          const d = new Date(t.open_time || (t.date+'T00:00:00Z'))
+          const m = d.getMonth()
+          const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
+          const row = byMonthBase[m]
+          if (v >= 0) row.gain += v; else row.loss += Math.abs(v)
+        }
+
+        function GLTooltip({ active, payload, label }){
+          if (!active || !payload || !payload.length) return null
+          // Agréger par catégorie (Gagnants/Perdants)
+          const agg = new Map()
+          payload.forEach(p => {
+            const cat = p.dataKey === 'loss' ? 'Perdants' : 'Gagnants'
+            const val = Number.isFinite(p.value) ? p.value : 0
+            agg.set(cat, (agg.get(cat) || 0) + val)
+          })
+          return (
+            <div style={{ background:'var(--panel)', border:'1px solid var(--border)', borderRadius:10, padding:'8px 10px', color:'var(--text)' }}>
+              {label != null && <div style={{ marginBottom:6, opacity:.9 }}>{label}</div>}
+              {[...agg.entries()].map(([cat, val], i) => {
+                const isLoss = cat.toLowerCase().startsWith('perd')
+                return (
+                  <div key={i} style={{ display:'flex', justifyContent:'space-between', gap:12 }}>
+                    <span style={{ color:'var(--text)' }}>{cat}</span>
+                    <b style={{ color: isLoss ? 'var(--pink)' : 'var(--green)' }}>{fmtMoney(val)}</b>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        }
+
+        return (
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginTop:16 }}>
+            {/* HEURE */}
+            <div className="card">
+              <div className="kpi-title">gains / pertes — par heure (ouverture)</div>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={byHourBase} margin={{ left:8, right:8, top:8, bottom:8 }}>
+                  <CartesianGrid stroke="#2b2b2b" />
+                  <XAxis dataKey="hour" stroke="var(--axis)" tickLine={false} axisLine={{stroke:'var(--axis)'}} />
+                  <YAxis stroke="var(--axis)" tickLine={false} axisLine={{stroke:'var(--axis)'}} />
+                  <Tooltip content={<GLTooltip />} />
+                  <Legend wrapperStyle={{ color:'var(--text)' }} />
+                  <Bar dataKey="gain" name="Gains" fill="var(--green)" />
+                  <Bar dataKey="loss" name="Pertes" fill="var(--pink)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* JOUR */}
+            <div className="card">
+              <div className="kpi-title">gains / pertes — par jour de semaine</div>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={byDOWBase} margin={{ left:8, right:8, top:8, bottom:8 }}>
+                  <CartesianGrid stroke="#2b2b2b" />
+                  <XAxis dataKey="day" stroke="var(--axis)" tickLine={false} axisLine={{stroke:'var(--axis)'}} />
+                  <YAxis stroke="var(--axis)" tickLine={false} axisLine={{stroke:'var(--axis)'}} />
+                  <Tooltip content={<GLTooltip />} />
+                  <Legend wrapperStyle={{ color:'var(--text)' }} />
+                  <Bar dataKey="gain" name="Gains" fill="var(--green)" />
+                  <Bar dataKey="loss" name="Pertes" fill="var(--pink)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* MOIS */}
+            <div className="card">
+              <div className="kpi-title">gains / pertes — par mois</div>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={byMonthBase} margin={{ left:8, right:8, top:8, bottom:8 }}>
+                  <CartesianGrid stroke="#2b2b2b" />
+                  <XAxis dataKey="month" stroke="var(--axis)" tickLine={false} axisLine={{stroke:'var(--axis)'}} />
+                  <YAxis stroke="var(--axis)" tickLine={false} axisLine={{stroke:'var(--axis)'}} />
+                  <Tooltip content={<GLTooltip />} />
+                  <Legend wrapperStyle={{ color:'var(--text)' }} />
+                  <Bar dataKey="gain" name="Gains" fill="var(--green)" />
+                  <Bar dataKey="loss" name="Pertes" fill="var(--pink)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* =============== F3 — MFE/MAE Quotidien (Moyenne) =============== */}
+      <div className="card" style={{ height: 360, marginTop: 16 }}>
+        <div className="kpi-title">mfe / mae — quotidien (moyenne)</div>
+        <ResponsiveContainer width="100%" height="88%">
+          <LineChart data={mfeMaeDaily} margin={{ left:8, right:8, top:8, bottom:8 }}>
+            <CartesianGrid stroke="#2b2b2b" />
+            <XAxis dataKey="date" tickFormatter={shortDate} stroke="var(--axis)" tickLine={false} axisLine={{stroke:'var(--axis)'}} />
+            <YAxis stroke="var(--axis)" tickLine={false} axisLine={{stroke:'var(--axis)'}} />
+            <Tooltip
+              contentStyle={{ background:'var(--panel)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:10 }}
+              formatter={(v, n, ctx) => {
+                const isMFE = (n==='avgMFE' || ctx?.dataKey==='avgMFE')
+                return [fmtMoney(v), isMFE ? 'MFE Moyen' : 'MAE Moyen']
+              }}
+            />
+            <Legend wrapperStyle={{ color:'var(--text)' }} />
+            <Line type="monotone" dataKey="avgMFE" name="MFE Moyen" dot={false} stroke="var(--green)" strokeWidth={2} />
+            <Line type="monotone" dataKey="avgMAE" name="MAE Moyen" dot={false} stroke="var(--pink)" strokeWidth={2} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* =============== F3 — MFE/MAE Cumulé =============== */}
+      <div className="card" style={{ height: 360, marginTop: 16 }}>
+        <div className="kpi-title">cumul mfe / mae</div>
+        <ResponsiveContainer width="100%" height="88%">
+          <LineChart data={mfeMaeDaily} margin={{ left:8, right:8, top:8, bottom:8 }}>
+            <CartesianGrid stroke="#2b2b2b" />
+            <XAxis dataKey="date" tickFormatter={shortDate} stroke="var(--axis)" tickLine={false} axisLine={{stroke:'var(--axis)'}} />
+            <YAxis stroke="var(--axis)" tickLine={false} axisLine={{stroke:'var(--axis)'}} />
+            <Tooltip
+              contentStyle={{ background:'var(--panel)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:10 }}
+              formatter={(v, n, ctx) => {
+                const isMFE = (n==='cumMFE' || ctx?.dataKey==='cumMFE')
+                return [fmtMoney(v), isMFE ? 'Cumul MFE' : 'Cumul MAE']
+              }}
+            />
+            <Legend wrapperStyle={{ color:'var(--text)' }} />
+            <Line type="monotone" dataKey="cumMFE" name="Cumul MFE" dot={false} stroke="var(--green)" strokeWidth={2.2} />
+            <Line type="monotone" dataKey="cumMAE" name="Cumul MAE" dot={false} stroke="var(--pink)" strokeWidth={2.2} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </>
+  )
+})()}
+
+/* ================== [BLOCK F] END — Courbes & Agrégations ================== */
+
 
     /* [BLOCK G] START — Équité & drawdown (trading seul / avec flux) */
     function groupByDateSumPnlDisp(rows) {
@@ -334,712 +806,721 @@ export default function App() {
     }, [equitySeriesHL])
     /* [BLOCK G] END — Équité & drawdown (trading seul / avec flux) */
 
-    /* [BLOCK F] START — KPI (principaux / ratios / opérationnels) */
-    const totalPnlDisp = useMemo(() =>
-      filtered.reduce((s, t) => s + convert(t.pnl, t.ccy || 'USD', displayCcy), 0),
-      [filtered, displayCcy, rates]
-    )
-    const capitalGlobal = useMemo(() => (capitalBase + totalPnlDisp), [capitalBase, totalPnlDisp])
+    
+    {/* ================== [BLOCK H] START — Calendrier (bordures verdict + infos jour) ================== */}
+{(() => {
+  // ---------- Utils ----------
+  const fmtMoney = (v) => {
+    try{
+      if (typeof fmt === 'function') return fmt(v, displayCcy)
+      if (typeof fmtC === 'function') return fmtC(v)
+      return new Intl.NumberFormat(undefined, { style:'currency', currency: displayCcy || 'USD' }).format(v ?? 0)
+    }catch{
+      return `${(v ?? 0).toFixed(2)} ${displayCcy || 'USD'}`
+    }
+  }
 
-    const wins = filtered.filter(t => t.pnl > 0).length
-    const wr = filtered.length ? (wins / filtered.length) * 100 : 0
-    const avgWin = (() => {
-      const list = filtered.filter(t => t.pnl > 0).map(t => convert(t.pnl, t.ccy || 'USD', displayCcy))
-      return list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0
+  // Dernière date connue (pour initialiser le mois courant si besoin)
+  const lastDate = equitySeriesHL?.length ? equitySeriesHL[equitySeriesHL.length-1].date : new Date().toISOString().slice(0,10)
+  const [calYear2, setCalYear2]   = React.useState(Number(lastDate.slice(0,4)))
+  const [calMonth2, setCalMonth2] = React.useState(Number(lastDate.slice(5,7)) - 1) // 0..11
+
+  // Fabrique toutes les dates (YYYY-MM-DD) du mois affiché
+  const monthDays = (y, mIdx) => {
+    const end = new Date(y, mIdx+1, 0).getDate()
+    const out = []
+    for (let d=1; d<=end; d++) out.push(new Date(y, mIdx, d).toISOString().slice(0,10))
+    return out
+  }
+  const datesInMonth = monthDays(calYear2, calMonth2)
+
+  // Libellé "Octobre 2025" (selon locale)
+  const monthLabel = new Date(calYear2, calMonth2, 1).toLocaleDateString(undefined, { month:'long', year:'numeric' })
+
+  // Map equity par date pour accès rapide
+  const eqMap = new Map()
+  equitySeriesHL.forEach(p => eqMap.set(p.date, p.equity_trading))
+
+  // PnL du jour (diff jour/jour)
+  const pnlDayMap = new Map()
+  for (let i=0; i<equitySeriesHL.length; i++){
+    const todayPt = equitySeriesHL[i]
+    const prevPt  = equitySeriesHL[i-1]
+    const pnl = (prevPt && Number.isFinite(prevPt.equity_trading))
+      ? (todayPt.equity_trading - prevPt.equity_trading)
+      : 0
+    pnlDayMap.set(todayPt.date, pnl)
+  }
+
+  // # trades par jour
+  const tradesCountMap = new Map()
+  filtered.forEach(t => {
+    const d = t.date
+    tradesCountMap.set(d, (tradesCountMap.get(d) || 0) + 1)
+  })
+
+  // DD% et DD montant: calculés comme écart au **plus haut** atteint dans le **mois affiché**
+  const monthPts = equitySeriesHL.filter(p => p.date.startsWith(`${calYear2}-${String(calMonth2+1).padStart(2,'0')}`))
+  let runPeak = -Infinity
+  const ddPctMap = new Map()
+  const ddAmtMap = new Map()
+  monthPts.forEach(p => {
+    runPeak = Math.max(runPeak, p.equity_trading)
+    if (runPeak > 0){
+      const ddAmt = p.equity_trading - runPeak              // négatif ou 0
+      const ddPct = ddAmt / runPeak                          // négatif ou 0
+      ddPctMap.set(p.date, ddPct)
+      ddAmtMap.set(p.date, ddAmt)
+    } else {
+      ddPctMap.set(p.date, 0)
+      ddAmtMap.set(p.date, 0)
+    }
+  })
+
+  // Verdict bordure par seuils DD%: <= -2% => bad, <= -1% => warn, sinon good
+  const verdictClass = (ddPct) => {
+    if (ddPct == null) return ''           // pas de bordure spéciale si pas de data
+    if (ddPct <= -0.02) return 'halo-bad'
+    if (ddPct <= -0.01) return 'halo-warn'
+    return 'halo-good'
+  }
+
+  // Navigation mois
+  const prevMonth = () => {
+    let m = calMonth2 - 1, y = calYear2
+    if (m < 0){ m = 11; y-- }
+    setCalMonth2(m); setCalYear2(y)
+  }
+  const nextMonth = () => {
+    let m = calMonth2 + 1, y = calYear2
+    if (m > 11){ m = 0; y++ }
+    setCalMonth2(m); setCalYear2(y)
+  }
+
+  // Rendu cellule jour
+  const renderCell = (dt) => {
+    const dayNum  = Number(dt.slice(8,10))
+    const pnlDay  = pnlDayMap.get(dt)
+    const eqPrev  = (() => { // pour rentabilité %
+      const idx = equitySeriesHL.findIndex(p => p.date === dt)
+      return (idx>0) ? equitySeriesHL[idx-1].equity_trading : null
     })()
-    const avgLoss = (() => {
-      const list = filtered.filter(t => t.pnl < 0).map(t => Math.abs(convert(t.pnl, t.ccy || 'USD', displayCcy)))
-      return list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0
-    })()
-    const rr = avgLoss > 0 ? (avgWin / avgLoss) : 0
-    const expectancy = useMemo(() => filtered.length ? (totalPnlDisp / filtered.length) : 0, [totalPnlDisp, filtered.length])
+    const retPct  = (eqPrev && eqPrev>0) ? (pnlDay/eqPrev) : 0
 
-    const sharpe = useMemo(() => {
-      const rets = dailyReturns.map(r => r.ret)
-      const mu = mean(rets), sd = stddev(rets)
-      return sd > 0 ? (mu / sd) * Math.sqrt(252) : 0
-    }, [dailyReturns])
+    const ddPct   = ddPctMap.get(dt)   // négatif/0
+    const ddAmt   = ddAmtMap.get(dt)   // négatif/0
+    const nTrades = tradesCountMap.get(dt) || 0
 
-    const sortino = useMemo(() => {
-      const rets = dailyReturns.map(r => r.ret)
-      const mu = mean(rets), neg = rets.filter(r => r < 0), sdDown = stddev(neg)
-      return sdDown > 0 ? (mu / sdDown) * Math.sqrt(252) : 0
-    }, [dailyReturns])
+    const halo    = verdictClass(ddPct)
+    const pnlColor= (pnlDay>=0) ? 'var(--green)' : 'var(--pink)'
 
-    const recoveryFactor = useMemo(() => {
-      const profitNet = (equitySeriesHL.at(-1)?.equity_trading || capitalInitialDisp) - capitalInitialDisp
-      return maxDDCalc.maxDDAbs > 0 ? profitNet / maxDDCalc.maxDDAbs : 0
-    }, [equitySeriesHL, capitalInitialDisp, maxDDCalc])
-
-    const avgTradeDurationMin = useMemo(() => {
-      const mins = filtered.map(t => {
-        const o = t.open_time ? new Date(t.open_time).getTime() : NaN
-        const c = t.close_time ? new Date(t.close_time).getTime() : NaN
-        if (!isFinite(o) || !isFinite(c)) return null
-        return (c - o) / 60000
-      }).filter(v => v != null)
-      return mins.length ? mean(mins) : 0
-    }, [filtered])
-
-    const activeDays = useMemo(() => new Set(filtered.map(t => t.date)).size, [filtered])
-
-    // Verdicts simples (classes CSS halo-*)
-    function verdictForPnl(v) { return v > 0 ? 'halo-good' : v === 0 ? 'halo-warn' : 'halo-bad' }
-    function verdictForDDpct(p) {
-      if (p < 15) return 'halo-good'
-      if (p <= 20) return 'halo-warn'
-      return 'halo-bad'
-    }
-    /* [BLOCK F] END — KPI (principaux / ratios / opérationnels) */
-
-    /* [BLOCK H] START — Courbes PnL (global base 0) & par stratégie */
-    // PnL Global cumulatif base 0 (trading uniquement)
-    const pnlGlobalSeries = useMemo(() => {
-      const m = new Map()
-      for (const t of filtered) {
-        m.set(t.date, (m.get(t.date) || 0) + convert(t.pnl, t.ccy || 'USD', displayCcy))
-      }
-      const dates = Array.from(m.keys()).sort()
-      let cum = 0
-      return dates.map(d => { cum += m.get(d); return { date: d, pnl: Number(cum.toFixed(2)) } })
-    }, [filtered, displayCcy, rates])
-
-    // PnL cumulatif par stratégie (base 0 pour chaque, visualisés ensemble)
-    const stratPnlSeries = useMemo(() => {
-      const byStrat = new Map()
-      for (const t of filtered) {
-        const s = t.strategy || 'Unknown'
-        const d = t.date
-        const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
-        if (!byStrat.has(s)) byStrat.set(s, new Map())
-        const m = byStrat.get(s)
-        m.set(d, (m.get(d) || 0) + v)
-      }
-      const allDates = Array.from(new Set(filtered.map(t => t.date))).sort()
-      const out = {}
-      for (const [s, m] of byStrat.entries()) {
-        let cum = 0
-        out[s] = allDates.map(d => {
-          cum += (m.get(d) || 0)
-          return { date: d, value: Number(cum.toFixed(2)) }
-        })
-      }
-      return { dates: Array.from(allDates), series: out }
-    }, [filtered, displayCcy, rates])
-    /* [BLOCK H] END — Courbes PnL (global base 0) & par stratégie */
-
-    /* [BLOCK I] START — Agrégations Gains/Pertes (Heures / Jours / Mois) */
-    // Fenêtre par défaut 30 jours si pas de filtre
-    const defaultWindowStart = useMemo(() => {
-      if (dateFrom) return dateFrom
-      const dates = filtered.map(t => t.date).sort()
-      const last = dates.at(-1) || new Date().toISOString().slice(0, 10)
-      const d = new Date(last); d.setDate(d.getDate() - 30)
-      return d.toISOString().slice(0, 10)
-    }, [filtered, dateFrom])
-
-    const inWindow = useMemo(() => filtered.filter(t => {
-      const after = defaultWindowStart
-      if (after && t.date < after) return false
-      if (dateTo && t.date > dateTo) return false
-      return true
-    }), [filtered, defaultWindowStart, dateTo])
-
-    function splitGainLossAgg(list, keyFn, buckets) {
-      const base = buckets.map((lab, idx) => ({ idx, label: lab, gain: 0, loss: 0 }))
-      for (const t of list) {
-        const idx = keyFn(t)
-        if (idx == null || idx < 0 || idx >= base.length) continue
-        const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
-        if (v >= 0) base[idx].gain += v; else base[idx].loss += Math.abs(v)
-      }
-      // net verdict (utilisé pour halos si rendu en cartes)
-      return base.map(b => ({ ...b, net: b.gain - b.loss }))
-    }
-
-    const hoursLabels = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, '0')}:00`)
-    const aggHours = useMemo(() => {
-      return splitGainLossAgg(inWindow, t => {
-        const h = new Date(t.open_time || (t.date + 'T00:00:00Z')).getHours()
-        return isFinite(h) ? h : null
-      }, hoursLabels)
-    }, [inWindow, displayCcy, rates])
-
-    const weekLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-    const aggWeek = useMemo(() => {
-      return splitGainLossAgg(inWindow, t => {
-        const d = new Date(t.open_time || (t.date + 'T00:00:00Z'))
-        // Lundi=0 ... Dimanche=6
-        const day = (d.getDay() + 6) % 7
-        return day
-      }, weekLabels)
-    }, [inWindow, displayCcy, rates])
-
-    const monthLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
-    const aggMonths = useMemo(() => {
-      return splitGainLossAgg(inWindow, t => {
-        const d = new Date(t.open_time || (t.date + 'T00:00:00Z'))
-        return d.getMonth()
-      }, monthLabels)
-    }, [inWindow, displayCcy, rates])
-    /* [BLOCK I] END — Agrégations Gains/Pertes (Heures / Jours / Mois) */
-
-    /* [BLOCK J] START — Calendrier enrichi */
-    const lastDate = equitySeriesHL.at(-1)?.date || new Date().toISOString().slice(0, 10)
-    const [calYear, setCalYear] = useState(Number(lastDate.slice(0, 4)))
-    const [calMonth, setCalMonth] = useState(Number(lastDate.slice(5, 7)) - 1)
-
-    function monthDays(year, monthIndex) {
-      const end = new Date(year, monthIndex + 1, 0).getDate()
-      const arr = []
-      for (let d = 1; d <= end; d++) arr.push(new Date(year, monthIndex, d).toISOString().slice(0, 10))
-      return arr
-    }
-    const calDates = useMemo(() => monthDays(calYear, calMonth), [calYear, calMonth])
-
-    const dailyPnlMap = useMemo(() => {
-      const m = new Map()
-      for (const t of filtered) {
-        m.set(t.date, (m.get(t.date) || 0) + convert(t.pnl, t.ccy || 'USD', displayCcy))
-      }
-      return m
-    }, [filtered, displayCcy, rates])
-
-    const dailyRetMap = useMemo(() => {
-      const m = new Map()
-      for (let i = 1; i < equitySeriesHL.length; i++) {
-        const prev = equitySeriesHL[i - 1].equity_trading
-        const cur = equitySeriesHL[i].equity_trading
-        m.set(equitySeriesHL[i].date, prev > 0 ? (cur - prev) / prev : 0)
-      }
-      return m
-    }, [equitySeriesHL])
-
-    const monthDDMap = useMemo(() => {
-      const ym = `${calYear}-${String(calMonth + 1).padStart(2, '0')}`
-      const pts = equitySeriesHL.filter(p => p.date.startsWith(ym))
-      let peak = -Infinity; const m = new Map()
-      for (const p of pts) {
-        peak = Math.max(peak, p.equity_trading)
-        const dd = peak > 0 ? (p.equity_trading - peak) / peak : 0 // <=0
-        m.set(p.date, dd)
-      }
-      return m
-    }, [equitySeriesHL, calYear, calMonth])
-
-    const tradesPerDayMap = useMemo(() => {
-      const m = new Map()
-      for (const t of filtered) m.set(t.date, (m.get(t.date) || 0) + 1)
-      return m
-    }, [filtered])
-
-    const monthLabel = useMemo(() => {
-      const dt = new Date(calYear, calMonth, 1)
-      return dt.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-    }, [calYear, calMonth])
-
-    const ymNow = `${calYear}-${String(calMonth + 1).padStart(2, '0')}`
-    const monthTradesPnl = useMemo(() =>
-      filtered.filter(t => t.date.startsWith(ymNow))
-        .reduce((s, t) => s + convert(t.pnl, t.ccy || 'USD', displayCcy), 0),
-      [filtered, ymNow, displayCcy, rates]
-    )
-    const yearTradesPnl = useMemo(() => {
-      const y = String(calYear)
-      return filtered.filter(t => t.date.startsWith(y))
-        .reduce((s, t) => s + convert(t.pnl, t.ccy || 'USD', displayCcy), 0)
-    }, [filtered, calYear, displayCcy, rates])
-    /* [BLOCK J] END — Calendrier enrichi */
-
-      /* [BLOCK K] START — Matrice de corrélation des stratégies */
-    function buildDailyStratSeries(rows) {
-      const byDayByStrat = new Map()
-      for (const t of rows) {
-        const d = t.date
-        const s = t.strategy || 'Unknown'
-        const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
-        if (!byDayByStrat.has(d)) byDayByStrat.set(d, new Map())
-        const m = byDayByStrat.get(d)
-        m.set(s, (m.get(s) || 0) + v)
-      }
-      const dates = Array.from(byDayByStrat.keys()).sort()
-      const stratSet = new Set()
-      for (const m of byDayByStrat.values()) for (const k of m.keys()) stratSet.add(k)
-      const strats = Array.from(stratSet)
-      const series = {}
-      for (const s of strats) series[s] = []
-      for (const d of dates) {
-        const m = byDayByStrat.get(d)
-        for (const s of strats) series[s].push(m.get(s) ?? 0)
-      }
-      return { strats, series }
-    }
-    const corrData = useMemo(() => buildDailyStratSeries(filtered), [filtered, displayCcy, rates])
-    const avgStrategyCorr = useMemo(() => {
-      const { strats, series } = corrData
-      if (!strats || strats.length < 2) return 0
-      const pairCorr = []
-      for (let i = 0; i < strats.length; i++) {
-        for (let j = i + 1; j < strats.length; j++) {
-          pairCorr.push(pearson(series[strats[i]], series[strats[j]]))
-        }
-      }
-      const vals = pairCorr.filter(x => isFinite(x))
-      return vals.length ? mean(vals) : 0
-    }, [corrData])
-    /* [BLOCK K] END — Matrice de corrélation des stratégies */
-
-    /* [BLOCK L] START — Export CSV (après filtres) */
-    const exportCSV = () => {
-      const header = ['date', 'asset', 'broker', 'strategy', `pnl_${displayCcy}`, `mfe_${displayCcy}`, `mae_${displayCcy}`]
-      const rows = filtered.map(t => [
-        t.date, t.asset, t.broker, t.strategy,
-        convert(t.pnl, t.ccy || 'USD', displayCcy).toFixed(2),
-        convert(t.mfe ?? 0, t.ccy || 'USD', displayCcy).toFixed(2),
-        convert(t.mae ?? 0, t.ccy || 'USD', displayCcy).toFixed(2),
-      ])
-      const csv = [header, ...rows].map(r => r.join(',')).join('\n')
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url; a.download = `trades_filtres_${displayCcy}.csv`; a.click()
-      URL.revokeObjectURL(url)
-    }
-    /* [BLOCK L] END — Export CSV (après filtres) */
-
-    /* [BLOCK M] START — Modale “Ajouter flux” */
-    const [showForm, setShowForm] = useState(false)
-    const [flow, setFlow] = useState({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'darwin_mgmt_fee',
-      amount: '',
-      ccy: displayCcy,
-      note: ''
-    })
-    useEffect(() => { setFlow(f => ({ ...f, ccy: displayCcy })) }, [displayCcy])
-
-    const flowTypes = [
-      { value: 'darwin_mgmt_fee', label: 'Darwinex – Management Fee' },
-      { value: 'prop_payout', label: 'Prop Firm – Payout' },
-      { value: 'prop_fee', label: 'Prop Firm – Fee Challenge' },
-      { value: 'deposit', label: 'Dépôt' },
-      { value: 'withdrawal', label: 'Retrait' },
-      { value: 'business_expense', label: 'Charge Business' },
-      { value: 'other_income', label: 'Autre Revenu' }
-    ]
-    const submitFlow = (e) => {
-      e.preventDefault()
-      const amt = Number(flow.amount)
-      if (!flow.date || !flow.type || isNaN(amt)) { alert('Merci de compléter Date / Type / Montant'); return }
-      const row = { date: flow.date, type: flow.type, amount: amt, ccy: flow.ccy || displayCcy, note: flow.note || '' }
-      setUserCashflows(prev => prev.concat([row]))
-      setShowForm(false)
-      setFlow({ date: new Date().toISOString().slice(0, 10), type: 'darwin_mgmt_fee', amount: '', ccy: displayCcy, note: '' })
-    }
-    /* [BLOCK M] END — Modale “Ajouter flux” */
-
-    /* [BLOCK N] START — RENDER (assemblage UI) */
     return (
-      <div style={{ minHeight: '100vh', background: C.bg, color: C.text, padding: 20, maxWidth: 1540, margin: '0 auto' }}>
-        {/* HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 12 }}>
-          <div>
-            <h1 className="title-brand">ZooProjectVision</h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {!editingSubtitle ? (
+      <div key={dt} className={`cal-cell ${halo}`} style={{ padding:'10px 8px' }}>
+        <div style={{ fontSize:11, opacity:.9 }}>{dayNum}</div>
+        <div style={{ fontSize:12, color: pnlColor }}>{Number.isFinite(pnlDay) ? fmtMoney(pnlDay) : '—'}</div>
+        <div style={{ fontSize:11, color:'var(--text)' }}>{Number.isFinite(retPct) ? `${(retPct*100).toFixed(2)}%` : '—'}</div>
+        <div style={{ fontSize:11, color:'var(--muted)' }}>
+          {ddPct!=null ? `${Math.abs(ddPct*100).toFixed(2)}% · ${fmtMoney(ddAmt||0)}` : '—'}
+        </div>
+        <div style={{ fontSize:11, color:'var(--muted)' }}>
+          {nTrades>0 ? `${nTrades} trade${nTrades>1?'s':''}` : '—'}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      {/* En-tête calendrier */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+        <div className="kpi-title">calendrier / {monthLabel}</div>
+        <div style={{ display:'flex', gap:8 }}>
+          <button className="btn sm" onClick={prevMonth}>◀</button>
+          <button className="btn sm" onClick={nextMonth}>▶</button>
+        </div>
+      </div>
+
+      {/* Légende seuils DD% */}
+      <div style={{ display:'flex', gap:12, color:'var(--muted)', fontSize:12, margin:'4px 0 10px' }}>
+        <span><span className="cal-cell halo-good" style={{ padding:'2px 6px' }}></span> DD &gt; -1%</span>
+        <span><span className="cal-cell halo-warn" style={{ padding:'2px 6px' }}></span> -2% &lt;= DD ≤ -1%</span>
+        <span><span className="cal-cell halo-bad"  style={{ padding:'2px 6px' }}></span> DD ≤ -2%</span>
+      </div>
+
+      {/* Jours semaine */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:8, marginBottom:6 }}>
+        {['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d => (
+          <div key={d} style={{ textAlign:'center', color:'var(--muted)', fontSize:12 }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Grille jours */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:8 }}>
+        {datesInMonth.map(renderCell)}
+      </div>
+    </div>
+  )
+})()}
+{/* ================== [BLOCK H] END — Calendrier (bordures verdict + infos jour) ================== */}
+
+
+    /* ================== [BLOCK I] START — Capital Tiers (COMPLET) ================== */
+
+/* --- [I-A] — ÉTAT & HELPERS (à coller avec les autres useState, dans App.jsx) --- */
+const [capitalTiers, setCapitalTiers] = React.useState(() => {
+  try {
+    const raw = localStorage.getItem('zp_capital_tiers_v1')
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+})
+React.useEffect(() => {
+  try { localStorage.setItem('zp_capital_tiers_v1', JSON.stringify(capitalTiers)) } catch {}
+}, [capitalTiers])
+
+const capitalTiersTotalDisp = React.useMemo(() => {
+  return capitalTiers.reduce((a, r) => a + (convert(Number(r.amount)||0, r.ccy||'USD', displayCcy) || 0), 0)
+}, [capitalTiers, displayCcy])
+
+const [showCT, setShowCT] = React.useState(false)
+const [ctForm, setCtForm] = React.useState({
+  date: new Date().toISOString().slice(0,10),
+  source: 'Darwinex',
+  amount: '',
+  ccy: displayCcy,
+  note: ''
+})
+React.useEffect(()=>{ setCtForm(f => ({...f, ccy: displayCcy})) }, [displayCcy])
+
+const ctSources = ['Darwinex', 'Prop firm', 'Axi Select', 'Investisseur', 'Autre']
+
+function submitCT(e){
+  e.preventDefault()
+  const amt = Number(ctForm.amount)
+  if (!ctForm.date || !ctForm.source || !Number.isFinite(amt)) { alert('Merci de renseigner Date, Source, Montant.'); return }
+  const row = {
+    date: ctForm.date,
+    source: ctForm.source,
+    amount: amt,
+    ccy: ctForm.ccy || displayCcy,
+    note: ctForm.note || ''
+  }
+  setCapitalTiers(prev => prev.concat([row]))
+  setShowCT(false)
+  setCtForm({ date:new Date().toISOString().slice(0,10), source:'Darwinex', amount:'', ccy:displayCcy, note:'' })
+}
+/* --- [I-A] FIN --- */
+
+
+/* --- [I-B] — HEADER (à coller dans la barre d’actions du haut, avec tes boutons) --- */
+/* KPI neutre “Capital Tiers” (total converti) */
+<div className="card halo-neutral" style={{ padding:'6px 10px', display:'flex', alignItems:'center', gap:8 }}>
+  <div className="kpi-title" style={{ margin:0 }}>capital tiers</div>
+  <div className="val" style={{ fontSize:14, color:'var(--text)' }}>
+    {(() => {
+      try{
+        if (typeof fmt === 'function') return fmt(capitalTiersTotalDisp, displayCcy)
+        return new Intl.NumberFormat(undefined,{style:'currency',currency:displayCcy||'USD'}).format(capitalTiersTotalDisp||0)
+      }catch{ return `${(capitalTiersTotalDisp||0).toFixed(2)} ${displayCcy||'USD'}` }
+    })()}
+  </div>
+</div>
+
+/* Bouton pour ouvrir la modale “Capital Tiers” */
+<button className="btn" onClick={()=>setShowCT(true)}>capital tiers</button>
+/* --- [I-B] FIN --- */
+
+
+/* --- [I-C] — MODALE (à coller en bas du JSX principal, avec tes autres modales) --- */
+{showCT && (
+  <div className="modal-overlay" onClick={()=>setShowCT(false)}>
+    <div className="modal-card" onClick={(e)=>e.stopPropagation()}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+        <div className="kpi-title" style={{ fontSize:14 }}>ajouter un capital tiers</div>
+        <button className="btn ghost sm" onClick={()=>setShowCT(false)}>fermer</button>
+      </div>
+
+      <form onSubmit={submitCT} style={{ display:'grid', gap:10, gridTemplateColumns:'repeat(2, 1fr)' }}>
+        <label className="form-label">
+          <span>source</span>
+          <select className="sel" value={ctForm.source} onChange={e=>setCtForm(f=>({...f, source:e.target.value}))}>
+            {ctSources.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </label>
+
+        <label className="form-label">
+          <span>date</span>
+          <input type="date" className="sel" value={ctForm.date} onChange={e=>setCtForm(f=>({...f, date:e.target.value}))} />
+        </label>
+
+        <label className="form-label">
+          <span>devise</span>
+          <select className="sel" value={ctForm.ccy} onChange={e=>setCtForm(f=>({...f, ccy:e.target.value}))}>
+            {['USD','EUR','CHF'].map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+
+        <label className="form-label">
+          <span>montant</span>
+          <input type="number" step="0.01" className="sel" placeholder="ex: 25 000.00" value={ctForm.amount}
+                 onChange={e=>setCtForm(f=>({...f, amount:e.target.value}))} />
+        </label>
+
+        <label className="form-label" style={{ gridColumn:'1 / -1' }}>
+          <span>note</span>
+          <input type="text" className="sel" placeholder="optionnel"
+                 value={ctForm.note} onChange={e=>setCtForm(f=>({...f, note:e.target.value}))} />
+        </label>
+
+        <div style={{ gridColumn:'1 / -1', display:'flex', justifyContent:'flex-end', gap:8 }}>
+          <button type="button" className="btn ghost" onClick={()=>setShowCT(false)}>annuler</button>
+          <button type="submit" className="btn">enregistrer</button>
+        </div>
+      </form>
+
+      {capitalTiers.length > 0 && (
+        <div style={{ marginTop:12 }}>
+          <div className="kpi-title" style={{ marginBottom:6 }}>historique (local)</div>
+          <div style={{ display:'grid', gap:6 }}>
+            {capitalTiers.slice().reverse().map((r, i) => (
+              <div key={i} className="cal-cell" style={{ padding:'8px 10px', display:'grid', gridTemplateColumns:'120px 1fr 140px 80px', gap:8 }}>
+                <div style={{ color:'var(--muted)' }}>{r.date}</div>
+                <div style={{ color:'var(--text)' }}>{r.source}{r.note? ` — ${r.note}`:''}</div>
+                <div style={{ textAlign:'right', color:'var(--text)' }}>
+                  {(() => {
+                    const v = convert(Number(r.amount)||0, r.ccy||'USD', displayCcy)
+                    try{
+                      if (typeof fmt === 'function') return fmt(v, displayCcy)
+                      return new Intl.NumberFormat(undefined,{style:'currency', currency:displayCcy||'USD'}).format(v||0)
+                    }catch{ return `${(v||0).toFixed(2)} ${displayCcy||'USD'}` }
+                  })()}
+                </div>
+                <div style={{ textAlign:'right', color:'var(--muted)' }}>{r.ccy}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+/* --- [I-C] FIN --- */
+
+/* ================== [BLOCK I] END — Capital Tiers (COMPLET) ================== */
+
+
+    /* ================== [BLOCK J — CorrelationMatrix] START ================== */
+function CorrelationMatrix({ filtered, displayCcy, convert }) {
+  const strategies = React.useMemo(
+    () => Array.from(new Set(filtered.map(t => t.strategy))).sort(),
+    [filtered]
+  )
+  if (strategies.length < 2) return null
+
+  const byDateByStrat = React.useMemo(() => {
+    const m = new Map()
+    for (const t of filtered){
+      const d = t.date
+      const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
+      if (!m.has(d)) m.set(d, new Map())
+      const mm = m.get(d)
+      mm.set(t.strategy, (mm.get(t.strategy) || 0) + v)
+    }
+    return m
+  }, [filtered, displayCcy, convert])
+
+  const dates = React.useMemo(() => Array.from(byDateByStrat.keys()).sort(), [byDateByStrat])
+
+  const series = React.useMemo(() => {
+    const s = {}
+    strategies.forEach(st => { s[st] = dates.map(d => (byDateByStrat.get(d).get(st) || 0)) })
+    return s
+  }, [strategies, dates, byDateByStrat])
+
+  const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0
+  const std  = a => { if(!a.length) return 0; const m=mean(a); return Math.sqrt(mean(a.map(x=>(x-m)*(x-m)))) }
+  const corr = (a,b) => {
+    const n = Math.min(a.length, b.length); if(!n) return 0
+    const ax=a.slice(0,n), bx=b.slice(0,n)
+    const ma=mean(ax), mb=mean(bx)
+    let num=0, da=0, db=0
+    for(let i=0;i<n;i++){ const x=ax[i]-ma, y=bx[i]-mb; num+=x*y; da+=x*x; db+=y*y }
+    const den=Math.sqrt(da*db); return den>0? num/den : 0
+  }
+
+  const verdict = (c) => {
+    const a = Math.abs(c)
+    if (a <= 0.30) return 'halo-good'
+    if (a <= 0.60) return 'halo-warn'
+    return 'halo-bad'
+  }
+
+  const matrix = strategies.map((s1,i) => strategies.map((s2,j) => (i===j ? 1 : corr(series[s1], series[s2]))))
+
+  return (
+    <div className="card" style={{ marginTop:16 }}>
+      <div className="kpi-title">corrélation stratégies (pnl/jour)</div>
+      <div style={{ overflowX:'auto', marginTop:8 }}>
+        <table style={{ borderCollapse:'separate', borderSpacing:8 }}>
+          <thead>
+            <tr>
+              <th></th>
+              {strategies.map(s => <th key={s} style={{ color:'var(--muted)', fontWeight:400 }}>{s}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {matrix.map((row,i)=>(
+              <tr key={i}>
+                <th style={{ color:'var(--muted)', fontWeight:400, textAlign:'right', paddingRight:8 }}>{strategies[i]}</th>
+                {row.map((c,j)=>(
+                  <td key={j}>
+                    <div className={`cal-cell ${verdict(c)}`} style={{ padding:'10px 12px', textAlign:'center', minWidth:72 }}>
+                      <div style={{ fontSize:14, color:'var(--text)' }}>{c.toFixed(2)}</div>
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ color:'var(--muted)', fontSize:12, marginTop:8 }}>
+        |corr| ≤ 0.30 = bon, 0.30–0.60 = mitigé, &gt; 0.60 = trop corrélé.
+      </div>
+    </div>
+  )
+}
+/* ================== [BLOCK J — CorrelationMatrix] END ================== */
+
+
+      /* ================== [BLOCK K — GuidePanel] START ================== */
+function GuidePanel() {
+  const [lang, setLang] = React.useState('fr')
+  const [open, setOpen] = React.useState(false)
+  const [data, setData] = React.useState(null)
+
+  React.useEffect(() => {
+    let alive = true
+    const url = lang === 'en' ? '/guide.en.json' : lang === 'es' ? '/guide.es.json' : '/guide.fr.json'
+    fetch(url).then(r=>r.json()).then(j=>{ if(alive) setData(j) }).catch(()=> setData(null))
+    return ()=>{ alive=false }
+  }, [lang])
+
+  return (
+    <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+      <button className="btn ghost" onClick={()=>setOpen(true)}>? aide</button>
+      <select className="sel" value={lang} onChange={e=>setLang(e.target.value)} style={{ width:90 }}>
+        <option value="fr">FR</option>
+        <option value="en">EN</option>
+        <option value="es">ES</option>
+      </select>
+
+      {open && (
+        <div className="modal-overlay" onClick={()=>setOpen(false)}>
+          <div className="modal-card" onClick={e=>e.stopPropagation()} style={{ maxWidth:900 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+              <div className="kpi-title" style={{ fontSize:16 }}>{data?.title || 'aide & guide'}</div>
+              <button className="btn ghost sm" onClick={()=>setOpen(false)}>fermer</button>
+            </div>
+            <div style={{ color:'var(--text)', fontSize:12, lineHeight:1.6 }}>
+              {data ? (
                 <>
-                  <p className="subtitle" style={{ margin: 0 }}>{subtitle}</p>
-                  <button className="btn ghost sm" onClick={() => setEditingSubtitle(true)} title="Modifier le sous-titre">✏️</button>
+                  {data.intro && <p style={{ color:'var(--muted)' }}>{data.intro}</p>}
+                  {Array.isArray(data.sections) && data.sections.map((sec, i)=>(
+                    <details key={i} className="card" style={{ margin:'8px 0' }}>
+                      <summary className="kpi-title" style={{ cursor:'pointer' }}>{sec.title}</summary>
+                      <div style={{ paddingTop:6, color:'var(--text)' }}>
+                        {Array.isArray(sec.points) ? (
+                          <ul style={{ margin:'6px 0 0 18px' }}>
+                            {sec.points.map((p,idx)=><li key={idx} style={{ margin:'4px 0' }}>{p}</li>)}
+                          </ul>
+                        ) : <p style={{ margin:0 }}>{sec.content}</p>}
+                      </div>
+                    </details>
+                  ))}
                 </>
               ) : (
-                <>
-                  <input className="sel" value={subtitle} onChange={e => setSubtitle(e.target.value)} />
-                  <button className="btn sm" onClick={() => setEditingSubtitle(false)}>OK</button>
-                </>
+                <div style={{ color:'var(--muted)' }}>chargement du guide…</div>
               )}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+/* ================== [BLOCK K — GuidePanel] END ================== */
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* Import CSV */}
-            <label className="btn" style={{ position: 'relative' }}>
-              importer csv
-              <input type="file" accept=".csv" style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
-                onChange={e => {
-                  const f = e.target.files?.[0]; if (!f) return;
-                  const fr = new FileReader();
-                  fr.onload = () => {
-                    const rows = parseCSV(String(fr.result));
-                    const mapped = mapMT5Rows(rows);
-                    if (!mapped.length) { alert('CSV non reconnu. Vérifie Time/Symbol/Profit (+ MFE/MAE si dispo).'); return }
-                    setUserTrades(prev => prev.concat(mapped));
-                  };
-                  fr.readAsText(f);
-                }} />
-            </label>
 
-            {/* Ajouter flux */}
-            <button className="btn" onClick={() => setShowForm(true)}>ajouter flux</button>
+    /* ================== [BLOCK L — CashflowSummaryChip] START ================== */
+function CashflowSummaryChip({ allCashflows, dateFrom, dateTo, displayCcy, convert, fmt }) {
+  const today = new Date()
+  const defaultFrom = new Date(today.getTime() - 29*24*3600*1000).toISOString().slice(0,10)
+  const fromDate = (dateFrom && dateFrom.length) ? dateFrom : defaultFrom
+  const toDate   = (dateTo && dateTo.length)     ? dateTo   : today.toISOString().slice(0,10)
 
-            {/* Capital Tiers (neutre) */}
-            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px' }}>
-              <span className="kpi-title">capital tiers</span>
-              <input className="sel" type="number" step="0.01" style={{ width: 140 }}
-                value={capitalTiers} onChange={e => setCapitalTiers(Number(e.target.value || 0))} />
+  const inRange = (allCashflows || []).filter(c => (!fromDate || c.date >= fromDate) && (!toDate || c.date <= toDate))
+  const byType = new Map()
+  for (const c of inRange){
+    const v = convert(Number(c.amount)||0, c.ccy||'USD', displayCcy)
+    byType.set(c.type, (byType.get(c.type) || 0) + v)
+  }
+
+  const labels = {
+    deposit:'Dépôt', withdrawal:'Retrait', prop_fee:'Prop fee', prop_payout:'Prop payout',
+    darwin_mgmt_fee:'Darwinex fee', business_expense:'Charge', other_income:'Autre revenu'
+  }
+
+  const fmtMoney = (v) => {
+    try{
+      if (typeof fmt === 'function') return fmt(v, displayCcy)
+      return new Intl.NumberFormat(undefined, { style:'currency', currency: displayCcy || 'USD' }).format(v ?? 0)
+    }catch{ return `${(v ?? 0).toFixed(2)} ${displayCcy || 'USD'}` }
+  }
+
+  return (
+    <div className="card halo-neutral" style={{ padding:'6px 10px', display:'flex', gap:10, alignItems:'center' }}>
+      <div className="kpi-title" style={{ margin:0 }}>cashflows (récap)</div>
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+        {[...byType.entries()].map(([k,v])=>(
+          <span key={k} style={{ color: v>=0 ? 'var(--green)' : 'var(--pink)', fontSize:12 }}>
+            {labels[k] || k}: <b>{fmtMoney(v)}</b>
+          </span>
+        ))}
+        {byType.size===0 && <span style={{ color:'var(--muted)', fontSize:12 }}>— aucun flux dans l’intervalle</span>}
+      </div>
+    </div>
+  )
+}
+/* ================== [BLOCK L — CashflowSummaryChip] END ================== */
+
+
+    /* ================== [BLOCK M — RiskProjection] START ================== */
+function RiskProjection({ filtered, displayCcy, convert, fmt, capitalGlobal, capitalInitialDisp, maxDDPct }) {
+  const [open, setOpen] = React.useState(false)
+  const round2 = (x)=> Math.round((x ?? 0)*100)/100
+  const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0
+
+  const expPerTrade = React.useMemo(() => {
+    if (!filtered.length) return 0
+    const pnl = filtered.reduce((s,t)=> s + convert(t.pnl, t.ccy||'USD', displayCcy), 0)
+    return pnl / filtered.length
+  }, [filtered, displayCcy, convert])
+
+  const wr_rr = React.useMemo(() => {
+    const total = filtered.length
+    const wins  = filtered.filter(t => t.pnl > 0)
+    const losses= filtered.filter(t => t.pnl < 0)
+    const wr = total ? (wins.length / total) : 0
+    const avgWin = wins.length ? mean(wins.map(t => convert(t.pnl, t.ccy||'USD', displayCcy))) : 0
+    const avgLoss= losses.length? mean(losses.map(t => Math.abs(convert(t.pnl, t.ccy||'USD', displayCcy)))) : 0
+    const rr = avgLoss>0 ? (avgWin/avgLoss) : 0
+    return { wr, rr }
+  }, [filtered, displayCcy, convert])
+
+  const tradesPerDay = React.useMemo(() => {
+    if (!filtered.length) return 0
+    const last = filtered[filtered.length-1]?.date
+    const first= filtered[0]?.date
+    const days = (first && last) ? Math.max(1, Math.floor((new Date(last) - new Date(first))/86400000)+1) : 1
+    return filtered.length / days
+  }, [filtered])
+
+  const baseRef = (Number(capitalGlobal)>0 ? Number(capitalGlobal) : Number(capitalInitialDisp)||100000)
+  const paceAnnualPct = React.useMemo(() => {
+    const dailyGain = expPerTrade * tradesPerDay
+    return baseRef>0 ? (dailyGain*252/baseRef)*100 : 0
+  }, [expPerTrade, tradesPerDay, baseRef])
+
+  const projectDays = (n)=> (expPerTrade * tradesPerDay * n)
+
+  const verdictClassNum = (v, kind) => {
+    switch(kind){
+      case 'wr':   { const p = v*100; if (p>=50) return 'halo-good'; if (p>=35) return 'halo-warn'; return 'halo-bad' }
+      case 'rr':   { if (v>=1.5) return 'halo-good'; if (v>=1.0) return 'halo-warn'; return 'halo-bad' }
+      case 'dd':   { if (v<15) return 'halo-good'; if (v<=20) return 'halo-warn'; return 'halo-bad' }
+      case 'pace': { if (v>=15) return 'halo-good'; if (v>=5) return 'halo-warn'; return 'halo-bad' }
+      default: return 'halo-neutral'
+    }
+  }
+
+  const fmtMoney = (v)=>{
+    try{
+      if (typeof fmt === 'function') return fmt(v, displayCcy)
+      return new Intl.NumberFormat(undefined,{style:'currency',currency:displayCcy||'USD'}).format(v||0)
+    }catch{ return `${(v||0).toFixed(2)} ${displayCcy||'USD'}` }
+  }
+
+  return (
+    <>
+      <button className="btn ghost" onClick={()=>setOpen(true)}>🔎 risque & projection</button>
+
+      {open && (
+        <div className="modal-overlay" onClick={()=>setOpen(false)}>
+          <div className="modal-card" onClick={e=>e.stopPropagation()} style={{ maxWidth:820 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+              <div className="kpi-title" style={{ fontSize:16 }}>diagnostic risque & projection</div>
+              <button className="btn ghost sm" onClick={()=>setOpen(false)}>fermer</button>
             </div>
 
-            {/* Réinitialiser */}
-            <button className="btn ghost" onClick={resetFilters}>réinitialiser</button>
-
-            {/* Devise */}
-            <select className="sel" value={displayCcy} onChange={e => setDisplayCcy(e.target.value)}>
-              {['USD', 'EUR', 'CHF'].map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-
-            {/* Langue (guide) */}
-            <select className="sel" value={lang} onChange={e => setLang(e.target.value)}>
-              {['fr', 'en', 'es'].map(l => <option key={l} value={l}>{l.toUpperCase()}</option>)}
-            </select>
-
-            {/* Export */}
-            <button className="btn ghost" onClick={exportCSV}>export csv</button>
-          </div>
-        </div>
-
-        {/* FILTRES */}
-        <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 10 }}>
-          <div>
-            <div className="kpi-title">actif</div>
-            <select value={asset} onChange={e => setAsset(e.target.value)} className="sel"><option>All</option>{assets.map(a => <option key={a} value={a}>{a}</option>)}</select>
-          </div>
-          <div>
-            <div className="kpi-title">broker</div>
-            <select value={broker} onChange={e => setBroker(e.target.value)} className="sel"><option>All</option>{brokers.map(b => <option key={b} value={b}>{b}</option>)}</select>
-          </div>
-          <div>
-            <div className="kpi-title">stratégie</div>
-            <select value={strategy} onChange={e => setStrategy(e.target.value)} className="sel"><option>All</option>{strategies.map(s => <option key={s} value={s}>{s}</option>)}</select>
-          </div>
-          <div><div className="kpi-title">du</div><input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="sel" /></div>
-          <div><div className="kpi-title">au</div><input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="sel" /></div>
-          <div />
-          <div />
-        </div>
-
-        {/* KPI PRINCIPAUX */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginTop: 12 }}>
-          <div className="card halo-neutral">
-            <div className="kpi-title">capital initial</div>
-            <div className="val" style={{ color: C.white }}>{fmtC(capitalInitialDisp)}</div>
-          </div>
-          <div className={`card ${verdictForPnl(cashFlowTotal)}`}>
-            <div className="kpi-title">cash flow</div>
-            <div className="val" style={{ color: cashFlowTotal >= 0 ? C.green : C.pink }}>{fmtC(cashFlowTotal)}</div>
-          </div>
-          <div className={`card ${verdictForPnl(totalPnlDisp)}`}>
-            <div className="kpi-title">pnl (filtré)</div>
-            <div className="val" style={{ color: totalPnlDisp >= 0 ? C.green : C.pink }}>{fmtC(totalPnlDisp)}</div>
-          </div>
-          <div className="card halo-neutral">
-            <div className="kpi-title">capital global</div>
-            <div className="val">{fmtC(capitalGlobal)}</div>
-          </div>
-          <div className="card halo-neutral">
-            <div className="kpi-title">total trades</div>
-            <div className="val">{fmtNum(filtered.length)}</div>
-          </div>
-          <div className="card halo-neutral">
-            <div className="kpi-title">capital tiers</div>
-            <div className="val">{fmtC(convert(capitalTiers, 'USD', displayCcy))}</div>
-          </div>
-        </div>
-
-        {/* RATIOS & QUALITÉ (neutres) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginTop: 12 }}>
-          <div className="card"><div className="kpi-title">win rate</div><div className="val">{fmtPct(wr)}</div></div>
-          <div className="card"><div className="kpi-title">risk / reward</div><div className="val">{rr.toFixed(2)}</div></div>
-          <div className="card"><div className="kpi-title">expectancy / trade</div><div className="val">{fmtC(expectancy)}</div></div>
-          <div className="card"><div className="kpi-title">sharpe (ann.)</div><div className="val">{sharpe.toFixed(2)}</div></div>
-          <div className="card"><div className="kpi-title">sortino (ann.)</div><div className="val">{sortino.toFixed(2)}</div></div>
-          <div className="card"><div className="kpi-title">recovery factor</div><div className="val">{recoveryFactor.toFixed(2)}</div></div>
-        </div>
-
-        {/* OPÉRATIONNELS + DD */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 12 }}>
-          <div className="card"><div className="kpi-title">jours actifs</div><div className="val">{activeDays}</div></div>
-          <div className="card"><div className="kpi-title">durée moyenne</div><div className="val">{Math.round(avgTradeDurationMin)} min</div></div>
-          <div className="card"><div className="kpi-title">equity peak / trough</div><div className="val">{fmtC(maxDDCalc.peakEquity)} / {fmtC(maxDDCalc.troughEquity)}</div></div>
-          <div className={`card ${verdictForDDpct(maxDDCalc.maxDDPct)}`}>
-            <div className="kpi-title">max dd</div>
-            <div className="val">{fmtPct(maxDDCalc.maxDDPct)} · {fmtC(maxDDCalc.maxDDAbs)}</div>
-          </div>
-        </div>
-
-        {/* WIN RATE — DONUT + GAGNANTS/PERDANTS */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
-          {/* Donut */}
-          <div className="card" style={{ position: 'relative', height: 260 }}>
-            <div className="kpi-title">win rate</div>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-              <div style={{ fontSize: 24 }}>{fmtPct(wr)}</div>
-            </div>
-            <ResponsiveContainer width="100%" height="88%">
-              <PieChart>
-                <Pie data={[
-                  { name: 'Gagnants', value: Math.max(0.0001, wr) },
-                  { name: 'Perdants', value: Math.max(0.0001, 100 - wr) }
-                ]}
-                  dataKey="value" nameKey="name"
-                  innerRadius={70} outerRadius={100} stroke="none">
-                  <Cell fill={C.green} />
-                  <Cell fill={C.pink} />
-                </Pie>
-                <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, color: C.text, borderRadius: 10 }} />
-                <Legend wrapperStyle={{ color: C.text }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Gagnants / Perdants — barres */}
-          <div className="card" style={{ height: 260 }}>
-            <div className="kpi-title">gagnants / perdants (comptage)</div>
-            <ResponsiveContainer width="100%" height="88%">
-              <BarChart data={[
-                { type: 'Gagnants', n: filtered.filter(t => t.pnl > 0).length },
-                { type: 'Perdants', n: filtered.filter(t => t.pnl < 0).length }
-              ]} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-                <CartesianGrid stroke="#2b2b2b" />
-                <XAxis dataKey="type" stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-                <YAxis stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-                <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, color: C.text, borderRadius: 10 }}
-                  formatter={(v, n, ctx) => [fmtNum(v), ctx?.payload?.type || n]} />
-                <Legend wrapperStyle={{ color: C.text }} />
-                <Bar dataKey="n" name="nombre" fill="url(#colGloss)">
-                  {/* gradient */}
-                </Bar>
-                <defs>
-                  <linearGradient id="colGloss" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={C.green} /><stop offset="100%" stopColor={C.green2} />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* COURBES — Équité / PnL Global / Stratégie(s) */}
-        <div className="card" style={{ height: 460, marginTop: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <div className="kpi-title">courbes</div>
-          </div>
-          <ResponsiveContainer width="100%" height="85%">
-            <LineChart data={equitySeriesHL} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-              <CartesianGrid stroke="#2b2b2b" />
-              <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} tick={{ fontSize: 10 }} />
-              <YAxis stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} tick={{ fontSize: 10 }} />
-              <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, color: C.text, borderRadius: 10 }}
-                labelStyle={{ color: C.text }} itemStyle={{ color: C.text }}
-                formatter={(v, n) => [fmtC(v), n]} />
-              <Legend wrapperStyle={{ color: C.text }} />
-
-              {/* trading seul */}
-              <Line type="monotone" dataKey="equity_trading" name="Équité (trading seul)" dot={false} stroke={C.white} strokeWidth={1.8} isAnimationActive={false} />
-              {/* avec flux */}
-              <Line type="monotone" dataKey="equity_with_flows" name="Équité (avec flux)" dot={false} stroke="#8a8f94" strokeWidth={1.2} strokeDasharray="5 4" />
-
-              {/* HWM/LWM (trading seul) */}
-              <Line type="monotone" dataKey="hwm" name="Plus Haut (HWM)" dot={false} stroke={C.turq} strokeWidth={1.4} strokeDasharray="4 3" />
-              <Line type="monotone" dataKey="lwm" name="Plus Bas (LWM)" dot={false} stroke={C.pink} strokeWidth={1.2} strokeDasharray="4 3" />
-
-              {/* Points cashflow (aucune ligne verticale) */}
-              {cashflowsInRange
-                .filter(c => ['deposit', 'withdrawal', 'prop_fee', 'prop_payout', 'darwin_mgmt_fee'].includes(c.type))
-                .map((c, i) => {
-                  const y = equityWithFlowsAt(c.date)
-                  const color = c.amount >= 0 ? C.green : C.pink
-                  return y != null ? <ReferenceDot key={'cf' + i} x={c.date} y={y} r={4} fill={color} stroke="none" /> : null
-                })}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* MFE / MAE — Quotidien (moyenne) */}
-        <div className="card" style={{ height: 360, marginTop: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="kpi-title">mfe / mae — quotidien (moyenne)</div>
-            <span className="help" title="MFE: meilleur gain latent. MAE: pire perte latente. Moyennés par jour après filtres.">?</span>
-          </div>
-          <ResponsiveContainer width="100%" height="88%">
-            <LineChart data={buildMfeMaeDaily(filtered, convert, displayCcy)} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-              <CartesianGrid stroke="#2b2b2b" />
-              <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-              <YAxis stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-              <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, color: C.text, borderRadius: 10 }}
-                formatter={(v, n) => [fmtC(v), n === 'avgMFE' ? 'MFE Moyen' : 'MAE Moyen']} />
-              <Legend wrapperStyle={{ color: C.text }} />
-              <Line type="monotone" dataKey="avgMFE" name="MFE Moyen" dot={false} stroke={C.green} strokeWidth={2} />
-              <Line type="monotone" dataKey="avgMAE" name="MAE Moyen" dot={false} stroke={C.pink} strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* GAINS / PERTES — Heures / Jours / Mois */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 16 }}>
-          <div className="card">
-            <div className="kpi-title">gains / pertes par heure</div>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={aggHours} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-                <CartesianGrid stroke="#2b2b2b" />
-                <XAxis dataKey="label" stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-                <YAxis stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-                <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, color: C.text, borderRadius: 10 }}
-                  formatter={(v, n) => [fmtC(v), n === 'gain' ? 'Gains' : 'Pertes']} />
-                <Legend wrapperStyle={{ color: C.text }} />
-                <Bar dataKey="gain" name="Gains">
-                  <Cell fill={C.green} />
-                </Bar>
-                <Bar dataKey="loss" name="Pertes">
-                  <Cell fill={C.pink} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="card">
-            <div className="kpi-title">gains / pertes par jour</div>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={aggWeek} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-                <CartesianGrid stroke="#2b2b2b" />
-                <XAxis dataKey="label" stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-                <YAxis stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-                <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, color: C.text, borderRadius: 10 }}
-                  formatter={(v, n) => [fmtC(v), n === 'gain' ? 'Gains' : 'Pertes']} />
-                <Legend wrapperStyle={{ color: C.text }} />
-                <Bar dataKey="gain" name="Gains">
-                  <Cell fill={C.green} />
-                </Bar>
-                <Bar dataKey="loss" name="Pertes">
-                  <Cell fill={C.pink} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="card">
-            <div className="kpi-title">gains / pertes par mois</div>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={aggMonths} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-                <CartesianGrid stroke="#2b2b2b" />
-                <XAxis dataKey="label" stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-                <YAxis stroke={C.axis} tickLine={false} axisLine={{ stroke: C.axis }} />
-                <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, color: C.text, borderRadius: 10 }}
-                  formatter={(v, n) => [fmtC(v), n === 'gain' ? 'Gains' : 'Pertes']} />
-                <Legend wrapperStyle={{ color: C.text }} />
-                <Bar dataKey="gain" name="Gains">
-                  <Cell fill={C.green} />
-                </Bar>
-                <Bar dataKey="loss" name="Pertes">
-                  <Cell fill={C.pink} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* CALENDRIER */}
-        <div className="card" style={{ marginTop: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <div className="kpi-title">calendrier / {monthLabel}</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn ghost sm" onClick={() => { let m = calMonth - 1, y = calYear; if (m < 0) { m = 11; y-- } setCalMonth(m); setCalYear(y) }}>◀</button>
-              <button className="btn ghost sm" onClick={() => { let m = calMonth + 1, y = calYear; if (m > 11) { m = 0; y++ } setCalMonth(m); setCalYear(y) }}>▶</button>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 12, color: C.muted, fontSize: 12, margin: '4px 0 10px' }}>
-            <span>mensuel (trading) : <span style={{ color: monthTradesPnl >= 0 ? C.green : C.pink }}>{fmtC(monthTradesPnl)}</span></span>
-            <span>annuel (trading) : <span style={{ color: yearTradesPnl >= 0 ? C.green : C.pink }}>{fmtC(yearTradesPnl)}</span></span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-            {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => <div key={d} style={{ textAlign: 'center', color: C.muted, fontSize: 12 }}>{d}</div>)}
-            {calDates.map(dt => {
-              const pnl = dailyPnlMap.get(dt) || 0
-              const ret = dailyRetMap.get(dt)
-              const dd = monthDDMap.get(dt) // <=0
-              const n = tradesPerDayMap.get(dt) || 0
-              const bg = ret == null ? '#0f0f10' : (ret >= 0 ? 'rgba(32,227,214,0.15)' : 'rgba(255,95,162,0.15)')
-              // verdict bordure sur DD%
-              let haloClass = 'halo-neutral'
-              if (dd != null) {
-                const ddPct = Math.abs(dd * 100)
-                if (ddPct < 1) haloClass = 'halo-good'
-                else if (ddPct <= 2) haloClass = 'halo-warn'
-                else haloClass = 'halo-bad'
-              }
-              return (
-                <div key={dt} className={`cal-cell ${haloClass}`} style={{ padding: '10px 8px', background: bg }}>
-                  <div style={{ fontSize: 11, opacity: .9 }}>{Number(dt.slice(8, 10))}</div>
-                  <div style={{ fontSize: 12, color: pnl >= 0 ? C.green : C.pink }}>{fmtC(pnl)}</div>
-                  <div style={{ fontSize: 11, color: '#bfc5c9' }}>{ret != null ? fmtPct(ret * 100) : '—'}</div>
-                  <div style={{ fontSize: 11, color: '#bfc5c9' }}>{dd != null ? `DD ${fmtPct(Math.abs(dd * 100))}` : 'DD —'}</div>
-                  <div style={{ fontSize: 11, color: '#bfc5c9' }}>{n} trade(s)</div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* AIDE / GUIDE (auto) */}
-        <details className="card" style={{ marginTop: 16 }}>
-          <summary className="kpi-title" style={{ cursor: 'pointer' }}>aide & guide</summary>
-          <Guide lang={lang} />
-        </details>
-
-        {/* FOOTER */}
-        <div style={{ textAlign: 'center', color: C.muted, fontSize: 12, marginTop: 20 }}>
-          ZooProjectVision © {new Date().getFullYear()}
-        </div>
-
-        {/* MODALE — Ajouter flux */}
-        {showForm && (
-          <div className="modal-overlay" onClick={() => setShowForm(false)}>
-            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div className="kpi-title">ajouter un flux</div>
-                <button className="btn ghost sm" onClick={() => setShowForm(false)}>fermer</button>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+              <div className={`card ${verdictClassNum(wr_rr.wr,'wr')}`} style={{ padding:12 }}>
+                <div className="kpi-title">win rate</div>
+                <div className="val">{(wr_rr.wr*100).toFixed(1)}%</div>
               </div>
-              <form onSubmit={submitFlow} style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(2,1fr)' }}>
-                <label className="form-label"><span>type</span>
-                  <select value={flow.type} onChange={e => setFlow(f => ({ ...f, type: e.target.value }))} className="sel">
-                    {flowTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </label>
-                <label className="form-label"><span>date</span>
-                  <input type="date" value={flow.date} onChange={e => setFlow(f => ({ ...f, date: e.target.value }))} className="sel" />
-                </label>
-                <label className="form-label"><span>devise</span>
-                  <select value={flow.ccy} onChange={e => setFlow(f => ({ ...f, ccy: e.target.value }))} className="sel">
-                    {['USD', 'EUR', 'CHF'].map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </label>
-                <label className="form-label"><span>montant</span>
-                  <input type="number" step="0.01" placeholder="ex: 250.00" value={flow.amount}
-                    onChange={e => setFlow(f => ({ ...f, amount: e.target.value }))} className="sel" />
-                </label>
-                <label className="form-label" style={{ gridColumn: '1 / -1' }}><span>note</span>
-                  <input type="text" placeholder="optionnel" value={flow.note}
-                    onChange={e => setFlow(f => ({ ...f, note: e.target.value }))} className="sel" />
-                </label>
-                <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                  <button type="button" className="btn ghost" onClick={() => setShowForm(false)}>annuler</button>
-                  <button type="submit" className="btn">enregistrer</button>
-                </div>
-              </form>
+              <div className={`card ${verdictClassNum(wr_rr.rr,'rr')}`} style={{ padding:12 }}>
+                <div className="kpi-title">risk / reward</div>
+                <div className="val">{wr_rr.rr.toFixed(2)}</div>
+              </div>
+              <div className={`card ${verdictClassNum(Number(maxDDPct)||0,'dd')}`} style={{ padding:12 }}>
+                <div className="kpi-title">max dd %</div>
+                <div className="val">{Number.isFinite(Number(maxDDPct))? Number(maxDDPct).toFixed(2)+'%' : '—'}</div>
+              </div>
+              <div className={`card ${verdictClassNum(paceAnnualPct,'pace')}`} style={{ padding:12 }}>
+                <div className="kpi-title">pace annuel (≈)</div>
+                <div className="val">{paceAnnualPct.toFixed(1)}%</div>
+              </div>
             </div>
+
+            <div className="card halo-neutral" style={{ marginTop:12, padding:12 }}>
+              <div className="kpi-title">projection simple (linéaire)</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginTop:8 }}>
+                <div className="cal-cell" style={{ padding:10 }}>
+                  <div style={{ color:'var(--muted)', fontSize:12 }}>30 jours</div>
+                  <div className="val">{fmtMoney(projectDays(30))}</div>
+                </div>
+                <div className="cal-cell" style={{ padding:10 }}>
+                  <div style={{ color:'var(--muted)', fontSize:12 }}>90 jours</div>
+                  <div className="val">{fmtMoney(projectDays(90))}</div>
+                </div>
+                <div className="cal-cell" style={{ padding:10 }}>
+                  <div style={{ color:'var(--muted)', fontSize:12 }}>hypothèses</div>
+                  <div style={{ color:'var(--text)', fontSize:12 }}>
+                    Expectancy &amp; cadence supposées <i>stables</i> (linéaire). À réévaluer si conditions de marché changent.
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
-        )}
+        </div>
+      )}
+    </>
+  )
+}
+/* ================== [BLOCK M — RiskProjection] END ================== */
+
+
+   /* ================== [BLOCK N — WinRateDonut] START ================== */
+function WinRateDonut({ filtered }) {
+  // Comptes
+  const counts = React.useMemo(() => {
+    let wins = 0, losses = 0
+    for (const t of filtered) {
+      if (t?.pnl > 0) wins++
+      else if (t?.pnl < 0) losses++
+    }
+    const total = wins + losses
+    const wr = total ? (wins / total) * 100 : 0
+    return { wins, losses, total, wr }
+  }, [filtered])
+
+  // Données anneau (neutre)
+  const data = React.useMemo(() => ([
+    { name: 'Gagnants', value: counts.wins },
+    { name: 'Perdants', value: counts.losses },
+  ]), [counts])
+
+  // Couleurs neutres (respecte la consigne: ratios en neutre)
+  const ringColors = ['var(--muted)', '#0f0f10'] // segment gagnants / perdants (tons neutres)
+  const size = 160           // taille du conteneur
+  const outerR = 62          // rayon externe (anti-clipping)
+  const innerR = 42          // rayon interne (donut)
+  const labelSize = 22       // taille du % centré
+
+  // Tooltip propre (sans "n")
+  const TooltipDonut = ({ active, payload }) => {
+    if (!active || !payload || !payload.length) return null
+    // Agréger au cas où Recharts enverrait plusieurs points
+    const agg = new Map()
+    payload.forEach(p => {
+      const cat = p?.name || (p?.payload?.name) || ''
+      const val = Number.isFinite(p?.value) ? p.value : 0
+      agg.set(cat, (agg.get(cat) || 0) + val)
+    })
+    return (
+      <div style={{
+        background:'var(--panel)',
+        border:'1px solid var(--border)',
+        borderRadius:10,
+        padding:'8px 10px',
+        color:'var(--text)',
+        fontSize:12
+      }}>
+        {[...agg.entries()].map(([cat, val])=>(
+          <div key={cat} style={{ display:'flex', justifyContent:'space-between', gap:12 }}>
+            <span style={{ color:'var(--text)' }}>{cat}</span>
+            <b style={{ color:'var(--text)' }}>{new Intl.NumberFormat().format(val)}</b>
+          </div>
+        ))}
+        <div style={{ marginTop:6, color:'var(--muted)' }}>
+          Total: <b style={{ color:'var(--text)' }}>{new Intl.NumberFormat().format(counts.total)}</b>
+        </div>
       </div>
     )
-    /* [BLOCK N] END — RENDER (assemblage UI) */
+  }
+
+  return (
+    <div className="card" style={{ padding:12 }}>
+      <div className="kpi-title" style={{ marginBottom:8 }}>win rate</div>
+
+      <div style={{ position:'relative', width:'100%', height:size }}>
+        {/* libellés “Gagnants / Perdants” optionnels : compacts & neutres */}
+        <div style={{ position:'absolute', top:8, right:8, display:'flex', gap:10, color:'var(--muted)', fontSize:12 }}>
+          <span>gagnants: <b style={{ color:'var(--text)' }}>{new Intl.NumberFormat().format(counts.wins)}</b></span>
+          <span>perdants: <b style={{ color:'var(--text)' }}>{new Intl.NumberFormat().format(counts.losses)}</b></span>
+        </div>
+
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              innerRadius={innerR}
+              outerRadius={outerR}
+              paddingAngle={1.5}
+              stroke="none"
+              isAnimationActive={false}
+            >
+              {data.map((_, i) => (
+                <Cell key={i} fill={ringColors[i % ringColors.length]} stroke="none" />
+              ))}
+            </Pie>
+            <Tooltip content={<TooltipDonut />} />
+          </PieChart>
+        </ResponsiveContainer>
+
+        {/* % centré, parfaitement au milieu */}
+        <div style={{
+          position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
+          pointerEvents:'none', textAlign:'center'
+        }}>
+          <div>
+            <div style={{ fontSize: labelSize, lineHeight:1, color:'var(--text)' }}>
+              {counts.wr.toFixed(1)}%
+            </div>
+            <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>sur {new Intl.NumberFormat().format(counts.total)} trades</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ color:'var(--muted)', fontSize:12, marginTop:8 }}>
+        Ratio de trades gagnants (neutre). Les colonnes “Gagnants/Perdants” détaillées sont visibles dans la section dédiée.
+      </div>
+    </div>
+  )
+}
+/* ================== [BLOCK N — WinRateDonut] END ================== */
 
   } catch (e) {
     console.error(e)
