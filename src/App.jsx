@@ -271,7 +271,7 @@ export default function App(){
       }catch{ return null }
     }
 
-    /* =========== Fenêtre par défaut pour les nouveaux graphiques (30j si pas de dates) =========== */
+    /* =========== Fenêtre par défaut (30j si pas de dates) =========== */
     const default30From = useMemo(()=>{
       if(dateFrom || dateTo) return null
       const d = new Date()
@@ -305,7 +305,7 @@ export default function App(){
       const base = names.map((n,i)=>({ key:n, idx:i+1, gain:0, loss:0 }))
       for(const t of filteredForTimeAgg){
         const tz = brokerTZ[t.broker] || 'UTC'
-        const w = getWeekdayInTZ(t.open_time || (t.date+'T00:00:00Z'), tz)
+        the const w = getWeekdayInTZ(t.open_time || (t.date+'T00:00:00Z'), tz)
         const v = convert(t.pnl, t.ccy||'USD', displayCcy)
         const b = base.find(x=>x.idx===w)
         if(!b) continue
@@ -409,7 +409,7 @@ export default function App(){
             <Help text="Verdict via Edge Index: EI = WR*RR − (1−WR). Vert ≥ +0.05, Jaune [−0.05;+0.05], Rouge < −0.05. Expectancy par trade affichée en devise."/>
           </div>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12}}>
-            {/* Donut WR — centrage corrigé */}
+            {/* Donut WR */}
             <div className="card" style={{height:240, position:'relative', display:'flex', flexDirection:'column'}}>
               <div className="kpi-title">Win Rate</div>
               <div style={{position:'relative', flex:'1 1 auto'}}>
@@ -773,7 +773,7 @@ export default function App(){
         )}
 
         {/* FOOTER */}
-        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4.2.1</div>
+        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4.2.2</div>
       </div>
     )
   }catch(e){
@@ -810,18 +810,26 @@ function Help({text}){
   )
 }
 
-/* ===== Tooltip custom Gains/Pertes (couleurs valeurs) ===== */
-function GLTooltip({active, payload, label, C, fmtC}){
-  if(!active || !payload || !payload.length) return null
+/* ===== Tooltip custom Gains/Pertes (label propre, sans "n") ===== */
+function GLTooltip({ active, payload, label, C, fmtC }) {
+  if (!active || !payload || !payload.length) return null
+
   return (
     <div style={{ background:'var(--panel)', border:'1px solid var(--border)', borderRadius:10, padding:'8px 10px', color:'var(--text)'}}>
-      {label!=null && <div style={{marginBottom:6, opacity:.9}}>{label}</div>}
-      {payload.map((p,i)=>(
-        <div key={i} style={{display:'flex', justifyContent:'space-between', gap:12}}>
-          <span>{p.name}</span>
-          <b style={{color: p.name==='Pertes' ? 'var(--pink)' : 'var(--green)'}}>{fmtC(Number.isFinite(p.value)?p.value:0)}</b>
-        </div>
-      ))}
+      {label != null && <div style={{ marginBottom: 6, opacity: .9 }}>{label}</div>}
+      {payload.map((p, i) => {
+        // Affiche la catégorie ("Gagnants"/"Perdants") au lieu du dataKey "n"
+        const cat = (p.payload && p.payload.type) ? String(p.payload.type) : ''
+        const labelText = cat || (p.name === 'loss' ? 'Pertes' : 'Gains')
+        const isLoss = labelText.toLowerCase().startsWith('perd')
+        const val = Number.isFinite(p.value) ? p.value : 0
+        return (
+          <div key={i} style={{ display:'flex', justifyContent:'space-between', gap:12 }}>
+            <span>{labelText}</span>
+            <b style={{ color: isLoss ? 'var(--pink)' : 'var(--green)' }}>{fmtC(val)}</b>
+          </div>
+        )
+      })}
     </div>
   )
 }
