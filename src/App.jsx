@@ -301,27 +301,18 @@ export default function App(){
     },[filteredForTimeAgg, displayCcy])
 
     const weekdayAgg = useMemo(()=>{
-  const names = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
-  const base = names.map((n,i)=>({ key:n, idx:i+1, gain:0, loss:0 }))
-
-  for (const t of filteredForTimeAgg) {
-    const tz = brokerTZ[t.broker] || 'UTC'
-    const w = getWeekdayInTZ(t.open_time || (t.date + 'T00:00:00Z'), tz) // <-- corrigé
-    const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
-    const b = base.find(x => x.idx === w)
-    if (!b) continue
-    if (v >= 0) b.gain += v
-    else b.loss += Math.abs(v)
-  }
-
-  return base.map(b => ({
-    ...b,
-    gain: round2(b.gain),
-    loss: round2(b.loss),
-    net: round2(b.gain - b.loss)
-  }))
-}, [filteredForTimeAgg, displayCcy])
-
+      const names = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
+      const base = names.map((n,i)=>({ key:n, idx:i+1, gain:0, loss:0 }))
+      for(const t of filteredForTimeAgg){
+        const tz = brokerTZ[t.broker] || 'UTC'
+        const w = getWeekdayInTZ(t.open_time || (t.date+'T00:00:00Z'), tz) // corrigé
+        const v = convert(t.pnl, t.ccy||'USD', displayCcy)
+        const b = base.find(x=>x.idx===w)
+        if(!b) continue
+        if(v>=0) b.gain += v; else b.loss += Math.abs(v)
+      }
+      return base.map(b=> ({...b, gain:round2(b.gain), loss:round2(b.loss), net: round2(b.gain - b.loss)}))
+    },[filteredForTimeAgg, displayCcy])
 
     const monthAgg = useMemo(()=>{
       const names = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']
@@ -782,7 +773,7 @@ export default function App(){
         )}
 
         {/* FOOTER */}
-        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4.2.2</div>
+        <div style={{textAlign:'center', color:C.text, marginTop:20}}>ZooProjectVision © {new Date().getFullYear()} — V4.2.3</div>
       </div>
     )
   }catch(e){
@@ -861,22 +852,6 @@ function GLTooltip({ active, payload, label, C, fmtC }) {
     </div>
   )
 }
-
-      {label != null && <div style={{ marginBottom: 6, opacity: .9 }}>{label}</div>}
-      {[...agg.entries()].map(([cat, val], i) => {
-        const isLoss = cat.toLowerCase().startsWith('perd')
-        const valueText = usesCount ? fmtInt(val) : fmtC(val) // nombre ou devise
-        return (
-          <div key={i} style={{ display:'flex', justifyContent:'space-between', gap:12 }}>
-            <span>{cat}</span>
-            <b style={{ color: isLoss ? 'var(--pink)' : 'var(--green)' }}>{valueText}</b>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 
 /* ===== Formulaire Managed Capital ===== */
 function ManagedForm({onAdd, displayCcy}){
@@ -983,13 +958,13 @@ function MFEMaeTooltip({ active, payload, label, C, fmtC }) {
       {label != null && <div style={{ marginBottom: 6 }}>{label}</div>}
       {payload.map((p, i) => {
         const isMFE = p.dataKey === 'avgMFE'
-        const name = isMFE ? 'MFE Moyen' : 'MAE Moyen' // Majuscule à "Moyen"
-        const valStyle = { color: isMFE ? 'var(--green)' : 'var(--pink)' } // valeurs colorées
+        const name = isMFE ? 'MFE Moyen' : 'MAE Moyen'
+        const valStyle = { color: isMFE ? 'var(--green)' : 'var(--pink)' }
         const val = Number.isFinite(p.value) ? p.value : 0
         return (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-            <span style={{ color: 'var(--white)' }}>{name}</span>  {/* libellés en blanc */}
-            <b style={valStyle}>{fmtC(val)}</b>                    {/* valeurs vert/rose */}
+            <span style={{ color: 'var(--white)' }}>{name}</span>
+            <b style={valStyle}>{fmtC(val)}</b>
           </div>
         )
       })}
