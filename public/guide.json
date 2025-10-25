@@ -1,97 +1,38 @@
 {
-  "version": "4.3.1",
-  "updatedAt": "2025-10-25",
-  "locales": {
-    "fr": {
-      "sections": [
-        {
-          "id": "kpis",
-          "title": "KPIs Principaux",
-          "items": [
-            { "title": "PNL (Filtré)", "body": "Somme des profits/pertes des trades filtrés. Verdict : vert (>0), orange (=0), rouge (<0)." },
-            { "title": "Max DD (%)", "body": "Drawdown maximum en %. Vert (<15%), orange (15–20%), rouge (>20%)." },
-            { "title": "Max DD (Abs)", "body": "Drawdown maximum en valeur. Même verdict que Max DD (%)." }
-          ]
-        },
-        {
-          "id": "ratios",
-          "title": "Ratios & Qualité",
-          "items": [
-            { "title": "Win Rate", "body": "Proportion de trades gagnants. À combiner avec RR pour juger la rentabilité." },
-            { "title": "Risk / Reward (RR)", "body": "Gain moyen / Perte moyenne. >1 favorable." },
-            { "title": "Edge Index", "body": "WR × RR − (1 − WR). Seuils : bon ≥ 0.05 ; neutre [−0.05, 0.05) ; mauvais < −0.05." },
-            { "title": "Expectancy / Trade", "body": "PNL moyen par trade. Bon si > 0." },
-            { "title": "Sharpe (Ann.)", "body": "Rendement/volatilité. Bon ≥ 1 ; neutre 0.5–1." },
-            { "title": "Sortino (Ann.)", "body": "Rendement/volatilité baissière. Bon ≥ 1.2 ; neutre 0.8–1.2." },
-            { "title": "Recovery Factor", "body": "Profit net / |Max DD|. Bon ≥ 1.5 ; neutre 0.7–1.5." },
-            { "title": "Corrélation Moyenne", "body": "Moyenne des corrélations inter-stratégies (|·|). Plus bas = mieux (diversification)." },
-            { "title": "Risque de ruine (indicatif)", "body": "Prob. d'une série de pertes consommant une part significative du capital. Plus bas = mieux." }
-          ]
-        },
-        {
-          "id": "charts",
-          "title": "Graphiques",
-          "items": [
-            { "title": "Courbe d’Équité", "body": "Blanc : trading seul (base = capital initial). Gris pointillé : avec flux. Points verts/roses = cashflows." },
-            { "title": "MFE/MAE", "body": "MFE Moyen (vert) et MAE Moyen (rose). Cumul pour visualiser potentiel vs risque." },
-            { "title": "Gains/Pertes (Heure/Jour/Mois)", "body": "Sommes gains (vert) vs pertes (rose) par bucket. Verdict par net (gain − perte)." },
-            { "title": "Calendrier", "body": "Inclut week-ends. Affiche rendement du jour et DD% avec verdict (rouge ≤ −2%, orange −2%→−1%, vert > −1%)." }
-          ]
-        }
+  "version": "v5",
+  "updated": "2025-10-25",
+  "sections": [
+    {
+      "id": "kpis",
+      "title": "KPIs — définitions",
+      "items": [
+        {"label": "Capital Initial", "text": "Capital de référence (après conversion devise)."},
+        {"label": "Cash Flow", "text": "Somme des flux (dépôts, retraits, fees, payouts...) sur la période filtrée."},
+        {"label": "PNL (Filtré)", "text": "Somme des PnL des trades correspondant aux filtres actifs."},
+        {"label": "Rentabilité Globale", "text": "PNL filtré / (Capital initial + Cash-flow filtré)."},
+        {"label": "Max DD", "text": "Plus grand recul de l’équité (trading seul) sur la période."}
       ]
     },
-    "en": {
-      "sections": [
-        { "id": "kpis", "title": "Main KPIs", "items": [
-          { "title": "PNL (Filtered)", "body": "Sum of profits/losses of filtered trades. Verdict: green (>0), orange (=0), red (<0)." },
-          { "title": "Max DD (%)", "body": "Maximum drawdown in %. Green (<15%), orange (15–20%), red (>20%)." },
-          { "title": "Max DD (Abs)", "body": "Maximum drawdown in currency. Same verdict as Max DD (%)." }
-        ]},
-        { "id": "ratios", "title": "Ratios & Quality", "items": [
-          { "title": "Win Rate", "body": "Share of winning trades. Combine with RR to judge profitability." },
-          { "title": "Risk / Reward (RR)", "body": "Average gain / Average loss. >1 is favorable." },
-          { "title": "Edge Index", "body": "WR × RR − (1 − WR). Thresholds: good ≥ 0.05; neutral [−0.05, 0.05); bad < −0.05." },
-          { "title": "Expectancy / Trade", "body": "Average PnL per trade. Good if > 0." },
-          { "title": "Sharpe (Ann.)", "body": "Return/volatility. Good ≥ 1; neutral 0.5–1." },
-          { "title": "Sortino (Ann.)", "body": "Return/downside volatility. Good ≥ 1.2; neutral 0.8–1.2." },
-          { "title": "Recovery Factor", "body": "Net profit / |Max DD|. Good ≥ 1.5; neutral 0.7–1.5." },
-          { "title": "Mean Correlation", "body": "Average of inter-strategy correlations (|·|). Lower = better diversification." },
-          { "title": "Risk of Ruin (indicative)", "body": "Probability of a loss streak consuming significant capital. Lower = better." }
-        ]},
-        { "id": "charts", "title": "Charts", "items": [
-          { "title": "Equity Curve", "body": "White: trading only (base = initial capital). Grey dashed: with flows. Green/pink dots = cashflows." },
-          { "title": "MFE/MAE", "body": "Average MFE (green) and Average MAE (pink). Cumulative plot to compare potential vs risk." },
-          { "title": "Gains/Losses (Hour/Day/Month)", "body": "Sum of gains (green) vs losses (pink) by bucket. Verdict by net (gain − loss)." },
-          { "title": "Calendar", "body": "Includes weekends. Shows daily return and DD% with verdict (red ≤ −2%, orange −2%→−1%, green > −1%)." }
-        ]}
+    {
+      "id": "ratios",
+      "title": "Ratios — lecture",
+      "items": [
+        {"label": "Win Rate", "text": "% de trades gagnants. À combiner avec le RR."},
+        {"label": "Risk/Reward (RR)", "text": "Gain moyen / Perte moyenne. >1 préférable."},
+        {"label": "Expectancy", "text": "PnL moyen par trade. >0 = stratégie rentable en moyenne."},
+        {"label": "Sharpe", "text": "Rendement/volatilité totale, annualisé."},
+        {"label": "Sortino", "text": "Rendement/volatilité baissière, annualisé."},
+        {"label": "Recovery Factor", "text": "Profit net / |Max DD|."}
       ]
     },
-    "es": {
-      "sections": [
-        { "id": "kpis", "title": "KPIs Principales", "items": [
-          { "title": "PNL (Filtrado)", "body": "Suma de ganancias/pérdidas de las operaciones filtradas. Veredicto: verde (>0), naranja (=0), rojo (<0)." },
-          { "title": "Max DD (%)", "body": "Máximo drawdown en %. Verde (<15%), naranja (15–20%), rojo (>20%)." },
-          { "title": "Max DD (Abs)", "body": "Máximo drawdown en moneda. Mismo veredicto que Max DD (%)." }
-        ]},
-        { "id": "ratios", "title": "Ratios y Calidad", "items": [
-          { "title": "Win Rate", "body": "Proporción de operaciones ganadoras. Combinar con RR para evaluar rentabilidad." },
-          { "title": "Risk / Reward (RR)", "body": "Ganancia media / Pérdida media. >1 es favorable." },
-          { "title": "Edge Index", "body": "WR × RR − (1 − WR). Umbrales: bueno ≥ 0.05; neutro [−0.05, 0.05); malo < −0.05." },
-          { "title": "Expectancy / Operación", "body": "PNL medio por operación. Bueno si > 0." },
-          { "title": "Sharpe (Anual.)", "body": "Retorno/volatilidad. Bueno ≥ 1; neutro 0.5–1." },
-          { "title": "Sortino (Anual.)", "body": "Retorno/volatilidad a la baja. Bueno ≥ 1.2; neutro 0.8–1.2." },
-          { "title": "Recovery Factor", "body": "Beneficio neto / |Max DD|. Bueno ≥ 1.5; neutro 0.7–1.5." },
-          { "title": "Correlación Media", "body": "Media de correlaciones entre estrategias (|·|). Más bajo = mejor diversificación." },
-          { "title": "Riesgo de quiebra (indicativo)", "body": "Probabilidad de una racha de pérdidas que consuma capital significativo. Más bajo = mejor." }
-        ]},
-        { "id": "charts", "title": "Gráficos", "items": [
-          { "title": "Curva de Equity", "body": "Blanco: solo trading (base = capital inicial). Gris discontinua: con flujos. Puntos verde/rosa = flujos." },
-          { "title": "MFE/MAE", "body": "MFE Medio (verde) y MAE Medio (rosa). Acumulado para comparar potencial vs riesgo." },
-          { "title": "Gan./Pérd. (Hora/Día/Mes)", "body": "Suma de ganancias (verde) y pérdidas (rosa) por bucket. Veredicto por neto (ganancia − pérdida)." },
-          { "title": "Calendario", "body": "Incluye fines de semana. Muestra retorno diario y DD% con veredicto (rojo ≤ −2%, naranja −2%→−1%, verde > −1%)." }
-        ]}
+    {
+      "id": "risk",
+      "title": "Risque & Projection",
+      "items": [
+        {"label": "Edge Index", "text": "Combinaison WR et RR pour un indicateur d’avantage."},
+        {"label": "Projection 30/90j", "text": "Estimation médiane et intervalles (p10/p90) à partir des rendements quotidiens."},
+        {"label": "Prob(DD)", "text": "Heuristique de probabilité d’atteindre un DD cible."}
       ]
     }
-  }
+  ]
 }
-
