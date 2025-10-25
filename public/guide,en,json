@@ -1,0 +1,9 @@
+{
+  "Présentation": "Ce guide décrit les métriques et le fonctionnement du tableau de bord.",
+  "KPI principaux": "Capital initial, Cash Flow, PnL (filtré), Capital global, Total trades, Capital tiers.",
+  "Ratios": "Win Rate, Risk/Reward, Expectancy, Sharpe, Sortino, Recovery.",
+  "Courbes": "Équité (trading seul et avec flux), HWM/LWM, PnL global, Stratégie(s).",
+  "Agrégations": "Gains/Pertes par heure/jour/mois.",
+  "Calendrier": "PnL du jour, rendement %, drawdown %, nombre de trades; week-ends inclus.",
+  "Persistance": "Imports, cashflows, sous-titre, devise, langue, capital tiers via localStorage."
+}
