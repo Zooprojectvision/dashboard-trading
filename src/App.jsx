@@ -3,7 +3,9 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid,
   PieChart, Pie, Cell, BarChart, Bar, ScatterChart, Scatter
 } from 'recharts'
+
 import { dict, LOCALES } from './i18n'
+import { APP_VERSION } from './version'
 
 /* ===== Couleurs / helpers ===== */
 const C = {
@@ -704,16 +706,27 @@ export default function App(){
       {/* HEADER */}
       <div className="header">
         <div>
-          <h1 className="brand">{t.brand}</h1>
-          {!editSub ? (
-            <p className="subtitle">{subtitle} <button className="edit-pencil" onClick={()=>setEditSub(true)}>✏️</button></p>
-          ) : (
-            <div style={{display:'flex',gap:8,alignItems:'center',marginTop:6}}>
-              <input className="sel" value={subtitle} onChange={e=>setSubtitle(e.target.value)}/>
-              <button className="btn sm" onClick={()=>setEditSub(false)}>ok</button>
-            </div>
-          )}
-        </div>
+  <h1 className="brand">
+    {t.brand}
+    <span className="badge-version">v{APP_VERSION}</span>
+  </h1>
+
+  {!editSub ? (
+    <p className="subtitle">
+      {subtitle}
+      <button className="edit-pencil" onClick={() => setEditSub(true)}>✏️</button>
+    </p>
+  ) : (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
+      <input
+        className="sel"
+        value={subtitle}
+        onChange={e => setSubtitle(e.target.value)}
+      />
+      <button className="btn sm" onClick={() => setEditSub(false)}>ok</button>
+    </div>
+  )}
+</div>
 
         {/* Actions ligne 1 */}
         <div className="actions-row">
