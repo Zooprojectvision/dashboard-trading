@@ -193,13 +193,13 @@ body{
   gap: 12px;
 }
 
-.wr-donut {
-  position: relative;
-}
+/* Centrage parfait du label au milieu du donut */
+.wr-donut { position: relative; }
 
 .wr-center {
   position: absolute;
-  inset: 0;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -208,17 +208,8 @@ body{
   text-align: center;
 }
 
-.wr-pct {
-  font-size: 22px;
-  color: var(--text);
-  line-height: 1;
-}
-
-.wr-sub {
-  font-size: 12px;
-  color: var(--text);
-  margin-top: 2px;
-}
+.wr-pct { font-size: 22px; color: var(--text); line-height: 1; }
+.wr-sub { font-size: 12px; color: var(--text); margin-top: 2px; }
 
 /* === Légende gagnant / perdant === */
 .wr-legend {
@@ -309,4 +300,13 @@ body{
   text-transform: capitalize !important;
   font-size: 12px !important;
   font-weight: 500 !important;
+}
+/* Légende donut — mêmes couleurs que l'histogramme */
+.wr-legend .legend-color.win  { background: var(--green); }
+.wr-legend .legend-color.loss { background: var(--pink);  }
+
+/* (Déjà présent mais on reconfirme le texte gris clair) */
+.wr-legend {
+  color: var(--text);
+  text-transform: capitalize;
 }
