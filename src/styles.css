@@ -1,6 +1,6 @@
 :root{
   --bg:#0a0b0f; --panel:#111318; --panel-2:#0f1115; --border:#22252b; --axis:#c9cdd1;
-  --text:#e9edf1;
+  --text:#c5ccd3;
   --white:#ffffff; --green:#20e3d6; --pink:#ff5fa2; --orange:#ffb347;
   --accent:#6aa9ff;
 
@@ -291,4 +291,22 @@ body{
 .calendar-top,
 .calendar-metric {
   text-transform: capitalize;
+}
+/* Texte SVG Recharts (axes, labels, ticks…) */
+.recharts-wrapper text,
+.recharts-wrapper tspan,
+.recharts-cartesian-axis-tick-value,
+.recharts-label,
+.recharts-text {
+  fill: var(--text) !important;
+}
+
+/* Texte HTML de la légende Recharts */
+.recharts-default-legend .recharts-legend-item,
+.recharts-legend-item .recharts-legend-item-text,
+.recharts-legend-item span {
+  color: var(--text) !important;
+  text-transform: capitalize !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
 }
