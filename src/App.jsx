@@ -244,7 +244,7 @@ function WinRateBlock({ rows }){
               <YAxis allowDecimals={false} stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}}/>
               <Tooltip/>
               <Legend/>
-              <Bar dataKey="gagnants" name="gagnants" fill="var(--white)"/>
+              <Bar dataKey="gagnants" name="gagnants" fill="var(--green)"/>
               <Bar dataKey="perdants" name="perdants" fill="var(--pink)"/>
             </BarChart>
           </ResponsiveContainer>
@@ -418,7 +418,7 @@ function ActivityBlocks({ rows }){
         <XAxis dataKey={xKey} stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}}/>
         <YAxis allowDecimals={false} stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}}/>
         <Tooltip/><Legend/>
-        <Bar dataKey="win" name="gagnants" fill="var(--white)"/>
+        <Bar dataKey="win" name="gagnants" fill="var(--green)"/>
         <Bar dataKey="loss" name="perdants" fill="var(--pink)"/>
       </BarChart>
     </ResponsiveContainer>
