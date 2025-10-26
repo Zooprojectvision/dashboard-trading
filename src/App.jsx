@@ -211,43 +211,94 @@ function CapitalTiersModal({ openHook, onAdd, displayCcy }){
 
 /* ===== WinRate (Donut + Barres) ===== */
 function WinRateBlock({ rows }){
-  const counts=React.useMemo(()=>{
-    let w=0,l=0; rows.forEach(t=>{ if(t.pnl>0) w++; else if(t.pnl<0) l++; })
-    const total=w+l, wr= total? (w/total)*100 : 0
-    return { w,l,total,wr }
-  },[rows])
-  const donut=[{name:'gagnants',value:counts.w},{name:'perdants',value:counts.l}]
-  const bars=[{name:'', gagnants:counts.w, perdants:counts.l}]
-  const size=200, innerR=58, outerR=78
+  const counts = React.useMemo(() => {
+    let w=0, l=0
+    rows.forEach(t => { if (t.pnl > 0) w++; else if (t.pnl < 0) l++; })
+    const total = w + l
+    const wr = total ? (w/total)*100 : 0
+    return { w, l, total, wr }
+  }, [rows])
+
+  // Donut: ordre = gagnants (vert), perdants (rose)
+  const donut = [
+    { name:'Gagnants', value: counts.w },
+    { name:'Perdants', value: counts.l }
+  ]
+
+  // Bar chart: un seul groupe, sans libellé X (on masque l’axe)
+  const bars = [{ key:'grp', gagnants:counts.w, perdants:counts.l }]
+
+  const size = 200, innerR = 58, outerR = 78
+
   return (
     <div className="card">
-      <div className="kpi-title">taux de réussite</div>
+      <div className="kpi-title">Taux de réussite</div>
+
       <div className="wr-grid">
+        {/* Donut */}
         <div className="wr-donut">
           <ResponsiveContainer width="100%" height={size}>
             <PieChart>
-              <Pie data={donut} dataKey="value" nameKey="name" innerRadius={innerR} outerRadius={outerR} paddingAngle={1.5} stroke="none">
-                <Cell fill="var(--green)"/><Cell fill="var(--pink)"/>
+              <Pie
+                data={donut}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={innerR}
+                outerRadius={outerR}
+                paddingAngle={1.5}
+                stroke="none"
+                isAnimationActive={false}
+              >
+                <Cell fill="var(--green)" />
+                <Cell fill="var(--pink)" />
               </Pie>
-              <Tooltip/>
+              <Tooltip />
+              {/* Pas de <Legend> ici, on met une légende custom juste en dessous */}
             </PieChart>
           </ResponsiveContainer>
+
+          {/* Centre du donut (parfaitement centré via CSS .wr-center) */}
           <div className="wr-center">
             <div className="wr-pct">{counts.wr.toFixed(1)}%</div>
             <div className="wr-sub">sur {counts.total} trades</div>
           </div>
-          <div className="wr-legend"><span>gagnants</span><span>perdants</span></div>
+
+          {/* Légende carrés vert/rose (texte gris clair via CSS) */}
+          <div className="wr-legend">
+            <div className="legend-item">
+              <span className="legend-color win" />
+              Gagnants
+            </div>
+            <div className="legend-item">
+              <span className="legend-color loss" />
+              Perdants
+            </div>
+          </div>
         </div>
+
+        {/* Barres gagnants/perdants */}
         <div>
           <ResponsiveContainer width="100%" height={size}>
-            <BarChart data={bars} margin={{top:10,right:10,left:0,bottom:0}}>
-              <CartesianGrid stroke="#2b2b2b"/>
-              <XAxis dataKey="name" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}}/>
-              <YAxis allowDecimals={false} stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}}/>
-              <Tooltip/>
-              <Legend/>
-              <Bar dataKey="gagnants" name="gagnants" fill="var(--green)"/>
-              <Bar dataKey="perdants" name="perdants" fill="var(--pink)"/>
+            <BarChart data={bars} margin={{ top:10, right:10, left:0, bottom:0 }}>
+              <CartesianGrid stroke="#2b2b2b" />
+              {/* On masque l’axe X pour éviter tout libellé type "Trade(s)" */}
+              <XAxis
+                dataKey="key"
+                tick={false}
+                axisLine={false}
+                tickLine={false}
+                height={0}
+              />
+              <YAxis
+                allowDecimals={false}
+                stroke="var(--axis)"
+                tickLine={false}
+                axisLine={{ stroke: 'var(--axis)' }}
+              />
+              <Tooltip />
+              {/* Pas de Legend ici non plus */}
+              <Bar dataKey="gagnants" fill="var(--green)" />
+              <Bar dataKey="perdants" fill="var(--pink)" />
             </BarChart>
           </ResponsiveContainer>
         </div>
