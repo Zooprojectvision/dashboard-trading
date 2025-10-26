@@ -1,8 +1,7 @@
 // src/App.jsx
-// ZooProjectVision — V4.4 (minimal + Inter)
-// - Donut Win/Loss: vert/pink gloss
-// - KPI exceptions en blanc (capital initial, Max DD %, Max DD abs)
-// - Etat showFlow ajouté
+// ZooProjectVision — V4.4.1 (minimal + Inter + patches UI)
+// - Capital global: halo + valeur verte/rose selon PnL
+// - Texte neutre: var(--text) partout (remplacements ciblés)
 
 import React from 'react'
 import {
@@ -70,7 +69,7 @@ function WinRateDonut({ filtered }) {
             <b style={{ color:'var(--text)' }}>{new Intl.NumberFormat().format(val)}</b>
           </div>
         ))}
-        <div style={{ marginTop:6, color:'var(--muted)' }}>
+        <div style={{ marginTop:6, color:'var(--text)' }}>
           Total: <b style={{ color:'var(--text)' }}>{new Intl.NumberFormat().format(counts.total)}</b>
         </div>
       </div>
@@ -82,7 +81,8 @@ function WinRateDonut({ filtered }) {
       <div className="kpi-title" style={{ marginBottom:8 }}>win rate</div>
 
       <div style={{ position:'relative', width:'100%', height:size }}>
-        <div style={{ position:'absolute', top:8, right:8, display:'flex', gap:10, color:'var(--muted)', fontSize:12 }}>
+        {/* Stats top-right en texte neutre */}
+        <div style={{ position:'absolute', top:8, right:8, display:'flex', gap:10, color:'var(--text)', fontSize:12 }}>
           <span>gagnants: <b style={{ color:'var(--text)' }}>{new Intl.NumberFormat().format(counts.wins)}</b></span>
           <span>perdants: <b style={{ color:'var(--text)' }}>{new Intl.NumberFormat().format(counts.losses)}</b></span>
         </div>
@@ -104,14 +104,14 @@ function WinRateDonut({ filtered }) {
             <div style={{ fontSize: labelSize, lineHeight:1, color:'var(--text)' }}>
               {counts.wr.toFixed(1)}%
             </div>
-            <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>
+            <div style={{ fontSize:12, color:'var(--text)', marginTop:2 }}>
               sur {new Intl.NumberFormat().format(counts.total)} trades
             </div>
           </div>
         </div>
       </div>
 
-      <div style={{ color:'var(--muted)', fontSize:12, marginTop:8 }}>
+      <div style={{ color:'var(--text)', fontSize:12, marginTop:8 }}>
         Ratio de trades gagnants (neutre).
       </div>
     </div>
@@ -173,13 +173,13 @@ function CorrelationMatrix({ filtered, displayCcy, convert }) {
           <thead>
             <tr>
               <th></th>
-              {strategies.map(s => <th key={s} style={{ color:'var(--muted)', fontWeight:400 }}>{s}</th>)}
+              {strategies.map(s => <th key={s} style={{ color:'var(--text)', fontWeight:400 }}>{s}</th>)}
             </tr>
           </thead>
           <tbody>
             {matrix.map((row,i)=>(
               <tr key={i}>
-                <th style={{ color:'var(--muted)', fontWeight:400, textAlign:'right', paddingRight:8 }}>{strategies[i]}</th>
+                <th style={{ color:'var(--text)', fontWeight:400, textAlign:'right', paddingRight:8 }}>{strategies[i]}</th>
                 {row.map((c,j)=>(
                   <td key={j}>
                     <div className={`cal-cell ${verdict(c)}`} style={{ padding:'10px 12px', textAlign:'center', minWidth:72 }}>
@@ -192,7 +192,7 @@ function CorrelationMatrix({ filtered, displayCcy, convert }) {
           </tbody>
         </table>
       </div>
-      <div style={{ color:'var(--muted)', fontSize:12, marginTop:8 }}>
+      <div style={{ color:'var(--text)', fontSize:12, marginTop:8 }}>
         |corr| ≤ 0.30 = bon, 0.30–0.60 = mitigé, &gt; 0.60 = trop corrélé.
       </div>
     </div>
@@ -231,7 +231,7 @@ function GuidePanel() {
             <div style={{ color:'var(--text)', fontSize:12, lineHeight:1.6 }}>
               {data ? (
                 <>
-                  {data.intro && <p style={{ color:'var(--muted)' }}>{data.intro}</p>}
+                  {data.intro && <p style={{ color:'var(--text)' }}>{data.intro}</p>}
                   {Array.isArray(data.sections) && data.sections.map((sec, i)=>(
                     <details key={i} className="card" style={{ margin:'8px 0' }}>
                       <summary className="kpi-title" style={{ cursor:'pointer' }}>{sec.title}</summary>
@@ -246,7 +246,7 @@ function GuidePanel() {
                   ))}
                 </>
               ) : (
-                <div style={{ color:'var(--muted)' }}>chargement du guide…</div>
+                <div style={{ color:'var(--text)' }}>chargement du guide…</div>
               )}
             </div>
           </div>
@@ -291,7 +291,7 @@ function CashflowSummaryChip({ allCashflows, dateFrom, dateTo, displayCcy, conve
             {labels[k] || k}: <b>{fmtMoney(v)}</b>
           </span>
         ))}
-        {byType.size===0 && <span style={{ color:'var(--muted)', fontSize:12 }}>— aucun flux dans l’intervalle</span>}
+        {byType.size===0 && <span style={{ color:'var(--text)', fontSize:12 }}>— aucun flux dans l’intervalle</span>}
       </div>
     </div>
   )
@@ -387,15 +387,15 @@ function RiskProjection({ filtered, displayCcy, convert, fmt, capitalGlobal, cap
               <div className="kpi-title">projection simple (linéaire)</div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginTop:8 }}>
                 <div className="cal-cell" style={{ padding:10 }}>
-                  <div style={{ color:'var(--muted)', fontSize:12 }}>30 jours</div>
+                  <div style={{ color:'var(--text)', fontSize:12 }}>30 jours</div>
                   <div className="val">{fmtMoney(projectDays(30))}</div>
                 </div>
                 <div className="cal-cell" style={{ padding:10 }}>
-                  <div style={{ color:'var(--muted)', fontSize:12 }}>90 jours</div>
+                  <div style={{ color:'var(--text)', fontSize:12 }}>90 jours</div>
                   <div className="val">{fmtMoney(projectDays(90))}</div>
                 </div>
                 <div className="cal-cell" style={{ padding:10 }}>
-                  <div style={{ color:'var(--muted)', fontSize:12 }}>hypothèses</div>
+                  <div style={{ color:'var(--text)', fontSize:12 }}>hypothèses</div>
                   <div style={{ color:'var(--text)', fontSize:12 }}>
                     Expectancy &amp; cadence supposées <i>stables</i> (linéaire). À réévaluer si conditions de marché changent.
                   </div>
@@ -632,7 +632,6 @@ export default function App(){
       return capitalTiers.reduce((a, r) => a + (convert(Number(r.amount)||0, r.ccy||'USD', displayCcy) || 0), 0)
     }, [capitalTiers, displayCcy])
 
-    // Etat manquant (fix)
     const [showFlow, setShowFlow] = React.useState(false)
 
     const [showCT, setShowCT] = React.useState(false)
@@ -742,18 +741,25 @@ export default function App(){
             <div className="kpi-title">capital initial</div>
             <div className="val force-white">{fmt(capitalInitialDisp)}</div>
           </div>
+
           <div className={`card ${cashFlowTotal>=0?'halo-good':'halo-bad'}`}>
             <div className="kpi-title">cash flow</div>
             <div className="val" style={{color:cashFlowTotal>=0?C.green:C.pink}}>{fmt(cashFlowTotal)}</div>
           </div>
+
           <div className={`card ${totalPnlDisp>=0?'halo-good':'halo-bad'}`}>
             <div className="kpi-title">pnl (filtré)</div>
             <div className="val" style={{color:totalPnlDisp>=0?C.green:C.pink}}>{fmt(totalPnlDisp)}</div>
           </div>
-          <div className="card">
+
+          {/* Capital global — verdict + couleur */}
+          <div className={`card ${totalPnlDisp >= 0 ? 'halo-good' : 'halo-bad'}`}>
             <div className="kpi-title">capital global</div>
-            <div className="val">{fmt(capitalGlobal)}</div>
+            <div className="val" style={{ color: totalPnlDisp >= 0 ? 'var(--green)' : 'var(--pink)' }}>
+              {fmt(capitalGlobal)}
+            </div>
           </div>
+
           <div className={`card ${maxDDPct<15?'halo-good':(maxDDPct<=20?'halo-warn':'halo-bad')}`}>
             <div className="kpi-title">max dd %</div>
             <div className="val force-white">{maxDDPct.toFixed(2)}%</div>
@@ -887,12 +893,12 @@ export default function App(){
                   <div style={{ display:'grid', gap:6 }}>
                     {capitalTiers.slice().reverse().map((r, i) => (
                       <div key={i} className="cal-cell" style={{ padding:'8px 10px', display:'grid', gridTemplateColumns:'120px 1fr 140px 80px', gap:8 }}>
-                        <div style={{ color:'var(--muted)' }}>{r.date}</div>
+                        <div style={{ color:'var(--text)' }}>{r.date}</div>
                         <div style={{ color:'var(--text)' }}>{r.source}{r.note? ` — ${r.note}`:''}</div>
                         <div style={{ textAlign:'right', color:'var(--text)' }}>
                           {fmt(convert(Number(r.amount)||0, r.ccy||'USD', displayCcy))}
                         </div>
-                        <div style={{ textAlign:'right', color:'var(--muted)' }}>{r.ccy}</div>
+                        <div style={{ textAlign:'right', color:'var(--text)' }}>{r.ccy}</div>
                       </div>
                     ))}
                   </div>
