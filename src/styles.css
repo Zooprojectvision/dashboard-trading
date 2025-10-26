@@ -63,13 +63,38 @@ body{
 .halo-bad{ border:2px solid var(--pink)!important}
 .halo-neutral{border:1px solid var(--border)!important}
 
-/* ===== Typo & valeurs */
-.kpi-title{font-size:13px; font-weight:600; color:var(--muted); text-transform:capitalize; margin-bottom:6px}
-.kpi-sub{font-size:12px; color:var(--muted)}
-.val{font-size:14px; font-weight:700; color:var(--text)}
-.val.force-white{color:var(--white)}
-.val.pos{color:var(--green)}
-.val.neg{color:var(--pink)}
+/* ===== Typo & valeurs ===== */
+.kpi-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);              /* gris clair partout */
+  text-transform: capitalize;
+  margin-bottom: 6px;
+}
+
+.kpi-sub {
+  font-size: 12px;
+  color: var(--text);              /* gris clair */
+}
+
+.val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);              /* tout en gris clair */
+}
+
+/* plus de blanc forcé : tout devient gris clair sauf le brand */
+.val.force-white {
+  color: var(--text);
+}
+
+/* neutralisation des couleurs pour texte : vert/rose réservé aux graphes */
+.val.pos {
+  color: var(--text);
+}
+.val.neg {
+  color: var(--text);
+}
 
 /* ===== Inputs & Buttons */
 .btn{
