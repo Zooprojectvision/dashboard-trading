@@ -217,7 +217,7 @@ function WinRateBlock({ rows }){
     return { w,l,total,wr }
   },[rows])
   const donut=[{name:'gagnants',value:counts.w},{name:'perdants',value:counts.l}]
-  const bars=[{name:'trades', gagnants:counts.w, perdants:counts.l}]
+  const bars=[{name:'', gagnants:counts.w, perdants:counts.l}]
   const size=200, innerR=58, outerR=78
   return (
     <div className="card">
