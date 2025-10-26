@@ -186,14 +186,71 @@ body{
   box-shadow:var(--shadow-2);
 }
 
-/* ===== WinRate */
-.wr-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
-.wr-donut{ position:relative }
-.wr-center{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; pointer-events:none; text-align:center }
-.wr-pct{ font-size:22px; color:var(--text); line-height:1 }
-.wr-sub{ font-size:12px; color:var(--muted); margin-top:2px }
-.wr-legend{ display:flex; justify-content:center; gap:14px; margin-top:6px; font-size:12px; color:var(--muted) }
-@media (max-width:1100px){ .wr-grid{ grid-template-columns:1fr } }
+/* ===== WinRate ===== */
+.wr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.wr-donut {
+  position: relative;
+}
+
+.wr-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  pointer-events: none;
+  text-align: center;
+}
+
+.wr-pct {
+  font-size: 22px;
+  color: var(--text);
+  line-height: 1;
+}
+
+.wr-sub {
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+/* === Légende gagnant/perdant === */
+.wr-legend {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text);             /* gris clair au lieu de muted */
+  text-transform: capitalize;     /* Première lettre majuscule */
+}
+
+.wr-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wr-legend .legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .wr-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 /* ===== Calendar */
 .calendar-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:10px }
