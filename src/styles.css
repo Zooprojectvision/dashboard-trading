@@ -1,221 +1,168 @@
-/* ========== styles.css — ZooProjectVision ========== */
-
-/* ----- Variables & thème ----- */
-:root{
+/* =====================  ZooProjectVision — styles.css (V4.4 Minimal Inter)  ===================== */
+:root {
   --bg: #0a0a0b;
+  --text: #e8ecef;       /* gris clair neutre */
+  --muted: #b6bcc1;
   --panel: #141414;
   --border: #242424;
-  --text: #e8ecef;
-  --muted: #b6bcc1;
   --axis: #c9cdd1;
 
   --white: #ffffff;
-  --green: #20e3d6;   /* vert gloss */
-  --green-2: #18b8ad;
-  --pink:  #ff5fa2;   /* rose gloss */
-  --pink-2:#ff7cbf;
+  --green: #20e3d6;      /* vert gloss (positif) */
+  --pink: #ff5fa2;       /* rose gloss (négatif) */
+  --orange: #ffb347;     /* orange brillant (warn) */
 
-  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
 
-  /* typo (même taille partout, sauf titres) */
-  --font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-size: 13px;         /* texte global */
-  --font-size-kpi: 18px;     /* valeur KPI */
-  --font-size-title: 13px;   /* sous-titres */
-  --font-size-brand: 28px;   /* titre principal */
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.32);
 }
 
-/* ----- Reset léger ----- */
-*{ box-sizing: border-box; }
-html, body, #root{ height:100%; }
-body{
-  margin:0;
+/* Reset de base */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-family);
-  font-size: var(--font-size);
+  font: 14px/1.45 "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
-button, select, input{ font-family: inherit; font-size: inherit; color: inherit; }
 
-/* ----- Layout racine ----- */
-.wrap{
-  min-height:100vh;
-  max-width: 1540px;
+/* ===== Layout général ===== */
+.wrap {
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
 }
-
-/* ----- Header ----- */
-.header{
-  display:flex;
-  justify-content: space-between;
+.header {
+  display: flex;
   align-items: flex-start;
-  gap:12px;
-  margin-bottom:12px;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
 }
-.brand{
-  margin:0;
-  font-size: var(--font-size-brand);
+.brand {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  font-size: 22px; /* plus grand que le reste */
+}
+.subtitle {
+  margin: 6px 0 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ===== Cards & cellules ===== */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: border 0.2s ease;
+}
+.cal-cell {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+}
+
+/* ===== Textes & valeurs (uniformes) ===== */
+.kpi-title {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 6px 0;
+  text-transform: none;
+}
+.val {
+  font-size: 14px;
   font-weight: 600;
+  color: var(--text);
+}
+.val.force-white {
   color: var(--white);
 }
-.subtitle{
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-.header-actions{
-  display:flex;
-  gap:8px;
-  flex-wrap: wrap;
-  align-items: center;
-}
 
-/* ----- Cartes / KPI / cellules ----- */
-.card{
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
-}
-.kpi-title{
-  font-weight: 500;
-  color: var(--text);
-  margin: 0 0 8px;
-  font-size: var(--font-size-title);
-  letter-spacing: .2px;
-  text-transform: none; /* on garde la casse depuis React */
-}
-.val{
-  font-size: var(--font-size-kpi);
-  line-height: 1.15;
-  color: var(--text);
-}
-.cal-cell{
-  background: #0f0f10;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
+/* ===== Verdicts : pourtour uniquement ===== */
+.halo-good { border: 2px solid var(--green) !important; box-shadow: none; }
+.halo-warn { border: 2px solid var(--orange) !important; box-shadow: none; }
+.halo-bad  { border: 2px solid var(--pink) !important; box-shadow: none; }
+.halo-neutral { border: 1px solid var(--border); }
 
-/* ----- Bordures “verdict” (accentuées, sans remplissage) ----- */
-.halo-good{
-  box-shadow: 0 0 0 2px rgba(32,227,214,0.55) inset; /* vert brillant */
-}
-.halo-warn{
-  box-shadow: 0 0 0 2px rgba(255,179,71,0.55) inset;  /* orange brillant */
-}
-.halo-bad{
-  box-shadow: 0 0 0 2px rgba(255,95,162,0.60) inset;  /* rouge/rose brillant */
-}
-.halo-neutral{
-  box-shadow: 0 0 0 1px rgba(200,206,212,0.45) inset;
-}
-
-/* ----- Grilles utilitaires ----- */
-.grid-6{
-  display:grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap:12px;
-  margin-top:12px;
-}
-.grid-4{
-  display:grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap:12px;
-  margin-top:12px;
-}
-
-/* ----- Boutons / Selects ----- */
-.btn{
-  position: relative;
-  border: 1px solid var(--border);
-  background: #0f0f10;
-  color: var(--text);
-  padding: 8px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 160ms ease, border-color 160ms ease;
-}
-.btn:hover{ background: rgba(255,255,255,0.04); border-color: #2e2e2e; }
-.btn:active{ transform: translateY(0.5px); }
-
-.btn.ghost{
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.btn.sm{
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-}
-
-.sel{
-  width: 100%;
-  padding: 8px 10px;
-  font-size: var(--font-size);
-  color: var(--text);
-  background: #0f0f10;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  outline: none;
-}
-
-/* ----- Modales ----- */
-.modal-overlay{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.6);
-  display: flex;
+/* ===== Boutons et selects ===== */
+.btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  z-index: 1000;
-}
-.modal-card{
-  width: min(920px, 100%);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
-}
-
-/* ----- Labels de formulaire ----- */
-.form-label{
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
+  height: 34px;
+  padding: 0 12px;
+  gap: 8px;
+  border-radius: 10px;
+  background: #1b1b1c;
   color: var(--text);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  font-size: 14px;
+  transition: background 0.2s ease;
 }
-.form-label > span{
-  color: var(--muted);
+.btn:hover {
+  background: #222;
+}
+.btn.ghost {
+  background: transparent;
+}
+.btn.sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.sel {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: #101011;
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 14px;
 }
 
-/* ----- Recharts (ajustements légers) ----- */
-/* Les axes sont surtout réglés via props (tick={{fontSize:11}}). Ici, on affine tooltips */
-.recharts-default-tooltip{
-  background: var(--panel) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 10px !important;
-  color: var(--text) !important;
+/* ===== Grilles ===== */
+.grid-6 {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-top: 12px;
 }
-.recharts-legend-item-text{
-  color: var(--text) !important;
-  font-size: 12px !important;
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+@media (max-width: 1100px) {
+  .grid-6 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .grid-6, .grid-4 { grid-template-columns: 1fr; }
+  .header { flex-direction: column; }
 }
 
-/* ----- Liens ----- */
-a{
-  color: var(--green);
-  text-decoration: none;
+/* ===== Table ===== */
+table {
+  width: max-content;
+  min-width: 100%;
 }
-a:hover{ text-decoration: underline; }
-
-/* ----- Utilitaires ----- */
-.muted{ color: var(--muted); }
-.center{ display:flex; align-items:center; justify-content:center; }
-
-/* ========== fin styles.css ========== */
+th, td {
+  text-align: left;
+  padding: 0;
+}
+th {
