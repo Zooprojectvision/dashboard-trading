@@ -52,8 +52,21 @@ body {
 }
 .subtitle {
   margin: 6px 0 0 0;
-  color: var(--muted);
+  color: var(--text);        /* était --muted */
   font-size: 12px;
+}
+
+th {
+  color: var(--text);        /* était --muted */
+  font-weight: 500;
+}
+
+.form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);        /* était --muted */
 }
 
 /* ===== Cards & cellules ===== */
