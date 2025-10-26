@@ -1,6 +1,6 @@
 :root{
   --bg:#0a0b0f; --panel:#111318; --panel-2:#0f1115; --border:#22252b; --axis:#c9cdd1;
-  --text:#e9edf1; --muted:#b9c0c7;
+  --text:#e9edf1;
   --white:#ffffff; --green:#20e3d6; --pink:#ff5fa2; --orange:#ffb347;
   --accent:#6aa9ff;
 
@@ -77,7 +77,7 @@ body{
 .subtitle {
   margin: 6px 0 0;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--text);
   display: flex;
   gap: 8px;
   align-items: center;
@@ -177,7 +177,7 @@ body{
 /* ===== Tables / Matrix */
 .table{width:100%; border-collapse:separate; border-spacing:0}
 .table th,.table td{ padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; font-size:13px }
-.table th{ color:var(--muted); font-weight:700 }
+.table th{ color:var(--text); font-weight:700 }
 
 /* ===== Tooltips Recharts */
 .recharts-tooltip-wrapper .recharts-default-tooltip{
@@ -220,15 +220,15 @@ body{
   margin-top: 2px;
 }
 
-/* === Légende gagnant/perdant === */
+/* === Légende gagnant / perdant === */
 .wr-legend {
   display: flex;
   justify-content: center;
   gap: 14px;
   margin-top: 6px;
   font-size: 12px;
-  color: var(--text);             /* gris clair au lieu de muted */
-  text-transform: capitalize;     /* Première lettre majuscule */
+  color: var(--text);              /* gris clair */
+  text-transform: capitalize;      /* première lettre majuscule */
 }
 
 .wr-legend .legend-item {
@@ -244,6 +244,14 @@ body{
   display: inline-block;
 }
 
+/* compatibilité Recharts native Legend (au cas où tu n'utilises pas une légende custom) */
+.recharts-legend-item text {
+  fill: var(--text) !important;    /* gris clair sur texte interne Recharts */
+  text-transform: capitalize;      /* majuscule */
+  font-size: 12px;
+}
+
+
 /* Responsive */
 @media (max-width: 1100px) {
   .wr-grid {
@@ -255,10 +263,32 @@ body{
 /* ===== Calendar */
 .calendar-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:10px }
 .calendar-cell{ border:1px solid var(--border); border-radius:14px; padding:10px; min-height:92px; background:rgba(255,255,255,.02) }
-.calendar-top{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:4px }
+.calendar-top{ display:flex; justify-content:space-between; font-size:12px; color:var(--text); margin-bottom:4px }
 .calendar-metric{ font-size:12px; display:flex; justify-content:space-between; color:var(--text) }
 
 /* ===== Scrollbar */
 ::-webkit-scrollbar{ width:8px; height:8px }
 ::-webkit-scrollbar-thumb{ background:#2b3038; border-radius:6px }
 ::-webkit-scrollbar-thumb:hover{ background:#343a44 }
+
+/* Uniformisation des verdicts neutres */
+.halo-neutral {
+  border: 1px solid var(--border) !important;
+}
+
+/* Couleur des axes Recharts (valeurs X/Y) */
+.recharts-cartesian-axis-tick-value {
+  fill: var(--text) !important;   /* gris clair pour les labels d'axes */
+}
+/* ===== Uniformisation typographique globale ===== */
+.kpi-sub,
+.val,
+.btn,
+.sel,
+.table th,
+.table td,
+.recharts-tooltip-wrapper .recharts-default-tooltip,
+.calendar-top,
+.calendar-metric {
+  text-transform: capitalize;
+}
