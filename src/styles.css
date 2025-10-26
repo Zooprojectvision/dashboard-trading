@@ -24,11 +24,31 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 
-/* ===== Layout */
-.wrap{max-width:1400px; margin:0 auto; padding:24px 20px;}
-.header{display:flex; flex-direction:column; gap:10px; margin-bottom:16px}
-.actions-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-.spacer{flex:1 1 auto}
+/* ===== Layout (full width) ===== */
+.wrap {
+  max-width: none;
+  width: 100%;      /* au lieu de 100vw */
+  margin: 0;
+  padding: 24px 24px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.actions-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
 
 /* ===== Brand ===== */
 .brand {
@@ -43,13 +63,12 @@ body{
 
 /* Petit effet visuel : point brillant dégradé */
 .brand::after {
-  content: "";
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--green), var(--pink));
-  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.04);
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  box-shadow: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* ===== Badge de version ===== */
@@ -234,6 +253,8 @@ body{
   border-radius: 2px;
   display: inline-block;
 }
+.wr-legend .legend-color.win  { background: var(--green); }
+.wr-legend .legend-color.loss { background: var(--pink);  }
 
 /* compatibilité Recharts native Legend (au cas où tu n'utilises pas une légende custom) */
 .recharts-legend-item text {
@@ -309,4 +330,7 @@ body{
 .wr-legend {
   color: var(--text);
   text-transform: capitalize;
+}
+html, body {
+  overflow-x: hidden;  /* empêche tout scroll horizontal sur les écrans larges */
 }
