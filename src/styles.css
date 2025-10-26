@@ -30,22 +30,74 @@ body{
 .actions-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 .spacer{flex:1 1 auto}
 
-/* ===== Brand */
-.brand{
-  margin:0;
-  font-weight:700;
-  letter-spacing:.2px;
-  font-size:24px; /* seul élément plus grand */
-  display:flex; align-items:center; gap:10px;
-}
-.brand::after{
-  content:""; display:inline-block; width:8px; height:8px; border-radius:999px;
-  background:linear-gradient(135deg, var(--green), var(--pink));
-  box-shadow:0 0 0 6px rgba(255,255,255,0.04);
+/* ===== Brand ===== */
+.brand {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  font-size: 24px; /* seul élément plus grand */
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.subtitle{margin:6px 0 0; font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center}
-.edit-pencil{height:24px; padding:0 8px; border-radius:8px; background:transparent; color:var(--text); border:1px solid var(--border); cursor:pointer}
+/* Petit effet visuel : point brillant dégradé */
+.brand::after {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--green), var(--pink));
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.04);
+}
+
+/* ===== Badge de version ===== */
+.badge-version {
+  margin-left: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  vertical-align: middle;
+  letter-spacing: 0.2px;
+  user-select: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.badge-version:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--text);
+}
+
+/* ===== Sous-titre et édition ===== */
+.subtitle {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.edit-pencil {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.edit-pencil:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--text);
+}
 
 /* ===== Cards */
 .card{
