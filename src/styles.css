@@ -334,3 +334,16 @@ body{
 html, body {
   overflow-x: hidden;  /* empêche tout scroll horizontal sur les écrans larges */
 }
+/* Donut : conteneur fixe + centrage overlay */
+.wr-donut { 
+  position: relative; 
+  height: 220px;               /* <= hauteur fixe pour que 50/50 marche à tous les coups */
+}
+.wr-center{
+  position:absolute; 
+  top:50%; left:50%; 
+  transform:translate(-50%,-50%);
+  display:flex; flex-direction:column; 
+  align-items:center; justify-content:center;
+  pointer-events:none; text-align:center;
+}
