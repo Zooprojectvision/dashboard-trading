@@ -1,10 +1,13 @@
 // src/App.jsx
-// ZooProjectVision — V4.3.1 + Blocs I/J/K/L/M/N intégrés
+// ZooProjectVision — V4.4 (minimal + Inter)
+// - Donut Win/Loss: vert/pink gloss
+// - KPI exceptions en blanc (capital initial, Max DD %, Max DD abs)
+// - Etat showFlow ajouté
 
 import React from 'react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid,
-  BarChart, Bar, PieChart, Pie, Cell
+  PieChart, Pie, Cell
 } from 'recharts'
 
 /* ================== [A] START — Thème global & helpers couleur ================== */
@@ -14,16 +17,13 @@ const C = {
   muted: "#b6bcc1",
   panel: "#141414",
   border: "#242424",
-  axis: "#c9cdd1",           // gris très clair pour axes
+  axis: "#c9cdd1",
   white: "#ffffff",
-  green: "#20e3d6",          // vert gloss
-  green2: "#18b8ad",
-  pink: "#ff5fa2",           // rose gloss
-  pink2: "#ff7cbf",
-  orange: "#ffb347"          // orange neutre, si besoin
+  green: "#20e3d6",   // vert gloss
+  pink: "#ff5fa2",    // rose gloss
+  orange: "#ffb347"   // orange (warn)
 }
 /* ================== [A] END — Thème global & helpers couleur ================== */
-
 
 /* ================== Helpers calcul ================== */
 function round2(x){ return Math.round((x??0)*100)/100 }
@@ -48,7 +48,8 @@ function WinRateDonut({ filtered }) {
     { name: 'Perdants', value: counts.losses },
   ]), [counts])
 
-  const ringColors = ['var(--muted)', '#0f0f10']
+  // Minimal: gagnants=vert gloss, perdants=rose gloss
+  const ringColors = ['var(--green)', 'var(--pink)']
   const size = 160, outerR = 62, innerR = 42, labelSize = 22
 
   const TooltipDonut = ({ active, payload }) => {
@@ -145,11 +146,11 @@ function CorrelationMatrix({ filtered, displayCcy, convert }) {
     return s
   }, [strategies, dates, byDateByStrat])
 
-  const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0
+  const mmean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0
   const corr = (a,b) => {
     const n = Math.min(a.length, b.length); if(!n) return 0
     const ax=a.slice(0,n), bx=b.slice(0,n)
-    const ma=mean(ax), mb=mean(bx)
+    const ma=mmean(ax), mb=mmean(bx)
     let num=0, da=0, db=0
     for(let i=0;i<n;i++){ const x=ax[i]-ma, y=bx[i]-mb; num+=x*y; da+=x*x; db+=y*y }
     const den=Math.sqrt(da*db); return den>0? num/den : 0
@@ -524,10 +525,10 @@ export default function App(){
     }, [])
     const convert = (val, from='USD', to=displayCcy) => {
       if (val == null) return 0
-      if (from === to) return Number(val.toFixed(2))
+      if (from === to) return Number(Number(val).toFixed(2))
       const table = rates || fxFallback
       const r = (table[from] && table[from][to]) ? table[from][to] : 1
-      return Number((val * r).toFixed(2))
+      return Number((Number(val) * r).toFixed(2))
     }
     const fmt = (v, ccy=displayCcy) => {
       try { return new Intl.NumberFormat(undefined,{ style:'currency', currency:ccy, minimumFractionDigits:2, maximumFractionDigits:2 }).format(v ?? 0) }
@@ -630,6 +631,10 @@ export default function App(){
     const capitalTiersTotalDisp = React.useMemo(() => {
       return capitalTiers.reduce((a, r) => a + (convert(Number(r.amount)||0, r.ccy||'USD', displayCcy) || 0), 0)
     }, [capitalTiers, displayCcy])
+
+    // Etat manquant (fix)
+    const [showFlow, setShowFlow] = React.useState(false)
+
     const [showCT, setShowCT] = React.useState(false)
     const [ctForm, setCtForm] = React.useState({
       date: new Date().toISOString().slice(0,10),
@@ -733,12 +738,30 @@ export default function App(){
 
         {/* KPI PRINCIPAUX */}
         <div className="grid-6">
-          <div className="card"><div className="kpi-title">capital initial</div><div className="val">{fmt(capitalInitialDisp)}</div></div>
-          <div className={`card ${cashFlowTotal>=0?'halo-good':'halo-bad'}`}><div className="kpi-title">cash flow</div><div className="val" style={{color:cashFlowTotal>=0?C.green:C.pink}}>{fmt(cashFlowTotal)}</div></div>
-          <div className={`card ${totalPnlDisp>=0?'halo-good':'halo-bad'}`}><div className="kpi-title">pnl (filtré)</div><div className="val" style={{color:totalPnlDisp>=0?C.green:C.pink}}>{fmt(totalPnlDisp)}</div></div>
-          <div className="card"><div className="kpi-title">capital global</div><div className="val">{fmt(capitalGlobal)}</div></div>
-          <div className={`card ${maxDDPct<15?'halo-good':(maxDDPct<=20?'halo-warn':'halo-bad')}`}><div className="kpi-title">max dd %</div><div className="val">{maxDDPct.toFixed(2)}%</div></div>
-          <div className={`card ${maxDDAbs<= (peakEquity*0.2)? (maxDDAbs<= (peakEquity*0.15)?'halo-good':'halo-warn'):'halo-bad'}`}><div className="kpi-title">max dd (abs)</div><div className="val">{fmt(maxDDAbs)}</div></div>
+          <div className="card">
+            <div className="kpi-title">capital initial</div>
+            <div className="val force-white">{fmt(capitalInitialDisp)}</div>
+          </div>
+          <div className={`card ${cashFlowTotal>=0?'halo-good':'halo-bad'}`}>
+            <div className="kpi-title">cash flow</div>
+            <div className="val" style={{color:cashFlowTotal>=0?C.green:C.pink}}>{fmt(cashFlowTotal)}</div>
+          </div>
+          <div className={`card ${totalPnlDisp>=0?'halo-good':'halo-bad'}`}>
+            <div className="kpi-title">pnl (filtré)</div>
+            <div className="val" style={{color:totalPnlDisp>=0?C.green:C.pink}}>{fmt(totalPnlDisp)}</div>
+          </div>
+          <div className="card">
+            <div className="kpi-title">capital global</div>
+            <div className="val">{fmt(capitalGlobal)}</div>
+          </div>
+          <div className={`card ${maxDDPct<15?'halo-good':(maxDDPct<=20?'halo-warn':'halo-bad')}`}>
+            <div className="kpi-title">max dd %</div>
+            <div className="val force-white">{maxDDPct.toFixed(2)}%</div>
+          </div>
+          <div className={`card ${maxDDAbs<= (peakEquity*0.2)? (maxDDAbs<= (peakEquity*0.15)?'halo-good':'halo-warn'):'halo-bad'}`}>
+            <div className="kpi-title">max dd (abs)</div>
+            <div className="val force-white">{fmt(maxDDAbs)}</div>
+          </div>
         </div>
 
         {/* KPI — Win Rate donut + quelques ratios neutres */}
