@@ -209,59 +209,77 @@ function CapitalTiersModal({ openHook, onAdd, displayCcy }){
   )
 }
 
-/* ===== WinRate (Donut + Barres) ===== */
-function WinRateBlock({ rows }){
+/* ===== WinRate (Donut seul) ===== */
+function WinRateBlock({ rows }) {
   const counts = React.useMemo(() => {
-    let w=0, l=0
-    rows.forEach(t => { if (t.pnl > 0) w++; else if (t.pnl < 0) l++; })
-    const total = w + l
-    const wr = total ? (w/total)*100 : 0
-    return { w, l, total, wr }
-  }, [rows])
+    let w = 0, l = 0;
+    rows.forEach(t => { if (t.pnl > 0) w++; else if (t.pnl < 0) l++; });
+    const total = w + l;
+    const wr = total ? (w / total) * 100 : 0;
+    return { w, l, total, wr };
+  }, [rows]);
 
-  // Donut: ordre = gagnants (vert), perdants (rose)
   const donut = [
-    { name:'Gagnants', value: counts.w },
-    { name:'Perdants', value: counts.l }
-  ]
-
-  // Bar chart: un seul groupe, sans libellé X (on masque l’axe)
-  const bars = [{ key:'grp', gagnants:counts.w, perdants:counts.l }]
-
-  const size = 200, innerR = 58, outerR = 78
+    { name: 'Gagnants', value: counts.w },
+    { name: 'Perdants', value: counts.l }
+  ];
 
   return (
     <div className="card">
       <div className="kpi-title">Taux de réussite</div>
 
-      <div className="wr-grid">
-        {/* Donut */}
-        <div className="wr-donut">
-          <ResponsiveContainer width="100%" height={size}>
-            <PieChart>
-              <Pie
-                data={donut}
-                dataKey="value"
-                nameKey="name"
-                innerRadius={innerR}
-                outerRadius={outerR}
-                paddingAngle={1.5}
-                stroke="none"
-                isAnimationActive={false}
-              >
-                <Cell fill="var(--green)" />
-                <Cell fill="var(--pink)" />
-              </Pie>
-              <Tooltip />
-              {/* Pas de <Legend> ici, on met une légende custom juste en dessous */}
-            </PieChart>
-          </ResponsiveContainer>
+      {/* Donut seul */}
+      <div className="wr-donut" style={{ height: 220 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={donut}
+              dataKey="value"
+              nameKey="name"
+              innerRadius={64}
+              outerRadius={84}
+              paddingAngle={1.5}
+              stroke="none"
+              isAnimationActive={false}
+            >
+              <Cell fill="var(--green)" /> {/* Gagnants */}
+              <Cell fill="var(--pink)" />  {/* Perdants */}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </ResponsiveContainer>
 
-          {/* Centre du donut (parfaitement centré via CSS .wr-center) */}
-          <div className="wr-center">
-            <div className="wr-pct">{counts.wr.toFixed(1)}%</div>
-            <div className="wr-sub">sur {counts.total} trades</div>
-          </div>
+        {/* Label centré */}
+        <div className="wr-center">
+          <div className="wr-pct">{counts.wr.toFixed(1)}%</div>
+          <div className="wr-sub">sur {counts.total} trades</div>
+        </div>
+      </div>
+      {/* Légende (carrés vert/rose + texte gris clair) */}
+      <div className="wr-legend">
+        <span className="legend-item">
+          <span className="legend-color win"></span>Gagnants
+        </span>
+        <span className="legend-item">
+          <span className="legend-color loss"></span>Perdants
+        </span>
+      </div>
+    </div>
+  );
+}
+
+      {/* Légende (carrés vert/rose + texte gris clair) */}
+      <div className="wr-legend">
+        <span className="legend-item">
+          <span className="legend-color win"></span>Gagnants
+        </span>
+        <span className="legend-item">
+          <span className="legend-color loss"></span>Perdants
+        </span>
+      </div>
+    </div>
+  );
+}
 
           {/* Légende carrés vert/rose (texte gris clair via CSS) */}
           <div className="wr-legend">
