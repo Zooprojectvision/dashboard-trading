@@ -212,24 +212,6 @@ body{
   gap: 12px;
 }
 
-/* Centrage parfait du label au milieu du donut */
-.wr-donut { position: relative; }
-
-.wr-center {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  pointer-events: none;
-  text-align: center;
-}
-
-.wr-pct { font-size: 22px; color: var(--text); line-height: 1; }
-.wr-sub { font-size: 12px; color: var(--text); margin-top: 2px; }
-
 /* === Légende gagnant / perdant === */
 .wr-legend {
   display: flex;
