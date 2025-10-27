@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid,
-  PieChart, Pie, Cell, BarChart, Bar, ScatterChart, Scatter
+  PieChart, Pie, Cell, BarChart, Bar, ScatterChart, Scatter, ComposedChart
 } from 'recharts'
 
 import { dict, LOCALES } from './i18n'
@@ -228,7 +228,6 @@ function WinRateBlock({ rows }) {
     <div className="card">
       <div className="kpi-title">Taux de réussite</div>
 
-      {/* Donut seul */}
       <div className="wr-donut" style={{ height: 220 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -242,87 +241,20 @@ function WinRateBlock({ rows }) {
               stroke="none"
               isAnimationActive={false}
             >
-              <Cell fill="var(--green)" /> {/* Gagnants */}
-              <Cell fill="var(--pink)" />  {/* Perdants */}
+              <Cell fill="var(--green)" />
+              <Cell fill="var(--pink)" />
             </Pie>
             <Tooltip />
           </PieChart>
         </ResponsiveContainer>
 
-        {/* Label centré */}
         <div className="wr-center">
           <div className="wr-pct">{counts.wr.toFixed(1)}%</div>
           <div className="wr-sub">sur {counts.total} trades</div>
         </div>
       </div>
-      {/* Légende (carrés vert/rose + texte gris clair) */}
-      <div className="wr-legend">
-        <span className="legend-item">
-          <span className="legend-color win"></span>Gagnants
-        </span>
-        <span className="legend-item">
-          <span className="legend-color loss"></span>Perdants
-        </span>
-      </div>
     </div>
   );
-}
-
-      {/* Légende (carrés vert/rose + texte gris clair) */}
-      <div className="wr-legend">
-        <span className="legend-item">
-          <span className="legend-color win"></span>Gagnants
-        </span>
-        <span className="legend-item">
-          <span className="legend-color loss"></span>Perdants
-        </span>
-      </div>
-    </div>
-  );
-}
-
-          {/* Légende carrés vert/rose (texte gris clair via CSS) */}
-          <div className="wr-legend">
-            <div className="legend-item">
-              <span className="legend-color win" />
-              Gagnants
-            </div>
-            <div className="legend-item">
-              <span className="legend-color loss" />
-              Perdants
-            </div>
-          </div>
-        </div>
-
-        {/* Barres gagnants/perdants */}
-        <div>
-          <ResponsiveContainer width="100%" height={size}>
-            <BarChart data={bars} margin={{ top:10, right:10, left:0, bottom:0 }}>
-              <CartesianGrid stroke="#2b2b2b" />
-              {/* On masque l’axe X pour éviter tout libellé type "Trade(s)" */}
-              <XAxis
-                dataKey="key"
-                tick={false}
-                axisLine={false}
-                tickLine={false}
-                height={0}
-              />
-              <YAxis
-                allowDecimals={false}
-                stroke="var(--axis)"
-                tickLine={false}
-                axisLine={{ stroke: 'var(--axis)' }}
-              />
-              <Tooltip />
-              {/* Pas de Legend ici non plus */}
-              <Bar dataKey="gagnants" fill="var(--green)" />
-              <Bar dataKey="perdants" fill="var(--pink)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 /* ===== Ratios Pro ===== */
@@ -593,8 +525,8 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }){
 
   // Points de flux (scatter)
   const fluxDates=new Set(cashflows.map(c=>c.date))
-  const scatterFlux=globalSeries.filter(x=>fluxDates.has(x.date)).map(x=>({ x:x.date, y:x.equity, label:'flux' }))
-  const scatterLoss=globalSeries.filter(x=>x.pnl<0).map(x=>({ x:x.date, y:x.equity, label:'perte' }))
+  const scatterFlux=globalSeries.filter(x=>fluxDates.has(x.date)).map(x=>({ date:x.date, equity:x.equity }))
+const scatterLoss=globalSeries.filter(x=>x.pnl<0).map(x=>({ date:x.date, equity:x.equity }))
 
   return (
     <div className="card" style={{height:460}}>
@@ -610,24 +542,39 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }){
       </div>
 
       <ResponsiveContainer width="100%" height="86%">
-        {mode==='global' ? (
-          <LineChart data={globalSeries} margin={{left:8,right:8,top:8,bottom:8}}>
-            <CartesianGrid stroke="#2b2b2b" />
-            <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} tick={{fontSize:11}}/>
-            <YAxis stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} tick={{fontSize:11}}/>
-            <Tooltip/>
-            <Legend/>
-            <Line type="monotone" dataKey="equity" name="Équité" dot={false} stroke="var(--white)" strokeWidth={1.8}/>
-            {/* Points pertes (rose) et flux (accent) */}
-            <ScatterChart>
-              <XAxis dataKey="x" hide />
-              <YAxis dataKey="y" hide />
-              <Tooltip/>
-              <Scatter data={scatterLoss} fill="var(--pink)" name="perte" />
-              <Scatter data={scatterFlux} fill="var(--accent)" name="flux" />
-            </ScatterChart>
-          </LineChart>
-        ) : (
+       {mode === 'global' ? (
+  <ComposedChart data={globalSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+    <CartesianGrid stroke="#2b2b2b" />
+    <XAxis
+      dataKey="date"
+      stroke={C.axis}
+      tickLine={false}
+      axisLine={{ stroke: C.axis }}
+      tick={{ fontSize: 11 }}
+    />
+    <YAxis
+      stroke={C.axis}
+      tickLine={false}
+      axisLine={{ stroke: C.axis }}
+      tick={{ fontSize: 11 }}
+    />
+    <Tooltip />
+    <Legend />
+    <Line
+      type="monotone"
+      dataKey="equity"
+      name="Équité"
+      dot={false}
+      stroke="var(--white)"
+      strokeWidth={1.8}
+    />
+    {/* Points pertes (rose) et flux (accent) */}
+    <Scatter data={scatterLoss} dataKey="equity" name="perte" fill="var(--pink)" />
+    <Scatter data={scatterFlux} dataKey="equity" name="flux" fill="var(--accent)" />
+
+  </ComposedChart>
+) : (
+
           <LineChart data={stratSeries} margin={{left:8,right:8,top:8,bottom:8}}>
             <CartesianGrid stroke="#2b2b2b" />
             <XAxis dataKey="date" stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}} tick={{fontSize:11}}/>
@@ -759,8 +706,14 @@ export default function App(){
   byDate.forEach(p=>{ eq+=p.pnl; peak=Math.max(peak,eq); maxDrop=Math.max(maxDrop,peak-eq) })
   const maxDDAbs=maxDrop, maxDDPct= peak>0 ? (maxDrop/peak)*100 : 0
 
-  // Capital tiers total
-  const tiersTotal=tiers.reduce((s,r)=> s + convert(Number(r.amount)||0, r.ccy||'USD',displayCcy), 0)
+  // Capital tiers total (mémoïsé)
+const tiersTotal = React.useMemo(
+  () => tiers.reduce(
+    (s, r) => s + convert(Number(r.amount) || 0, r.ccy || 'USD', displayCcy),
+    0
+  ),
+  [tiers, displayCcy, rates]
+);
 
   // UI state
   const [openFlow,setOpenFlow]=React.useState(false)
@@ -850,18 +803,63 @@ export default function App(){
         <div/><div/>
       </div>
 
-      {/* KPIs */}
-      <div className="kpi-grid">
-        <div className="card"><div className="kpi-title">{t.kpis.capital_initial}</div><div className="val force-white">{fmt(capitalInitialDisp)}</div></div>
-        <div className={`card ${cashFlowTotal>=0?'halo-good':'halo-bad'}`}><div className="kpi-title">{t.kpis.cashflow}</div><div className={`val ${cashFlowTotal<0?'neg':'pos'}`}>{fmt(cashFlowTotal)}</div></div>
-        <div className={`card ${pnlFiltered>=0?'halo-good':'halo-bad'}`}><div className="kpi-title">{t.kpis.pnl_filtered}</div><div className={`val ${pnlFiltered<0?'neg':'pos'}`}>{fmt(pnlFiltered)}</div></div>
-        <div className={`card ${pnlFiltered>=0?'halo-good':'halo-bad'}`}><div className="kpi-title">{t.kpis.capital_total}</div><div className={`val ${pnlFiltered<0?'neg':'pos'}`}>{fmt(capitalGlobal)}</div></div>
-        <div className={`card ${maxDDPct<15?'halo-good':(maxDDPct<=20?'halo-warn':'halo-bad')}`}><div className="kpi-title">{t.kpis.maxdd_pct}</div><div className="val force-white">{maxDDPct.toFixed(2)}%</div></div>
-        <div className={`card ${maxDDAbs<=capitalInitialDisp*0.15?'halo-good':(maxDDAbs<=capitalInitialDisp*0.2?'halo-warn':'halo-bad')}`}><div className="kpi-title">{t.kpis.maxdd_abs}</div><div className="val force-white">{fmt(maxDDAbs)}</div></div>
-        <div className="card"><div className="kpi-title">{t.kpis.active_days}</div><div className="val">{new Set(filtered.map(t=>t.date)).size}</div></div>
-        <div className="card"><div className="kpi-title">{t.kpis.third_capital}</div><div className="val">{fmt(tiers.reduce((s,r)=>s+convert(r.amount,r.ccy||'USD',displayCcy),0))}</div></div>
-        <div className="card"><div className="kpi-title">trades total</div><div className="val">{filtered.length}</div></div>
-      </div>
+      {/* ==== KPI GRID ==== */}
+<div className="kpi-grid">
+  {/* Capital initial */}
+  <div className="card">
+    <div className="kpi-title">{t.kpis.capital_initial}</div>
+    <div className="val force-white">{fmt(capitalInitialDisp)}</div>
+  </div>
+
+  {/* Cashflow */}
+  <div className={`card ${cashFlowTotal>=0 ? 'halo-good' : 'halo-bad'}`}>
+    <div className="kpi-title">{t.kpis.cashflow}</div>
+    <div className={`val ${cashFlowTotal<0 ? 'neg' : 'pos'}`}>{fmt(cashFlowTotal)}</div>
+  </div>
+
+  {/* PnL filtré */}
+  <div className={`card ${pnlFiltered>=0 ? 'halo-good' : 'halo-bad'}`}>
+    <div className="kpi-title">{t.kpis.pnl_filtered}</div>
+    <div className={`val ${pnlFiltered<0 ? 'neg' : 'pos'}`}>{fmt(pnlFiltered)}</div>
+  </div>
+
+  {/* Capital total */}
+  <div className={`card ${pnlFiltered>=0 ? 'halo-good' : 'halo-bad'}`}>
+    <div className="kpi-title">{t.kpis.capital_total}</div>
+    <div className={`val ${pnlFiltered<0 ? 'neg' : 'pos'}`}>{fmt(capitalGlobal)}</div>
+  </div>
+
+  {/* Max DD % */}
+  <div className={`card ${maxDDPct < 15 ? 'halo-good' : (maxDDPct <= 20 ? 'halo-warn' : 'halo-bad')}`}>
+    <div className="kpi-title">{t.kpis.maxdd_pct}</div>
+    <div className="val force-white">{maxDDPct.toFixed(2)}%</div>
+  </div>
+
+  {/* Max DD absolu */}
+  <div className={`card ${maxDDAbs <= capitalInitialDisp*0.15 ? 'halo-good' : (maxDDAbs <= capitalInitialDisp*0.2 ? 'halo-warn' : 'halo-bad')}`}>
+    <div className="kpi-title">{t.kpis.maxdd_abs}</div>
+    <div className="val force-white">{fmt(maxDDAbs)}</div>
+  </div>
+
+  {/* Jours actifs */}
+  <div className="card">
+    <div className="kpi-title">{t.kpis.active_days}</div>
+    <div className="val">{new Set(filtered.map(t => t.date)).size}</div>
+  </div>
+
+  {/* Capital tiers (utilise tiersTotal mémoïsé) */}
+  <div className="card">
+    <div className="kpi-title">{t.kpis.third_capital}</div>
+    <div className="val">{fmt(tiersTotal)}</div>
+  </div>
+
+  {/* Nombre de trades */}
+  <div className="card">
+    <div className="kpi-title">trades total</div>
+    <div className="val">{filtered.length}</div>
+  </div>
+</div>
+
 
       {/* Win rate + Ratios */}
       <div className="grid-2" style={{marginTop:12}}>
@@ -889,7 +887,10 @@ export default function App(){
       </div>
 
       {/* Footer */}
-      <div className="footer" style={{textAlign:'center', color:'var(--muted)', fontSize:12, marginTop:20}}>
+      <div
+        className="footer"
+        style={{ textAlign:'center', color:'var(--text)', opacity:.7, fontSize:12, marginTop:20 }}
+      >
         ZooProjectVision © {new Date().getFullYear()}
       </div>
 
@@ -897,6 +898,6 @@ export default function App(){
       <FlowModal openHook={[openFlow,setOpenFlow]} onSave={row=>setFlows(p=>p.concat([row]))} ccy={displayCcy}/>
       <CapitalTiersModal openHook={[openTiers,setOpenTiers]} onAdd={row=>setTiers(p=>p.concat([row]))} displayCcy={displayCcy}/>
       <CashflowsModal openHook={[openRecap,setOpenRecap]} rows={cashflowsAll}/>
-    </div>
+    </div> {/* fin .wrap */}
   )
 }
