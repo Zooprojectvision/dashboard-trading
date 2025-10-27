@@ -898,7 +898,6 @@ const tiersTotal = React.useMemo(
       <FlowModal openHook={[openFlow,setOpenFlow]} onSave={row=>setFlows(p=>p.concat([row]))} ccy={displayCcy}/>
       <CapitalTiersModal openHook={[openTiers,setOpenTiers]} onAdd={row=>setTiers(p=>p.concat([row]))} displayCcy={displayCcy}/>
             <CashflowsModal openHook={[openRecap,setOpenRecap]} rows={cashflowsAll}/>
-      {/* fin .wrap */}
     </div>
   )
 }
