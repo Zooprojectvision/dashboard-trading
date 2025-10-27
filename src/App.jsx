@@ -67,7 +67,7 @@ function genDemoTrades(){
 }
 
 /* ===== Modale générique ===== */
-function Modal({ open, onClose, title, actions, children, inline=false }){
+function Modal({ open, onClose, title, actions, children, inline={inline} }){
   if(!open) return null
   if (inline) {
     return (
@@ -134,7 +134,7 @@ function GuidePanel({ lang }){
 }
 
 /* ===== Flux : ajout ===== */
-function FlowModal({ openHook, onSave, ccy, inline=false }){
+function FlowModal({ openHook, onSave, ccy, inline={inline} }){
   const [open,setOpen]=openHook||[false,()=>{}]
   const [flow,setFlow]=React.useState({ date:new Date().toISOString().slice(0,10), type:'deposit', amount:'', ccy, note:'' })
   const types=[
@@ -182,7 +182,7 @@ function FlowModal({ openHook, onSave, ccy, inline=false }){
 }
 
 /* ===== Capital Tiers ===== */
-function CapitalTiersModal({ openHook, onAdd, displayCcy, inline=false }){
+function CapitalTiersModal({ openHook, onAdd, displayCcy, inline={inline} }){
   const [open,setOpen]=openHook||[false,()=>{}]
   const [form,setForm]=React.useState({ date:new Date().toISOString().slice(0,10), source:'Prop firm', amount:'', ccy:displayCcy, note:'' })
   const sources=['Prop firm','Darwinex invest','Axi Select','Investisseur','Autre']
@@ -611,7 +611,7 @@ const scatterLoss=globalSeries.filter(x=>x.pnl<0).map(x=>({ date:x.date, equity:
 }
 
 /* ===== Cashflows (récap + export) ===== */
-function CashflowsModal({ openHook, rows, inline=false }){
+function CashflowsModal({ openHook, rows, inline={inline} }){
   const [open,setOpen]=openHook||[false,()=>{}]
   const exportCSV=()=>{
     const headers=['Date','Type','Montant','Devise','Note']
@@ -929,14 +929,15 @@ const tiersTotal = React.useMemo(
         <ActivityBlocks rows={filtered}/>
       </div>
 
-      {/* Footer */}
-     <div
-  className="footer"
-  style={{ textAlign:'center', color:'var(--text)', opacity:.7, fontSize:12, marginTop:20 }}
->
-  {/* Affichage version en pied de page */}
-  ZooProjectVision&nbsp;V{APP_VERSION} @ {new Date().getFullYear()}
-</div>
-</div> {/* fin .wrap */}
-)
+            {/* Footer */}
+      <div
+        className="footer"
+        style={{ textAlign:'center', color:'var(--text)', opacity:.7, fontSize:12, marginTop:20 }}
+      >
+        {/* Affichage version en pied de page */}
+        ZooProjectVision&nbsp;V{APP_VERSION} @ {new Date().getFullYear()}
+      </div>
+    </div> {/* fin .wrap */}
+  )
 }
+
