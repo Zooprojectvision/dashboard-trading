@@ -67,8 +67,22 @@ function genDemoTrades(){
 }
 
 /* ===== Modale générique ===== */
-function Modal({ open, onClose, title, actions, children }){
+function Modal({ open, onClose, title, actions, children, inline=false }){
   if(!open) return null
+  if (inline) {
+    return (
+      <div className="modal-card" style={{ marginTop: 8 }}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+          <div className="kpi-title" style={{fontSize:16}}>{title}</div>
+          <div style={{display:'flex',gap:8}}>
+            {actions}
+            <button className="btn ghost sm" onClick={onClose}>fermer</button>
+          </div>
+        </div>
+        {children}
+      </div>
+    )
+  }
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={e=>e.stopPropagation()}>
@@ -120,7 +134,7 @@ function GuidePanel({ lang }){
 }
 
 /* ===== Flux : ajout ===== */
-function FlowModal({ openHook, onSave, ccy }){
+function FlowModal({ openHook, onSave, ccy, inline=false }){
   const [open,setOpen]=openHook||[false,()=>{}]
   const [flow,setFlow]=React.useState({ date:new Date().toISOString().slice(0,10), type:'deposit', amount:'', ccy, note:'' })
   const types=[
@@ -137,7 +151,7 @@ function FlowModal({ openHook, onSave, ccy }){
     setFlow({ date:new Date().toISOString().slice(0,10), type:'deposit', amount:'', ccy, note:'' })
   }
   return (
-    <Modal open={open} onClose={()=>setOpen(false)} title="Ajouter un flux">
+    <Modal open={open} onClose={()=>setOpen(false)} title="Ajouter un flux" inline={inline}>
       <form onSubmit={submit} style={{display:'grid',gap:10,gridTemplateColumns:'repeat(2,1fr)'}}>
         <label className="form-label"><span>type</span>
           <select className="sel" value={flow.type} onChange={e=>setFlow(f=>({...f,type:e.target.value}))}>
@@ -168,7 +182,7 @@ function FlowModal({ openHook, onSave, ccy }){
 }
 
 /* ===== Capital Tiers ===== */
-function CapitalTiersModal({ openHook, onAdd, displayCcy }){
+function CapitalTiersModal({ openHook, onAdd, displayCcy, inline=false }){
   const [open,setOpen]=openHook||[false,()=>{}]
   const [form,setForm]=React.useState({ date:new Date().toISOString().slice(0,10), source:'Prop firm', amount:'', ccy:displayCcy, note:'' })
   const sources=['Prop firm','Darwinex invest','Axi Select','Investisseur','Autre']
@@ -179,7 +193,7 @@ function CapitalTiersModal({ openHook, onAdd, displayCcy }){
     onAdd?.({ ...form, amount:amt }); setOpen(false)
   }
   return (
-    <Modal open={open} onClose={()=>setOpen(false)} title="Capital tiers">
+    <Modal open={open} onClose={()=>setOpen(false)} title="Capital tiers" inline={inline}>
       <form onSubmit={submit} style={{display:'grid',gap:10,gridTemplateColumns:'repeat(2,1fr)'}}>
         <label className="form-label"><span>source</span>
           <select className="sel" value={form.source} onChange={e=>setForm(f=>({...f,source:e.target.value}))}>
@@ -534,7 +548,7 @@ const scatterLoss=globalSeries.filter(x=>x.pnl<0).map(x=>({ date:x.date, equity:
         <div className="kpi-title">courbe d’équité</div>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           <span className="kpi-sub">vue</span>
-          <select className="sel" style={{width:180}} value={mode} onChange={e=>setMode(e.target.value)}>
+         <select className="sel" style={{ width:260 }} value={mode} onChange={e=>setMode(e.target.value)}>
             <option value="global">global (pnl cumulé)</option>
             <option value="strat">par stratégie (pnl cumulé)</option>
           </select>
@@ -569,8 +583,8 @@ const scatterLoss=globalSeries.filter(x=>x.pnl<0).map(x=>({ date:x.date, equity:
       strokeWidth={1.8}
     />
     {/* Points pertes (rose) et flux (accent) */}
-    <Scatter data={scatterLoss} dataKey="equity" name="perte" fill="var(--pink)" />
-    <Scatter data={scatterFlux} dataKey="equity" name="flux" fill="var(--accent)" />
+   <Scatter data={scatterLoss} dataKey="equity" name="perte" fill="var(--pink)" />
+<Scatter data={scatterFlux} dataKey="equity" name="flux"  fill="var(--accent)" />
 
   </ComposedChart>
 ) : (
@@ -597,7 +611,7 @@ const scatterLoss=globalSeries.filter(x=>x.pnl<0).map(x=>({ date:x.date, equity:
 }
 
 /* ===== Cashflows (récap + export) ===== */
-function CashflowsModal({ openHook, rows }){
+function CashflowsModal({ openHook, rows, inline=false }){
   const [open,setOpen]=openHook||[false,()=>{}]
   const exportCSV=()=>{
     const headers=['Date','Type','Montant','Devise','Note']
@@ -610,7 +624,7 @@ function CashflowsModal({ openHook, rows }){
     const a=document.createElement('a'); a.href=url; a.download=`cashflows_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url)
   }
   return (
-    <Modal open={open} onClose={()=>setOpen(false)} title="Cashflows (récapitulatif)" actions={<button className="btn ghost sm" onClick={exportCSV}>exporter</button>}>
+    <Modal open={open} onClose={()=>setOpen(false)} title="Cashflows (récapitulatif)" actions={<button className="btn ghost sm" onClick={exportCSV}>exporter</button>} inline={inline}>
       <table className="table">
         <thead><tr><th>date</th><th>type</th><th style={{textAlign:'right'}}>montant</th><th>devise</th><th>note</th></tr></thead>
         <tbody>
@@ -672,6 +686,7 @@ export default function App(){
   const [strategy,setStrategy]=React.useState('All')
   const [dateFrom,setDateFrom]=React.useState('')
   const [dateTo,setDateTo]=React.useState('')
+
   const reset=()=>{ setAsset('All'); setBroker('All'); setStrategy('All'); setDateFrom(''); setDateTo('') }
 
   const assets=React.useMemo(()=>Array.from(new Set(tradesAll.map(t=>t.asset))),[tradesAll])
@@ -695,6 +710,10 @@ export default function App(){
   const pnlFiltered=React.useMemo(()=>sum(filtered.map(t=>convert(t.pnl,t.ccy||'USD',displayCcy))),[filtered,displayCcy,rates])
   const capitalBase=capitalInitialDisp+cashFlowTotal
   const capitalGlobal=capitalBase+pnlFiltered
+  const returnPct = React.useMemo(
+    () => (capitalBase > 0 ? (pnlFiltered / capitalBase) * 100 : 0),
+    [capitalBase, pnlFiltered]
+  )
 
   // DD global
   const byDate=React.useMemo(()=>{
@@ -728,10 +747,9 @@ const tiersTotal = React.useMemo(
       {/* HEADER */}
       <div className="header">
         <div>
-  <h1 className="brand">
-    {t.brand}
-    <span className="badge-version">v{APP_VERSION}</span>
-  </h1>
+  <h1 className="brand" style={{ fontWeight: 400, fontSize: '28px', letterSpacing: '0.2px' }}>
+  {t.brand}
+</h1>
 
   {!editSub ? (
     <p className="subtitle">
@@ -774,6 +792,25 @@ const tiersTotal = React.useMemo(
           <button className="btn ghost" onClick={reset}>{t.actions.reset}</button>
         </div>
 
+        {/* Formulaires inline sous les boutons */}
+<FlowModal
+  openHook={[openFlow,setOpenFlow]}
+  onSave={row=>setFlows(p=>p.concat([row]))}
+  ccy={displayCcy}
+  inline
+/>
+<CapitalTiersModal
+  openHook={[openTiers,setOpenTiers]}
+  onAdd={row=>setTiers(p=>p.concat([row]))}
+  displayCcy={displayCcy}
+  inline
+/>
+<CashflowsModal
+  openHook={[openRecap,setOpenRecap]}
+  rows={cashflowsAll}
+  inline
+/>
+
         {/* Actions ligne 2 */}
         <div className="actions-row">
           <div className="kpi-title" style={{marginRight:6}}>devise</div>
@@ -798,8 +835,9 @@ const tiersTotal = React.useMemo(
         <div><div className="kpi-title">{t.filters.strategy}</div>
           <select className="sel" value={strategy} onChange={e=>setStrategy(e.target.value)}><option>{t.filters.all}</option>{strategies.map(a=><option key={a}>{a}</option>)}</select>
         </div>
-        <div><div className="kpi-title">{t.filters.from}</div><input className="sel" type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}/></div>
-        <div><div className="kpi-title">{t.filters.to}</div><input className="sel" type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)}/></div>
+        <div><div className="kpi-title">{t.filters.from}</div><input className="sel" type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/></div>
+<div><div className="kpi-title">{t.filters.to}</div><input className="sel" type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/></div>
+
         <div/><div/>
       </div>
 
@@ -827,6 +865,11 @@ const tiersTotal = React.useMemo(
   <div className={`card ${pnlFiltered>=0 ? 'halo-good' : 'halo-bad'}`}>
     <div className="kpi-title">{t.kpis.capital_total}</div>
     <div className={`val ${pnlFiltered<0 ? 'neg' : 'pos'}`}>{fmt(capitalGlobal)}</div>
+  </div>
+  {/* Rentabilité (pnl / capital de base) */}
+  <div className={`card ${ returnPct >= 0 ? 'halo-good' : 'halo-bad'}`}>
+    <div className="kpi-title">{t.kpis?.return_pct || 'rentabilité'}</div>
+    <div className={`val ${ returnPct < 0 ? 'neg' : 'pos'}`}>{returnPct.toFixed(2)}%</div>
   </div>
 
   {/* Max DD % */}
@@ -887,18 +930,13 @@ const tiersTotal = React.useMemo(
       </div>
 
       {/* Footer */}
-      <div
-        className="footer"
-        style={{ textAlign:'center', color:'var(--text)', opacity:.7, fontSize:12, marginTop:20 }}
-      >
-        ZooProjectVision © {new Date().getFullYear()}
-      </div>
-
-      {/* Modales */}
-<FlowModal openHook={[openFlow,setOpenFlow]} onSave={row=>setFlows(p=>p.concat([row]))} ccy={displayCcy}/>
-<CapitalTiersModal openHook={[openTiers,setOpenTiers]} onAdd={row=>setTiers(p=>p.concat([row]))} displayCcy={displayCcy}/>
-<CashflowsModal openHook={[openRecap,setOpenRecap]} rows={cashflowsAll}/>
+     <div
+  className="footer"
+  style={{ textAlign:'center', color:'var(--text)', opacity:.7, fontSize:12, marginTop:20 }}
+>
+  {/* Affichage version en pied de page */}
+  ZooProjectVision&nbsp;V{APP_VERSION} @ {new Date().getFullYear()}
 </div>
+</div> {/* fin .wrap */}
 )
 }
-
