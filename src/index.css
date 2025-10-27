@@ -1,1 +1,17 @@
+:root{
+  --bg:#0a0a0b; --panel:#111216; --panel-2:#15171c;
+  --text:#e9ecf2; --muted:#b5bdc9; --border:#1e2229;
+  --white:#ffffff; --green:#20e3d6; --pink:#ff5fa2; --orange:#ffb347; --blue:#4da3ff;
+}
+html,body{background:var(--bg);color:var(--text);}
+.card,.modal-card{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:16px;}
+.card.tinted{background:var(--panel-2);}
+.sel,input.sel,select.sel{background:#0f1115;color:var(--text);border:1px solid var(--border);}
+.btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border);}
+.val.force-white{color:var(--white);} .val.pos{color:var(--green);} .val.neg{color:var(--pink);}
+.help-tooltip{background:#0f1115;color:var(--text);}
+.modal-overlay{backdrop-filter:blur(2px);background:rgba(0,0,0,.55);}
+.table th{color:var(--muted);border-bottom:1px solid var(--border);}
+.table td{border-bottom:1px dashed var(--border);}
 
