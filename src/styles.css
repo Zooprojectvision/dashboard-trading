@@ -205,54 +205,34 @@ body{
   box-shadow:var(--shadow-2);
 }
 
-/* ===== WinRate ===== */
-.wr-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+/* WinRate — donut seul */
+.wr-donut { 
+  position: relative; 
+  height: 220px;
 }
-
-/* === Légende gagnant / perdant === */
-.wr-legend {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--text);              /* gris clair */
-  text-transform: capitalize;      /* première lettre majuscule */
+.wr-center{
+  position:absolute; 
+  top:50%; left:50%; 
+  transform:translate(-50%,-50%);
+  display:flex; flex-direction:column; 
+  align-items:center; justify-content:center;
+  pointer-events:none; text-align:center;
 }
+.wr-pct { font-size:22px; color:var(--text); line-height:1; }
+.wr-sub { font-size:12px; color:var(--text); margin-top:2px; }
 
-.wr-legend .legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* Masquer toute légende (aucun carré, aucun libellé) */
+.wr-legend { display: none !important; }
+
+/* Tooltip Recharts en gris clair (garde UNE seule définition dans tout le fichier) */
+.recharts-tooltip-wrapper .recharts-default-tooltip{
+  background:rgba(20,22,28,.96)!important;
+  border:1px solid var(--border)!important;
+  color:var(--text)!important;
+  border-radius:12px!important;
+  padding:8px 10px!important;
+  font-size:12px;
 }
-
-.wr-legend .legend-color {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  display: inline-block;
-}
-.wr-legend .legend-color.win  { background: var(--green); }
-.wr-legend .legend-color.loss { background: var(--pink);  }
-
-/* compatibilité Recharts native Legend (au cas où tu n'utilises pas une légende custom) */
-.recharts-legend-item text {
-  fill: var(--text) !important;    /* gris clair sur texte interne Recharts */
-  text-transform: capitalize;      /* majuscule */
-  font-size: 12px;
-}
-
-
-/* Responsive */
-@media (max-width: 1100px) {
-  .wr-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 
 /* ===== Calendar */
 .calendar-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:10px }
@@ -304,28 +284,8 @@ body{
   font-size: 12px !important;
   font-weight: 500 !important;
 }
-/* Légende donut — mêmes couleurs que l'histogramme */
-.wr-legend .legend-color.win  { background: var(--green); }
-.wr-legend .legend-color.loss { background: var(--pink);  }
-
-/* (Déjà présent mais on reconfirme le texte gris clair) */
-.wr-legend {
-  color: var(--text);
-  text-transform: capitalize;
-}
-html, body {
-  overflow-x: hidden;  /* empêche tout scroll horizontal sur les écrans larges */
-}
-/* Donut : conteneur fixe + centrage overlay */
-.wr-donut { 
-  position: relative; 
-  height: 220px;               /* <= hauteur fixe pour que 50/50 marche à tous les coups */
-}
-.wr-center{
-  position:absolute; 
-  top:50%; left:50%; 
-  transform:translate(-50%,-50%);
-  display:flex; flex-direction:column; 
-  align-items:center; justify-content:center;
-  pointer-events:none; text-align:center;
+/* Forcer TOUT le texte des tooltips en gris clair */
+.recharts-default-tooltip .recharts-tooltip-label,
+.recharts-default-tooltip .recharts-tooltip-item {
+  color: var(--text) !important;
 }
