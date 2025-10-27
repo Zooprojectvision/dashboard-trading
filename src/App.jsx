@@ -17,6 +17,24 @@ const downsideStd = a => { if(!a.length) return 0; const m=mean(a); const n=a.fi
 const sum = a => a.reduce((s,x)=>s+x,0)
 const styleNum = v => ({ color: (Number(v)<0 ? 'var(--pink)' : 'var(--text)') })
 
+function HelpTooltip({ text }) {
+  return (
+    <span
+      className="help-tooltip"
+      title={text}
+      aria-label="Aide"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 18, height: 18, borderRadius: '50%',
+        border: '1px solid var(--border)', fontSize: 12,
+        cursor: 'help', marginLeft: 6, opacity: .9
+      }}
+    >?</span>
+  )
+}
+
 /* ===== CSV utils (MQL4/MQL5 exports) ===== */
 function parseCSV(text){
   const lines=String(text||'').trim().split(/\r?\n/); if(!lines.length) return []
@@ -643,7 +661,24 @@ function CashflowsModal({ openHook, rows, inline=false }){
     </Modal>
   )
 }
-
+ function HubCard({ title, subtitle, tooltip, onClick }) {
+  return (
+    <button
+      className="card"
+      onClick={onClick}
+      style={{
+        textAlign:'left', padding:18, border:'1px solid var(--border)',
+        borderRadius:16, width:'100%', cursor:'pointer'
+      }}
+    >
+      <div className="kpi-title" style={{display:'flex', alignItems:'center', gap:6}}>
+        <span>{title}</span>
+        <HelpTooltip text={tooltip}/>
+      </div>
+      <div style={{marginTop:6, color:'var(--text)', opacity:.85, fontSize:13}}>{subtitle}</div>
+    </button>
+  )
+}
 /* ===== APP ===== */
 export default function App(){
   // Langue / devise
@@ -733,6 +768,8 @@ const tiersTotal = React.useMemo(
   ),
   [tiers, displayCcy, rates]
 );
+// Navigation simple entre pages
+const [view, setView] = React.useState('home'); // 'home' | 'control' | 'compta' | 'risk'
 
   // UI state
   const [openFlow,setOpenFlow]=React.useState(false)
@@ -741,6 +778,8 @@ const tiersTotal = React.useMemo(
   const [subtitle,setSubtitle]=React.useState(()=>{ try{return localStorage.getItem('zpv_subtitle')||t.subtitle_default}catch{return t.subtitle_default} })
   const [editSub,setEditSub]=React.useState(false)
   React.useEffect(()=>{ try{ if(!editSub){ localStorage.setItem('zpv_subtitle',subtitle) } }catch{} },[subtitle,editSub])
+
+  const [view, setView] = React.useState('home'); // 'home' | 'control' | 'compta' | 'risk'
 
   return (
     <div className="wrap">
@@ -928,6 +967,49 @@ const tiersTotal = React.useMemo(
       <div style={{marginTop:12}}>
         <ActivityBlocks rows={filtered}/>
       </div>
+
+function HomeHub({ setView }) {
+  return (
+    <div style={{maxWidth:980, margin:'40px auto 60px', padding:'0 12px'}}>
+      <h1 className="brand" style={{ fontWeight: 500, fontSize: 32, letterSpacing: '.3px', textAlign:'center' }}>
+        ZooProjectVision
+      </h1>
+
+      <p style={{textAlign:'center', color:'var(--text)', opacity:.8, marginTop:8}}>
+        Choisis une zone pour continuer. Chaque bloc contient une aide intégrée (?)
+      </p>
+
+      <div
+        className="grid-3"
+        style={{
+          display:'grid',
+          gridTemplateColumns:'repeat(auto-fit, minmax(260px,1fr))',
+          gap:16,
+          marginTop:24
+        }}
+      >
+        <HubCard
+          title="Centre de contrôle"
+          subtitle="Tableau de bord trading : filtres, PnL, courbe d’équité, ratios, mapping…"
+          tooltip="Vue principale pour analyser l’activité. Les verdicts (halo) se basent sur des seuils simples (ex : MaxDD% < 15% = vert, 15–20% = orange, > 20% = rouge)."
+          onClick={()=>setView('control')}
+        />
+        <HubCard
+          title="Comptabilité entreprise"
+          subtitle="Revenus & charges (payouts, frais de challenge, dépenses), marges et flux."
+          tooltip="Suivi simple type plan comptable : + revenus (payouts/fees reçus), – charges (frais de challenge, dépenses). Donne marge brute et nette."
+          onClick={()=>setView('compta')}
+        />
+        <HubCard
+          title="Gestion du risque"
+          subtitle="Rapports et recommandations (lot sizing, TP/SL, périodes à risque…)."
+          tooltip="Analyse des pertes par période/actif/stratégie, seuils d’alerte et suggestions (ex : réduire le lot size le lundi 16–22h si WR/expectancy < seuil)."
+          onClick={()=>setView('risk')}
+        />
+      </div>
+    </div>
+  )
+}
 
             {/* Footer */}
       <div
