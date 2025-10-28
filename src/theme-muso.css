@@ -1,4 +1,9 @@
-/* THEME MUSO — noir simple (aplat) */
-:root { --bg: #000; }
-html, body, #root { min-height: 100%; }
-body { background: var(--bg) !important; }
+/* DEBUG (temporaire) */
+body { color:#c5ccd3 !important; }
+* { outline:1px solid rgba(0,255,255,.15); }  /* montre les boîtes */
+#root::before {
+  content:"ZPV visible ?";
+  position:fixed; top:10px; left:10px; font:600 14px/1 Inter,system-ui;
+  background:#111; padding:6px 10px; border:1px solid #333; border-radius:8px;
+  z-index:999999;
+}
