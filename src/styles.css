@@ -224,16 +224,6 @@ body{
 /* Masquer toute légende (aucun carré, aucun libellé) */
 .wr-legend { display: none !important; }
 
-/* Tooltip Recharts en gris clair (garde UNE seule définition dans tout le fichier) */
-.recharts-tooltip-wrapper .recharts-default-tooltip{
-  background:rgba(20,22,28,.96)!important;
-  border:1px solid var(--border)!important;
-  color:var(--text)!important;
-  border-radius:12px!important;
-  padding:8px 10px!important;
-  font-size:12px;
-}
-
 /* ===== Calendar */
 .calendar-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:10px }
 .calendar-cell{ border:1px solid var(--border); border-radius:14px; padding:10px; min-height:92px; background:rgba(255,255,255,.02) }
@@ -290,7 +280,7 @@ body{
   color: var(--text) !important;
 }
 /* ===== MUSO BLACK – fond ultra-noir, override minimal ===== */
-body {
-  background-color: #0a0b0f !important; /* noir muso */
-  background-image: none !important;    /* désactive les gradients colorés */
+body{
+  background: #0a0b0f !important;   /* remplace background-color */
+  background-image: none !important; /* ceinture+bretelles */
 }
