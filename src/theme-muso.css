@@ -1,18 +1,29 @@
-/* TEST TEMPORAIRE — fond ROUGE vif partout */
-:root { --bg: #ff0000; }
+/* THEME MUSO — Bleu canard foncé (fond uniquement) */
+:root {
+  /* base teal très sombre */
+  --bg: #0a2f33; /* bleu canard foncé */
+}
 
-html, body, #root { min-height: 100%; background: #ff0000 !important; }
+/* garde le fond partout */
+html, body, #root { min-height: 100%; background: var(--bg) !important; }
 
+/* léger “sheen” fixe (beaucoup plus subtil qu’avant) */
 body::before{
   content:"";
   position:fixed;
   inset:0;
   z-index:-1;
   pointer-events:none;
-  background: #ff0000 !important;   /* pas de gradients pour le test */
+  background:
+    radial-gradient(1100px 800px at 8% -6%, rgba(0, 227, 214, 0.05), rgba(0,0,0,0) 55%),
+    radial-gradient(900px 700px at 108% 0%,   rgba(64, 224, 208, 0.035), rgba(0,0,0,0) 48%),
+    linear-gradient(180deg, rgba(0, 227, 214, 0.02), rgba(0,0,0,0) 40%),
+    var(--bg);
+  background-attachment: fixed, fixed, fixed, fixed;
 }
 
+/* ceinture+bretelles : force l’arrière-plan à rester teal, sans gradients du styles.css */
 body{
-  background: #ff0000 !important;
+  background: var(--bg) !important;
   background-image: none !important;
 }
