@@ -1,3 +1,7 @@
+console.log('[main] chargé');
+window.addEventListener('error', e => console.error('[global error]', e.error || e.message));
+window.addEventListener('unhandledrejection', e => console.error('[unhandled promise]', e.reason));
+
 // src/main.jsx
 import React from 'react'
 import { createRoot } from 'react-dom/client'
