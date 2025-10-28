@@ -1,17 +1,32 @@
-:root{
-  --bg:#0a0a0b; --panel:#111216; --panel-2:#15171c;
-  --text:#e9ecf2; --muted:#b5bdc9; --border:#1e2229;
-  --white:#ffffff; --green:#20e3d6; --pink:#ff5fa2; --orange:#ffb347; --blue:#4da3ff;
-}
-html,body{background:var(--bg);color:var(--text);}
-.card,.modal-card{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:16px;}
-.card.tinted{background:var(--panel-2);}
-.sel,input.sel,select.sel{background:#0f1115;color:var(--text);border:1px solid var(--border);}
-.btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);}
-.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border);}
-.val.force-white{color:var(--white);} .val.pos{color:var(--green);} .val.neg{color:var(--pink);}
-.help-tooltip{background:#0f1115;color:var(--text);}
-.modal-overlay{backdrop-filter:blur(2px);background:rgba(0,0,0,.55);}
-.table th{color:var(--muted);border-bottom:1px solid var(--border);}
-.table td{border-bottom:1px dashed var(--border);}
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>ZooProjectVision - Centre de Contrôle V4.4</title>
+    <meta name="description" content="ZooProjectVision - Centre de Contrôle Trading Multi-Actifs, Multi-Brokers, Multi-Stratégies" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <meta name="theme-color" content="#0a0a0b" />
+
+    <!-- Muso Black override (background ultra-noir) -->
+    <style>
+      :root { --bg: #0a0b0f; }
+      html, body { height: 100%; }
+      body {
+        background-color: var(--bg) !important;
+        background-image: none !important; /* coupe les gradients */
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
 
