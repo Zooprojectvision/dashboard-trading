@@ -1,7 +1,7 @@
 /* THEME MUSO — Bleu canard foncé (fond uniquement) */
 :root {
   /* base teal très sombre */
-  --bg: #0a2f33; /* bleu canard foncé */
+  --bg: #000;          /* noir absolu */
 }
 
 /* garde le fond partout */
