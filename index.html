@@ -4,35 +4,37 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     <meta name="color-scheme" content="dark light" />
-    <title>ZPV — Test de montage</title>
+    <title>ZooProjectVision - Centre de Contrôle V5.0.6</title>
+    <meta name="description" content="ZooProjectVision - Centre de Contrôle Trading Multi-Actifs, Multi-Brokers, Multi-Stratégies" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Couleur navigateur -->
     <meta name="theme-color" content="#000000" />
+
+    <!-- Fond noir profond (seulement l'arrière-plan) -->
     <style>
-      html,body,#root { height:100%; margin:0 }
-      body { background:#000; color:#c5ccd3; font:14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif }
-      .badge { position:fixed; inset:auto 8px 8px 8px; padding:8px 10px; border:1px solid #333; border-radius:8px; background:#111; color:#0f0; font:12px monospace }
-      .step { margin:12px 0; }
+      :root { --bg: #000; }
+      html, body { height: 100%; }
+      body {
+        background:
+          radial-gradient(1200px 900px at 10% -10%, rgba(255,255,255,0.055), rgba(255,255,255,0) 55%),
+          radial-gradient(1000px 800px at 110% 0%, rgba(255,255,255,0.035), rgba(255,255,255,0) 50%),
+          linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0) 40%),
+          var(--bg);
+        background-attachment: fixed, fixed, fixed, fixed;
+      }
     </style>
   </head>
+
   <body>
-    <noscript>Activez JavaScript.</noscript>
+    <div id="root"></div>
 
-    <div id="root">[index.html chargé]</div>
-
-    <!-- Étape A : prouver que le JS inline tourne -->
-    <script>
-      (function(){
-        const el = document.getElementById('root');
-        el.textContent = 'Étape A ✅ JS inline a tourné — le DOM est accessible';
-        const info = document.createElement('div');
-        info.className = 'badge';
-        info.innerHTML = [
-          '<div class="step">[A] Inline OK</div>',
-          '<div class="step" id="b">[B] main.jsx…</div>',
-          '<div class="step" id="c">[C] React…</div>'
-        ].join('');
-        document.body.appendChild(info);
-      })();
-    </script>
-
-    <!-- Étape B : charger le module Vite (chemin RELATIF pour éviter 404 en prod
-
+    <!-- Chargement de l’app React (chemin absolu depuis la racine du déploiement) -->
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
