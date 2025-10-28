@@ -1,7 +1,5 @@
 :root { --bg:#0a0b0f; }
-
-/* Écrase totalement le background défini dans styles.css */
 body{
-  background: var(--bg) !important;  /* au lieu de background-color */
-  background-image: none !important;  /* par sécurité */
+  background: var(--bg) !important;
+  background-image: none !important;
 }
