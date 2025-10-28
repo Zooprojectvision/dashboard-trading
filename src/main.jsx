@@ -1,15 +1,13 @@
-*{box-sizing:border-box}
-html,body,#root{height:100%}
-body{
-  margin:0;
-  color: var(--text, #c5ccd3);
-  font:14px/1.5 "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing:antialiased;
-}
+// src/main.jsx
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App.jsx'
 
+import './styles.css'     // styles globaux (pas de background ici)
+import './theme-muso.css' // fond noir (optionnel, peut être vide si index.html gère le fond)
 
-
-
-
-
-
+createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+)
