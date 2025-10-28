@@ -1,4 +1,13 @@
 <body>
-  <div id="root"></div>
+  <div id="root" style="padding:16px;color:#fff">[index.html chargé]</div>
+
+  <!-- TEST PLAIN JS : doit remplacer le texte ci-dessus par “JS OK” -->
+  <script>
+    const el = document.getElementById('root');
+    if (el) el.textContent = 'JS OK (inline) ✅';
+    else document.write('Pas de #root ❌');
+  </script>
+
+  <!-- Garde le module Vite après le test inline -->
   <script type="module" src="/src/main.jsx"></script>
 </body>
