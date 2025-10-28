@@ -13,13 +13,27 @@
     <meta name="theme-color" content="#0a0b0f" />
     <!-- MUSO BLACK -->
     <style>
-      :root { --bg: #0a0b0f; }
-      html, body { height: 100%; }
-      body { background-color: var(--bg) !important; background-image: none !important; }
-    </style>
+  :root { --bg: #000; }
+  html, body { height: 100%; }
+  /* NE PAS mettre background-image: none ici */
+</style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+/* FOND NOIR PROFOND BRILLANT — arrière-plan seulement */
+:root { --bg: #000; }
+
+html, body, #root { min-height: 100%; }
+
+body{
+  /* Base OLED + micro-reflets très discrets */
+  background:
+    radial-gradient(1200px 900px at 10% -10%, rgba(255,255,255,0.055), rgba(255,255,255,0) 55%),
+    radial-gradient(1000px 800px at 110% 0%,   rgba(255,255,255,0.035), rgba(255,255,255,0) 50%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0) 40%),
+    #000000;
+  background-attachment: fixed, fixed, fixed, fixed; /* effet “sheen” au scroll */
+}
