@@ -1,5 +1,8 @@
-:root { --bg:#0a0b0f; }
-body{
+:root { --bg: #0a0b0f; }
+
+html body, body, html, #root {
   background: var(--bg) !important;
   background-image: none !important;
 }
+
+.wrap { background: transparent !important; }
