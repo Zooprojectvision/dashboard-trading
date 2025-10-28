@@ -1,8 +1,10 @@
-:root { --bg: #0a0b0f; }
-
-html body, body, html, #root {
-  background: var(--bg) !important;
-  background-image: none !important;
+:root { --bg:#000; }
+html, body, #root { min-height:100%; }
+body{
+  background:
+    radial-gradient(1200px 900px at 10% -10%, rgba(255,255,255,.055), rgba(255,255,255,0) 55%),
+    radial-gradient(1000px 800px at 110% 0%, rgba(255,255,255,.035), rgba(255,255,255,0) 50%),
+    linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,0) 40%),
+    #000;
+  background-attachment: fixed,fixed,fixed,fixed;
 }
-
-.wrap { background: transparent !important; }
