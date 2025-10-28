@@ -289,3 +289,8 @@ body{
 .recharts-default-tooltip .recharts-tooltip-item {
   color: var(--text) !important;
 }
+/* ===== MUSO BLACK – fond ultra-noir, override minimal ===== */
+body {
+  background-color: #0a0b0f !important; /* noir muso */
+  background-image: none !important;    /* désactive les gradients colorés */
+}
