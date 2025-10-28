@@ -1,16 +1,16 @@
-// src/main.jsx — TEST MONTAGE REACT
+// src/main.jsx — PROBE
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 
-// IMPORTANT: on ne charge QUE le strict minimum
-import './styles.css'       // doit imposer color: var(--text)
-import './theme-muso.css'   // ne doit PAS toucher body
+// charge UNIQUEMENT le strict minimum
+import './styles.css'
+import './theme-muso.css'
 
 function Probe() {
   return (
     <div style={{padding: 24}}>
       <h1 style={{color:'#0ff', margin:0}}>React monté ✅</h1>
-      <p style={{color:'#ddd', marginTop:8}}>Si tu lis ceci, React tourne bien.</p>
+      <p style={{color:'#ddd', marginTop:8}}>Si tu vois ce texte, React fonctionne.</p>
     </div>
   )
 }
