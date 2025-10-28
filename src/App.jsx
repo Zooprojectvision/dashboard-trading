@@ -689,9 +689,12 @@ function CashflowsModal({ openHook, rows, inline=false }){
 function HomeHub({ setView }) {
   return (
     <div style={{maxWidth:980, margin:'40px auto 60px', padding:'0 12px'}}>
-      <h1 className="brand" style={{ fontWeight: 500, fontSize: 32, letterSpacing: '.3px', textAlign:'center' }}>
-        ZooProjectVision
-      </h1>
+      import LogoZPV from './LogoZPV.jsx';
+...
+<h1 className="brand">
+  <LogoZPV size={28} />
+  <span className="badge-version">V{APP_VERSION}</span>
+</h1>
 
       <p style={{textAlign:'center', color:'var(--text)', opacity:.85, margin:'8px 0 22px'}}>
         Choisissez une zone pour commencer.
