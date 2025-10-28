@@ -1,28 +1,18 @@
-/* MUSO BLACK — fond noir profond + léger "sheen" brillant, infaillible */
-:root { --bg: #000; }
+/* TEST TEMPORAIRE — fond ROUGE vif partout */
+:root { --bg: #ff0000; }
 
-/* Assure qu’on a bien de la place pour voir le fond */
-html, body, #root { min-height: 100%; background: #000 !important; }
+html, body, #root { min-height: 100%; background: #ff0000 !important; }
 
-/* Backdrop fixé derrière tout le contenu */
 body::before{
   content:"";
-  position:fixed; /* reste collé au viewport */
+  position:fixed;
   inset:0;
-  z-index:-1;     /* derrière toute l’UI */
+  z-index:-1;
   pointer-events:none;
-
-  /* "Noir brillant" (sheen très discret) */
-  background:
-    radial-gradient(1200px 900px at 10% -10%, rgba(255,255,255,0.055), rgba(255,255,255,0) 55%),
-    radial-gradient(1000px 800px at 110% 0%,   rgba(255,255,255,0.035), rgba(255,255,255,0) 50%),
-    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0) 40%),
-    #000;
-  background-attachment: fixed,fixed,fixed,fixed;
+  background: #ff0000 !important;   /* pas de gradients pour le test */
 }
 
-/* Sécurité : neutralise toute autre règle de background sur body */
 body{
-  background: #000 !important;              /* base OLED */
-  background-image: none !important;         /* au cas où */
+  background: #ff0000 !important;
+  background-image: none !important;
 }
