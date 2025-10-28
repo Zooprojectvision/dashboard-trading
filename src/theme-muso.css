@@ -1,24 +1,12 @@
 /* THEME MUSO — Bleu canard foncé (fond uniquement) */
-:root {
-  /* base teal très sombre */
-  --bg: #000;          /* noir absolu */
-}
-
-/* garde le fond partout */
-html, body, #root { min-height: 100%; background: var(--bg) !important; }
-
-/* léger “sheen” fixe (beaucoup plus subtil qu’avant) */
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  z-index:-1;
-  pointer-events:none;
+:root { --bg:#000; }
+html, body, #root { min-height: 100%; }
+body{
   background:
-    radial-gradient(1100px 800px at 8% -6%, rgba(0, 227, 214, 0.05), rgba(0,0,0,0) 55%),
-    radial-gradient(900px 700px at 108% 0%,   rgba(64, 224, 208, 0.035), rgba(0,0,0,0) 48%),
-    linear-gradient(180deg, rgba(0, 227, 214, 0.02), rgba(0,0,0,0) 40%),
-    var(--bg);
+    radial-gradient(1200px 900px at 10% -10%, rgba(255,255,255,0.055), rgba(255,255,255,0) 55%),
+    radial-gradient(1000px 800px at 110% 0%, rgba(255,255,255,0.035), rgba(255,255,255,0) 50%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0) 40%),
+    #000;
   background-attachment: fixed, fixed, fixed, fixed;
 }
 
