@@ -1,13 +1,38 @@
-<body>
-  <div id="root" style="padding:16px;color:#fff">[index.html chargé]</div>
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>ZPV — Test de montage</title>
+    <meta name="theme-color" content="#000000" />
+    <style>
+      html,body,#root { height:100%; margin:0 }
+      body { background:#000; color:#c5ccd3; font:14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif }
+      .badge { position:fixed; inset:auto 8px 8px 8px; padding:8px 10px; border:1px solid #333; border-radius:8px; background:#111; color:#0f0; font:12px monospace }
+      .step { margin:12px 0; }
+    </style>
+  </head>
+  <body>
+    <noscript>Activez JavaScript.</noscript>
 
-  <!-- TEST PLAIN JS : doit remplacer le texte ci-dessus par “JS OK” -->
-  <script>
-    const el = document.getElementById('root');
-    if (el) el.textContent = 'JS OK (inline) ✅';
-    else document.write('Pas de #root ❌');
-  </script>
+    <div id="root">[index.html chargé]</div>
 
-  <!-- Garde le module Vite après le test inline -->
-  <script type="module" src="/src/main.jsx"></script>
-</body>
+    <!-- Étape A : prouver que le JS inline tourne -->
+    <script>
+      (function(){
+        const el = document.getElementById('root');
+        el.textContent = 'Étape A ✅ JS inline a tourné — le DOM est accessible';
+        const info = document.createElement('div');
+        info.className = 'badge';
+        info.innerHTML = [
+          '<div class="step">[A] Inline OK</div>',
+          '<div class="step" id="b">[B] main.jsx…</div>',
+          '<div class="step" id="c">[C] React…</div>'
+        ].join('');
+        document.body.appendChild(info);
+      })();
+    </script>
+
+    <!-- Étape B : charger le module Vite (chemin RELATIF pour éviter 404 en prod
+
