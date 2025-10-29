@@ -805,22 +805,29 @@ export default function App(){
   React.useEffect(()=>{ try{ if(!editSub){ localStorage.setItem('zpv_subtitle',subtitle) } }catch{} },[subtitle,editSub])
 
   // === RENDER ===
-  return (
-    <div className="wrap">
-     {view === 'home' ? (
-  <HomeHub setView={setView} t={t} />
-) : (
-  <>
-    {/* ... le reste inchangé ... */}
-  </>
-)}
-          {/* Barre de navigation locale */}
-          <div className="header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-            <button className="btn ghost" onClick={()=>setView('home')}>← Accueil</button>
-            <div style={{opacity:.8, fontSize:12}}>
-              {view === 'control' ? 'Centre de contrôle' : view === 'compta' ? 'Comptabilité entreprise' : 'Gestion du risque'}
-            </div>
+return (
+  <div className="wrap">
+    {view === 'home' ? (
+      <HomeHub setView={setView} t={t} subtitle={subtitle} />
+    ) : (
+      <>
+        {/* Barre de navigation locale */}
+        <div className="header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <button className="btn ghost" onClick={()=>setView('home')}>← Accueil</button>
+          <div style={{opacity:.8, fontSize:12}}>
+            {view === 'control'
+              ? 'Centre de contrôle'
+              : view === 'compta'
+              ? 'Comptabilité entreprise'
+              : 'Gestion du risque'}
           </div>
+        </div>
+
+        {/* ... garde tout le contenu existant (filtres, KPI, charts, etc.) ... */}
+      </>
+    )}
+  </div>
+)
 
           {/* CONTENU SELON VIEW */}
           {view === 'control' && (
