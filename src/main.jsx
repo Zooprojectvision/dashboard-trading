@@ -1,15 +1,15 @@
+// src/main.jsx
 import React from 'react'
-import ReactDOM from 'react-dom/client'
+import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
+import './styles.css'       // styles globaux (sans background)
+import './theme-muso.css'   // fond noir profond (override, DOIT venir après)
 
-import './i18n.js'
-import './styles.css'       // style principal (conserve ton fichier actuel)
-import './theme-muso.css'   // arrière-plan (noir “brillant”)
-
-ReactDOM.createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
+  </React.StrictMode>
 )
+
 
 
