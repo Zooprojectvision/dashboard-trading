@@ -1,21 +1,15 @@
 // src/main.jsx
 import React from 'react'
 import { createRoot } from 'react-dom/client'
+import App from './App.jsx'
 
-// PAS de CSS, PAS d'App.jsx
-function Ping() {
-  return (
-    <div style={{
-      color:'#fff',
-      background:'#111',
-      padding: 24,
-      fontFamily:'Inter, system-ui, Arial',
-      fontSize: 18
-    }}>
-      PING OK — React monte bien ✅
-    </div>
-  )
-}
+import './styles.css'     // styles globaux (sans background)
+import './theme-muso.css' // FOND uniquement (noir "brillant")
 
-createRoot(document.getElementById('root')).render(<Ping/>)
+createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+)
+
 
