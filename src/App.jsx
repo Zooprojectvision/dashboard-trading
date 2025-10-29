@@ -807,10 +807,13 @@ export default function App(){
   // === RENDER ===
   return (
     <div className="wrap">
-      {view === 'home' ? (
-        <HomeHub setView={setView} />
-      ) : (
-        <>
+     {view === 'home' ? (
+  <HomeHub setView={setView} t={t} />
+) : (
+  <>
+    {/* ... le reste inchangé ... */}
+  </>
+)}
           {/* Barre de navigation locale */}
           <div className="header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
             <button className="btn ghost" onClick={()=>setView('home')}>← Accueil</button>
