@@ -133,6 +133,34 @@ function genDemoTrades(){
 }
 
 /* ===== Modale générique ===== */
+
+function AboutModal({ openHook }) {
+  const [open, setOpen] = openHook || [false, () => {}];
+  return (
+    <Modal open={open} onClose={() => setOpen(false)} title="À propos">
+      <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>
+        <div className="kpi-title">ZooProjectVision</div>
+        <div style={{ marginTop: 6 }}>
+          <div>Version : <b>V{APP_VERSION}</b></div>
+          <div style={{ opacity: .85, marginTop: 6 }}>
+            Consulte le changelog pour les nouveautés et correctifs.
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <a
+              href="/CHANGELOG.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn ghost sm"
+            >
+              Ouvrir le changelog
+            </a>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function Modal({ open, onClose, title, actions, children, inline=false }){
   if(!open) return null
   if (inline) {
@@ -845,6 +873,7 @@ export default function App(){
   const [openFlow,setOpenFlow]=React.useState(false)
   const [openTiers,setOpenTiers]=React.useState(false)
   const [openRecap,setOpenRecap]=React.useState(false)
+  const [openAbout, setOpenAbout] = React.useState(false)
   const [subtitle,setSubtitle]=React.useState(()=>{ try{return localStorage.getItem('zpv_subtitle')||t.subtitle_default}catch{return t.subtitle_default} })
   const [editSub,setEditSub]=React.useState(false)
   React.useEffect(()=>{ try{ if(!editSub){ localStorage.setItem('zpv_subtitle',subtitle) } }catch{} },[subtitle,editSub])
@@ -911,13 +940,15 @@ export default function App(){
                   <GuidePanel lang={lang}/>
                   <button className="btn ghost" onClick={()=>setOpenRecap(true)}>{t.actions.recap}</button>
                   <button className="btn ghost" onClick={reset}>{t.actions.reset}</button>
+                  <button className="btn ghost" onClick={()=>setOpenAbout(true)}>À propos</button>
                 </div>
 
                 {/* Formulaires inline */}
                 <FlowModal openHook={[openFlow,setOpenFlow]} onSave={row=>setFlows(p=>p.concat([row]))} ccy={displayCcy} inline/>
                 <CapitalTiersModal openHook={[openTiers,setOpenTiers]} onAdd={row=>setTiers(p=>p.concat([row]))} displayCcy={displayCcy} inline/>
                 <CashflowsModal openHook={[openRecap,setOpenRecap]} rows={cashflowsAll} inline/>
-
+                <AboutModal openHook={[openAbout, setOpenAbout]} />
+                
                 {/* Actions ligne 2 */}
                 <div className="actions-row">
                   <div className="kpi-title" style={{marginRight:6}}>devise</div>
