@@ -777,7 +777,18 @@ function HomeHub({ setView, t, subtitle }) {
 }
 
 /* ===== APP ===== */
+function AppFooter() {
+  return (
+    <div
+      className="footer"
+      style={{ textAlign:'center', color:'var(--text)', opacity:.7, fontSize:12, marginTop:20 }}
+    >
+      Designed &amp; Built by ZooProjectVision V{APP_VERSION} @ {new Date().getFullYear()}
+    </div>
+  );
+}
 export default function App(){
+
   // --- Navigation simple ---
   const [view, setView] = React.useState('home') // 'home' | 'control' | 'compta' | 'risk'
 
@@ -880,12 +891,53 @@ export default function App(){
   React.useEffect(()=>{ try{ if(!editSub){ localStorage.setItem('zpv_subtitle',subtitle) } }catch{} },[subtitle,editSub])
 
   // === RENDER ===
-  return (
-    <div className="wrap">
-      {view === 'home' ? (
-        <HomeHub setView={setView} t={t} subtitle={subtitle} />
-      ) : (
-        <>
+return (
+  <div className="wrap">
+    {view === 'home' ? (
+      <HomeHub setView={setView} t={t} subtitle={subtitle} />
+    ) : (
+      <>
+        {/* Barre de navigation locale */}
+        <div
+          className="header"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+        >
+          <button className="btn ghost" onClick={() => setView('home')}>← Accueil</button>
+          <div style={{ opacity: .8, fontSize: 12 }}>
+            {view === 'control'
+              ? 'Centre de contrôle'
+              : view === 'compta'
+              ? 'Comptabilité entreprise'
+              : 'Gestion du risque'}
+          </div>
+        </div>
+
+        {/* ===== CONTENU SELON VIEW ===== */}
+        {view === 'control' && (
+          <>
+            {/* --- laisse ici tout ton contenu "control" inchangé --- */}
+          </>
+        )}
+
+        {view === 'compta' && (
+          <>
+            {/* --- laisse ici ton contenu "compta" inchangé --- */}
+          </>
+        )}
+
+        {view === 'risk' && (
+          <>
+            {/* --- laisse ici ton contenu "risk" inchangé --- */}
+          </>
+        )}
+      </>
+    )}
+
+    {/* Footer visible sur toutes les pages */}
+    <AppFooter />
+  </div>
+);
+
           {/* Barre de navigation locale */}
           <div className="header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
             <button className="btn ghost" onClick={()=>setView('home')}>← Accueil</button>
