@@ -109,3 +109,8 @@ body{
   letter-spacing: 3px;     /* léger tracking pour l’élégance */
   line-height: 1.2;
 }
+/* Brand XXL (accueil) */
+.brand-xxl {
+  font-size: clamp(72px, 10vw, 160px); /* ≈5× plus grand, mais responsive */
+  line-height: 1.05;
+}
