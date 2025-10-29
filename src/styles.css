@@ -106,6 +106,6 @@ body{
                Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
                "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   font-weight: 200;          /* fin mais lisible; passe à 200 si tu veux ultra fin */
-  letter-spacing: 0.1px;     /* léger tracking pour l’élégance */
+  letter-spacing: 3px;     /* léger tracking pour l’élégance */
   line-height: 1.2;
 }
