@@ -7,6 +7,48 @@ import {
 import { dict, LOCALES } from './i18n'
 import { APP_VERSION } from './version'
 
+/* ===== i18n: valeurs par défaut + merge ===== */
+const I18N_DEFAULTS = {
+  brand: "ZooProjectVision",
+  subtitle_default: "Tableau de bord multi-actifs, multi-brokers, multi-stratégies.",
+  actions: {
+    help: "Aide",
+    import_csv: "Importer CSV",
+    add_flow: "Ajouter un flux",
+    third_capital: "Capital tiers",
+    recap: "Récap",
+    reset: "Réinitialiser",
+  },
+  filters: {
+    asset: "Actif",
+    broker: "Broker",
+    strategy: "Stratégie",
+    from: "Du",
+    to: "Au",
+    all: "All",
+  },
+  kpis: {
+    capital_initial: "Capital initial",
+    cashflow: "Cashflow",
+    pnl_filtered: "PnL (filtré)",
+    capital_total: "Capital total",
+    return_pct: "Rentabilité",
+    maxdd_pct: "Max DD %",
+    maxdd_abs: "Max DD (abs.)",
+    active_days: "Jours actifs",
+    third_capital: "Capital tiers",
+  },
+};
+
+/** Fusion profonde (b simple écrase a, objets fusionnés, tableaux remplacés) */
+function deepMerge(a, b) {
+  if (b == null) return a;
+  if (Array.isArray(a) || Array.isArray(b) || typeof a !== "object" || typeof b !== "object") return b ?? a;
+  const out = { ...a };
+  for (const k of Object.keys(b)) out[k] = deepMerge(a[k], b[k]);
+  return out;
+}
+
 /* ===== Couleurs / helpers ===== */
 const C = {
   axis:"#c9cdd1", white:"#ffffff", green:"#20e3d6", pink:"#ff5fa2", orange:"#ffb347", blue:"#4da3ff"
@@ -708,6 +750,8 @@ function HomeHub({ setView, t, subtitle }) {
 /* ===== APP ===== */
 export default function App(){
   const [view, setView] = React.useState('home') // 'home' | 'control' | 'compta' | 'risk'
+  const [lang, setLang] = React.useState('fr')
+  const t = React.useMemo(() => deepMerge(I18N_DEFAULTS, dict[lang] || {}), [lang])
 
   // Langue / devise
   const [lang,setLang]=React.useState('fr')
