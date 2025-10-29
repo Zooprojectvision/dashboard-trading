@@ -18,6 +18,7 @@ const I18N_DEFAULTS = {
     third_capital: "Capital tiers",
     recap: "Récap",
     reset: "Réinitialiser",
+    about: "À propos",
   },
   filters: {
     asset: "Actif",
@@ -198,7 +199,7 @@ function GuidePanel({ lang }){
   const [open,setOpen]=React.useState(false)
   const [data,setData]=React.useState(null)
   React.useEffect(()=>{
-    let alive=true
+    let alive=true  
     const url = lang==='en'?'/guide.en.json':lang==='es'?'/guide.es.json':'/guide.fr.json'
     fetch(url).then(r=>r.json()).then(j=>{ if(alive) setData(j) }).catch(()=>setData(null))
     return ()=>{alive=false}
@@ -940,7 +941,9 @@ export default function App(){
                   <GuidePanel lang={lang}/>
                   <button className="btn ghost" onClick={()=>setOpenRecap(true)}>{t.actions.recap}</button>
                   <button className="btn ghost" onClick={reset}>{t.actions.reset}</button>
-                  <button className="btn ghost" onClick={()=>setOpenAbout(true)}>À propos</button>
+                  <button className="btn ghost" onClick={()=>setOpenAbout(true)}>
+                  {t.actions.about}   {/* <-- au lieu de "À propos" */}  
+                  </button>
                 </div>
 
                 {/* Formulaires inline */}
