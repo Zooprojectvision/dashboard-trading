@@ -743,7 +743,7 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
 function HomeHub({ setView, t, subtitle }) {
   return (
     <div style={{maxWidth:980, margin:'40px auto 60px', padding:'0 12px', textAlign:'center'}}>
-      <h1 className="brand" style={{justifyContent:'center', gap:10}}>
+      <h1 className="brand brand-minimal" style={{justifyContent:'center', gap:10}}>
         {t?.brand || 'ZooProjectVision'}
         <span className="badge-version">V{APP_VERSION}</span>
       </h1>
@@ -900,7 +900,7 @@ export default function App(){
               {/* HEADER du dashboard */}
               <div className="header">
                 <div>
-                  <h1 className="brand" style={{ fontWeight: 400, fontSize: '28px', letterSpacing: '0.2px' }}>
+                  <h1 className="brand brand-minimal" style={{ fontSize: '28px' }}>
                     {t.brand}
                   </h1>
 
