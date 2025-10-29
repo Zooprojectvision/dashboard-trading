@@ -197,3 +197,5 @@ body{
   transform: scale(1.0);            /* avant 1.15 */
   margin-left: 6px;
 }
+/* Supprime tous les badges de version, partout */
+.badge-version { display: none !important; }
