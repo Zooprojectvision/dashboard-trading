@@ -1,4 +1,4 @@
-/* THEME MUSO — fond noir profond “brillant” (arrière-plan SEULEMENT) */
+/* THEME MUSO — Fond noir profond (arrière-plan seulement) */
 :root { --bg:#000; }
 html, body, #root { min-height: 100%; }
 
@@ -11,8 +11,3 @@ body{
   background-attachment: fixed, fixed, fixed, fixed;
 }
 
-/* Ceinture + bretelles : neutralise tout background venant d’ailleurs */
-body{
-  background: var(--bg) !important;
-  background-image: none !important;
-}
