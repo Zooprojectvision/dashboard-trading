@@ -1,26 +1,99 @@
-/* src/styles.css */
-*{ box-sizing: border-box; }
-html, body, #root { height: 100%; }
+*{box-sizing:border-box}
+html,body,#root{height:100%}
 
+/* Variables & couleurs */
 :root{
-  --text:#c5ccd3;     /* texte gris clair */
+  --bg:#0a0b0f;
   --panel:#111318;
   --panel-2:#0f1115;
   --border:#22252b;
+  --axis:#c9cdd1;
+
+  --text:#c5ccd3;
+  --white:#ffffff; --green:#20e3d6; --pink:#ff5fa2; --orange:#ffb347; --accent:#6aa9ff;
+
+  --r-xs:8px; --r-sm:12px; --r-md:16px; --r-lg:22px;
+  --shadow-1:0 6px 28px rgba(0,0,0,.30);
+  --shadow-2:0 10px 40px rgba(0,0,0,.40);
+
+  --gap-1:8px; --gap-2:12px; --gap-3:16px; --gap-4:20px;
 }
 
+/* Pas de background ici (géré par theme-muso.css) */
 body{
   margin:0;
-  color:var(--text);
+  color: var(--text, #c5ccd3);
   font:14px/1.5 "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  -webkit-font-smoothing:antialiased;
 }
 
-/* exemples de classes — PAS de background global ici */
-.card{
-  background: linear-gradient(180deg, var(--panel), var(--panel-2));
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:16px;
-}
+/* Layout */
+.wrap { max-width:none; width:100%; margin:0; padding:24px 24px; }
+.header { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+.actions-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.spacer { flex:1 1 auto; }
 
+/* Brand */
+.brand { margin:0; font-weight:700; letter-spacing:.2px; font-size:24px; display:flex; align-items:center; gap:10px; }
+.badge-version{ margin-left:10px; padding:2px 8px; font-size:11px; font-weight:500; border:1px solid var(--border); border-radius:999px; background:rgba(255,255,255,.05); color:var(--text); }
+.subtitle{ margin:6px 0 0; font-size:12px; color:var(--text); display:flex; gap:8px; align-items:center; }
+.edit-pencil{ height:24px; padding:0 8px; border-radius:8px; background:transparent; color:var(--text); border:1px solid var(--border); cursor:pointer; }
+
+/* Cards */
+.card{ background:linear-gradient(180deg, var(--panel), var(--panel-2)); border:1px solid var(--border); border-radius:var(--r-md); padding:16px; box-shadow:var(--shadow-1); }
+.card.tinted{ background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00)); }
+
+.halo-good{border:2px solid var(--green)!important}
+.halo-warn{border:2px solid var(--orange)!important}
+.halo-bad{ border:2px solid var(--pink)!important}
+.halo-neutral{border:1px solid var(--border)!important}
+
+/* Typo */
+.kpi-title{ font-size:13px; font-weight:600; color:var(--text); text-transform:capitalize; margin-bottom:6px; }
+.kpi-sub{ font-size:12px; color:var(--text); }
+.val{ font-size:14px; font-weight:700; color:var(--text); }
+.val.pos,.val.neg,.val.force-white{ color:var(--text); }
+
+/* Inputs & Buttons */
+.btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; height:34px; padding:0 12px; gap:8px; border-radius:10px; background:#171a20; color:var(--text); border:1px solid var(--border); cursor:pointer; user-select:none; font-size:13px; transition:transform .08s ease, background .2s ease; }
+.btn:hover{ background:#1c2027 } .btn:active{ transform:translateY(1px) } .btn.ghost{ background:transparent } .btn.sm{ height:28px; padding:0 10px; font-size:12px }
+.sel{ width:100%; height:34px; padding:0 10px; border-radius:10px; background:#101319; color:var(--text); border:1px solid var(--border); font-size:13px; }
+
+/* Grids */
+.kpi-grid{ display:grid; grid-template-columns:repeat(9,1fr); gap:10px; margin-top:12px }
+.grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+.grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
+.grid-4{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px }
+@media (max-width:1200px){ .kpi-grid{ grid-template-columns:repeat(4,1fr) } }
+@media (max-width:640px){ .kpi-grid,.grid-2,.grid-3,.grid-4{ grid-template-columns:1fr } }
+
+/* Tables */
+.table{ width:100%; border-collapse:separate; border-spacing:0 }
+.table th,.table td{ padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; font-size:13px }
+.table th{ color:var(--text); font-weight:700 }
+
+/* Recharts */
+.recharts-tooltip-wrapper .recharts-default-tooltip{
+  background:rgba(20,22,28,.96)!important; border:1px solid var(--border)!important;
+  color:var(--text)!important; border-radius:12px!important; padding:8px 10px!important; font-size:12px;
+  box-shadow:var(--shadow-2);
+}
+.recharts-cartesian-axis-tick-value { fill: var(--text) !important; }
+.recharts-wrapper text, .recharts-wrapper tspan, .recharts-label, .recharts-text { fill: var(--text) !important; }
+
+/* WinRate donut */
+.wr-donut{ position:relative; height:220px; }
+.wr-center{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; text-align:center; }
+.wr-pct{ font-size:22px; color:var(--text); line-height:1; }
+.wr-sub{ font-size:12px; color:var(--text); margin-top:2px; }
+
+/* Calendar */
+.calendar-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:10px }
+.calendar-cell{ border:1px solid var(--border); border-radius:14px; padding:10px; min-height:92px; background:rgba(255,255,255,.02) }
+.calendar-top{ display:flex; justify-content:space-between; font-size:12px; color:var(--text); margin-bottom:4px }
+.calendar-metric{ font-size:12px; display:flex; justify-content:space-between; color:var(--text) }
+
+/* Scrollbar */
+::-webkit-scrollbar{ width:8px; height:8px }
+::-webkit-scrollbar-thumb{ background:#2b3038; border-radius:6px }
+::-webkit-scrollbar-thumb:hover{ background:#343a44 }
