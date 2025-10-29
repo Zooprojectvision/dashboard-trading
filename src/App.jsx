@@ -671,46 +671,38 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
 
 function HomeHub({ setView }) {
   return (
-    <div style={{maxWidth:980, margin:'40px auto 60px', padding:'0 12px', textAlign:'center'}}>
-      <h1 className="brand" style={{ justifyContent:'center', gap:10 }}>
-        {t.brand}
+    <div style={{ maxWidth: 980, margin: '40px auto 60px', padding: '0 12px', textAlign: 'center' }}>
+      <h1 className="brand" style={{ justifyContent: 'center', gap: 10 }}>
+        ZooProjectVision
         <span className="badge-version">V{APP_VERSION}</span>
       </h1>
 
-      <p style={{textAlign:'center', color:'var(--text)', opacity:.85, margin:'8px 0 22px'}}>
-        Choisissez une zone pour commencer.
-      </p>
-      {/* ... le reste inchangé ... */}
-    </div>
-  )
-}
-
-      <p style={{textAlign:'center', color:'var(--text)', opacity:.85, margin:'8px 0 22px'}}>
+      <p style={{ textAlign: 'center', color: 'var(--text)', opacity: .85, margin: '8px 0 22px' }}>
         Choisissez une zone pour commencer.
       </p>
 
-      <div className="grid-3" style={{gap:12, textAlign:'left'}}>
+      <div className="grid-3" style={{ gap: 12, textAlign: 'left' }}>
         <HubCard
           title="Centre de contrôle"
-          subtitle="Vue complète: imports CSV, filtres, KPI, equity, corrélation, calendrier, activité."
+          subtitle="Vue complète : imports CSV, filtres, KPI, equity, corrélation, calendrier, activité."
           tooltip="Tableau de bord principal. Toutes les métriques en un coup d'œil."
-          onClick={()=>setView('control')}
+          onClick={() => setView('control')}
         />
         <HubCard
           title="Comptabilité entreprise"
           subtitle="Suivi des flux (payouts, frais, dépôts), catégories et exports."
           tooltip="Regroupe et catégorise les flux pour une vision 'entreprise'."
-          onClick={()=>setView('compta')}
+          onClick={() => setView('compta')}
         />
         <HubCard
           title="Gestion du risque"
           subtitle="Seuils, verdicts, et recommandations d’ajustement."
           tooltip="Analyse des risques et propositions (taille de lot, horaires, TP/SL)."
-          onClick={()=>setView('risk')}
+          onClick={() => setView('risk')}
         />
       </div>
     </div>
-  )
+  );
 }
 
 /* ===== APP ===== */
