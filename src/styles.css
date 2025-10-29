@@ -120,15 +120,15 @@ body{
 }
 
 .brand-xxl {            /* espace Brand -> Sous-titre */
-  margin-bottom: 48px;
+  margin-bottom: 16px;
 }
 
 .home-subtitle {        /* espace Sous-titre -> Cartes */
-  margin-top: 8px;
+  margin-top: 48px;
   margin-bottom: 48px;  /* augmente l'écart avant la grille */
 }
 
 .home-grid {            /* éventuellement plus d'air entre les cartes aussi */
   margin-top: 48px;
-  gap: 28px;            /* si tu veux plus d’espace entre cartes, augmente ici */
+  gap: 48px;            /* si tu veux plus d’espace entre cartes, augmente ici */
 }
