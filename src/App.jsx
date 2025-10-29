@@ -707,7 +707,7 @@ function HomeHub({ setView }) {
 
 /* ===== APP ===== */
 export default function App(){
-  const [view, setView] = React.useState('control') // 'home' | 'control' | 'compta' | 'risk'
+  const [view, setView] = React.useState('home') // 'home' | 'control' | 'compta' | 'risk'
 
   // Langue / devise
   const [lang,setLang]=React.useState('fr')
