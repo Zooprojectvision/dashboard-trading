@@ -183,7 +183,7 @@ body{
   font-weight: 100;                 /* plus fin ; mets 200 si tu veux encore plus fin */
   font-variation-settings: "wght" 300; /* utile si police variable (ex: Inter/Inter Tight) */
   letter-spacing: 0.2em;
-  margin-bottom: 10px;              /* espace sous le titre (avant 28px) */
+  margin-bottom: 48px;              /* espace sous le titre (avant 28px) */
 }
 
 /* Sous-titre : resserrer l'espace */
