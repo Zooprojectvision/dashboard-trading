@@ -29,7 +29,6 @@ html,body,#root{height:100%}
   --shadow-2:0 10px 40px rgba(0,0,0,.40);
 
   --gap-1:8px; --gap-2:12px; --gap-3:16px; --gap-4:20px;
-}
 
 /* Pas de background ici (géré par theme-muso.css) */
 body{
