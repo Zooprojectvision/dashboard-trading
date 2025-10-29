@@ -4,14 +4,12 @@
 html,body,#root{height:100%}
 
 /* Variables & couleurs */
-:root{
+:root {
   --bg:#0a0b0f;
   --panel:#111318;
   --panel-2:#0f1115;
-- --border:#22252b;
-- --axis:#c9cdd1;
-+ --border:#0f2a45;   /* bleu marine pour tous les contours neutres */
-+ --axis:#0f2a45;     /* (optionnel) axes en bleu marine si tu l'utilises côté CSS */
+  --border:#0f2a45;   /* bleu marine pour tous les contours neutres */
+  --axis:#0f2a45;     /* (optionnel) axes en bleu marine si tu l'utilises côté CSS */
 
   --text:#c5ccd3;
   --white:#ffffff; --green:#20e3d6; --pink:#ff5fa2; --orange:#ffb347; --accent:#6aa9ff;
