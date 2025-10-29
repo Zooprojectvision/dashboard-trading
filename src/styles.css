@@ -4,16 +4,26 @@
 html,body,#root{height:100%}
 
 /* Variables & couleurs */
+/* ===== Thème (variables CSS) ===== */
 :root {
-  --bg:#0a0b0f;
-  --panel:#111318;
-  --panel-2:#0f1115;
-  --border:#0f2a45;   /* bleu marine pour tous les contours neutres */
-  --axis:#0f2a45;     /* (optionnel) axes en bleu marine si tu l'utilises côté CSS */
+  --bg: #0a0b0f;
+  --panel: #111318;
+  --panel-2: #0f1115;
 
-  --text:#c5ccd3;
-  --white:#ffffff; --green:#20e3d6; --pink:#ff5fa2; --orange:#ffb347; --accent:#6aa9ff;
+  /* Bleu marine pour tous les contours neutres */
+  --border: #0f2a45;
+
+  /* Axes & traits fins (recharts, séparateurs) */
+  --axis: #0f2a45;
+
+  --text: #c5ccd3;
+  --white: #ffffff;
+  --green: #20e3d6;
+  --pink: #ff5fa2;
+  --orange: #ffb347;
+  --accent: #6aa9ff;
 }
+/* ===== Fin du bloc :root ===== */
 
   --r-xs:8px; --r-sm:12px; --r-md:16px; --r-lg:22px;
   --shadow-1:0 6px 28px rgba(0,0,0,.30);
