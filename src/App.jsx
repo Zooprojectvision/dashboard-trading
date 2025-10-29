@@ -1023,24 +1023,34 @@ export default function App(){
           )}
 
           {view === 'compta' && (
-            <div className="card" style={{maxWidth:900, margin:'12px auto', padding:16}}>
-              <div className="kpi-title" style={{display:'flex', alignItems:'center', gap:6}}>
-                <span>Vue Comptable</span>
-                <HelpTooltip text="Regroupe les flux par catégorie, exports CSV, etc."/>
-              </div>
-              <p style={{marginTop:8, opacity:.8}}>À venir…</p>
-            </div>
-          )}
+  <div className="page-outer">
+    <div className="page-content">
+      <div className="card" style={{ padding: 16 }}>
+        <div className="kpi-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>Vue Comptable</span>
+          <HelpTooltip text="Regroupe les flux par catégorie, exports CSV, etc." />
+        </div>
+        <p style={{ marginTop: 8, opacity: .8 }}>À venir…</p>
+      </div>
+      {/* Ici tu pourras ajouter d'autres grilles/sections en pleine largeur */}
+    </div>
+  </div>
+)}
 
           {view === 'risk' && (
-            <div className="card" style={{maxWidth:900, margin:'12px auto', padding:16}}>
-              <div className="kpi-title" style={{display:'flex', alignItems:'center', gap:6}}>
-                <span>Analyse de risque</span>
-                <HelpTooltip text="Seuils, verdicts, et recommandations. (Bientôt)"/>
-              </div>
-              <p style={{marginTop:8, opacity:.8}}>À venir…</p>
-            </div>
-          )}
+  <div className="page-outer">
+    <div className="page-content">
+      <div className="card" style={{ padding: 16 }}>
+        <div className="kpi-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>Analyse de risque</span>
+          <HelpTooltip text="Seuils, verdicts, et recommandations. (Bientôt)" />
+        </div>
+        <p style={{ marginTop: 8, opacity: .8 }}>À venir…</p>
+      </div>
+      {/* Ajoute ici tes futures sections risk en pleine largeur */}
+    </div>
+  </div>
+)}
 
           {/* Footer */}
           <div className="footer" style={{ textAlign:'center', opacity:.7, fontSize:12, marginTop:20 }}>
