@@ -6,7 +6,6 @@ import {
 
 import { dict, LOCALES } from './i18n'
 import { APP_VERSION } from './version'
-import LogoZPV from './LogoZPV.jsx' // <- import du logo
 
 /* ===== Couleurs / helpers ===== */
 const C = {
@@ -673,10 +672,18 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
 function HomeHub({ setView }) {
   return (
     <div style={{maxWidth:980, margin:'40px auto 60px', padding:'0 12px', textAlign:'center'}}>
-      <h1 className="brand" style={{justifyContent:'center', gap:10}}>
-        <LogoZPV size={28} />
+      <h1 className="brand" style={{ justifyContent:'center', gap:10 }}>
+        {t.brand}
         <span className="badge-version">V{APP_VERSION}</span>
       </h1>
+
+      <p style={{textAlign:'center', color:'var(--text)', opacity:.85, margin:'8px 0 22px'}}>
+        Choisissez une zone pour commencer.
+      </p>
+      {/* ... le reste inchangé ... */}
+    </div>
+  )
+}
 
       <p style={{textAlign:'center', color:'var(--text)', opacity:.85, margin:'8px 0 22px'}}>
         Choisissez une zone pour commencer.
