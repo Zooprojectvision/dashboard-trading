@@ -742,17 +742,17 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
 
 function HomeHub({ setView, t, subtitle }) {
   return (
-    <div style={{maxWidth:980, margin:'40px auto 60px', padding:'0 12px', textAlign:'center'}}>
+    <div className="home-hero" style={{maxWidth:980, margin:'40px auto 60px', padding:'0 12px', textAlign:'center'}}>
       <h1 className="brand brand-minimal brand-xxl" style={{justifyContent:'center', gap:10}}>
         {t?.brand || 'ZooProjectVision'}
         <span className="badge-version">V{APP_VERSION}</span>
       </h1>
 
-      <p className="subtitle" style={{justifyContent:'center'}}>
-        {subtitle || 'Tableau de bord multi-actifs, multi-brokers, multi-stratégies.'}
+      <p className="subtitle home-subtitle" style={{justifyContent:'center'}}>
+        {subtitle || 'Le tableau de bord de performance trading Edouard & Michel Jimenez'}
       </p>
 
-      <div className="grid-3" style={{gap:12, textAlign:'left'}}>
+      <div className="grid-3 home-grid" style={{textAlign:'left'}}>
         <HubCard
           title="Centre de contrôle"
           subtitle="Vue complète: imports CSV, filtres, KPI, equity, corrélation, calendrier, activité."
