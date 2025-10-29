@@ -742,8 +742,8 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
 
 function HomeHub({ setView, t, subtitle }) {
   return (
-    <div className="home-hero" style={{maxWidth:980, margin:'40px auto 60px', padding:'0 12px', textAlign:'center'}}>
-      <h1 className="brand brand-minimal brand-xxl" style={{justifyContent:'center', gap:10}}>
+    <div className="home-hero">
+      <h1 className="brand" style={{justifyContent:'center', gap:10}}>
         {t?.brand || 'ZooProjectVision'}
         <span className="badge-version">V{APP_VERSION}</span>
       </h1>
