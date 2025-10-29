@@ -917,20 +917,155 @@ return (
         {/* ===== CONTENU SELON VIEW ===== */}
         {view === 'control' && (
           <>
-            {/* --- contenu "control" ici --- */}
+            {/* HEADER du dashboard */}
+            <div className="header">
+              <div>
+                <h1 className="brand brand-minimal" style={{ fontSize: '28px' }}>
+                  {t.brand}
+                </h1>
+
+                {!editSub ? (
+                  <p className="subtitle">
+                    {subtitle}
+                    <button className="edit-pencil" onClick={() => setEditSub(true)}>✏️</button>
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
+                    <input className="sel" value={subtitle} onChange={e => setSubtitle(e.target.value)} />
+                    <button className="btn sm" onClick={() => setEditSub(false)}>ok</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions ligne 1 */}
+              <div className="actions-row">
+                <label className="btn">
+                  {t.actions.import_csv}
+                  <input
+                    type="file" accept=".csv"
+                    style={{position:'absolute',inset:0,opacity:0,cursor:'pointer'}}
+                    onChange={e=>{
+                      const f=e.target.files?.[0]; if(!f) return;
+                      const fr=new FileReader();
+                      fr.onload=()=>{
+                        const rows=parseCSV(String(fr.result)); const mapped=mapMT5Rows(rows);
+                        if(!mapped.length){ alert('CSV non reconnu. (Time/Symbol/Profit requis)'); return }
+                        setUserTrades(prev=>prev.concat(mapped));
+                      };
+                      fr.readAsText(f);
+                    }}
+                  />
+                </label>
+                <button className="btn" onClick={()=>setOpenFlow(true)}>{t.actions.add_flow}</button>
+                <button className="btn" onClick={()=>setOpenTiers(true)}>{t.actions.third_capital}</button>
+                <GuidePanel lang={lang}/>
+                <button className="btn ghost" onClick={()=>setOpenRecap(true)}>{t.actions.recap}</button>
+                <button className="btn ghost" onClick={reset}>{t.actions.reset}</button>
+                <button className="btn ghost" onClick={()=>setOpenAbout(true)}>À propos</button>
+              </div>
+
+              {/* Formulaires inline */}
+              <FlowModal openHook={[openFlow,setOpenFlow]} onSave={row=>setFlows(p=>p.concat([row]))} ccy={displayCcy} inline/>
+              <CapitalTiersModal openHook={[openTiers,setOpenTiers]} onAdd={row=>setTiers(p=>p.concat([row]))} displayCcy={displayCcy} inline/>
+              <CashflowsModal openHook={[openRecap,setOpenRecap]} rows={cashflowsAll} inline/>
+              <AboutModal openHook={[openAbout, setOpenAbout]} />
+              
+              {/* Actions ligne 2 */}
+              <div className="actions-row">
+                <div className="kpi-title" style={{marginRight:6}}>devise</div>
+                <select className="sel" style={{width:110}} value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)}>
+                  {['USD','EUR','CHF'].map(c=><option key={c}>{c}</option>)}
+                </select>
+                <div className="kpi-title" style={{marginLeft:12,marginRight:6}}>langue</div>
+                <select className="sel" style={{width:150}} value={lang} onChange={e=>setLang(e.target.value)}>
+                  {LOCALES.map(l=><option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* FILTRES */}
+            <div className="card" style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:10}}>
+              <div><div className="kpi-title">{t.filters.asset}</div>
+                <select className="sel" value={asset} onChange={e=>setAsset(e.target.value)}><option>{t.filters.all}</option>{assets.map(a=><option key={a}>{a}</option>)}</select>
+              </div>
+              <div><div className="kpi-title">{t.filters.broker}</div>
+                <select className="sel" value={broker} onChange={e=>setBroker(e.target.value)}><option>{t.filters.all}</option>{brokers.map(a=><option key={a}>{a}</option>)}</select>
+              </div>
+              <div><div className="kpi-title">{t.filters.strategy}</div>
+                <select className="sel" value={strategy} onChange={e=>setStrategy(e.target.value)}><option>{t.filters.all}</option>{strategies.map(a=><option key={a}>{a}</option>)}</select>
+              </div>
+              <div><div className="kpi-title">{t.filters.from}</div><input className="sel" type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/></div>
+              <div><div className="kpi-title">{t.filters.to}</div><input className="sel" type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/></div>
+              <div/><div/>
+            </div>
+
+            {/* KPI GRID */}
+            <div className="kpi-grid">
+              <div className="card"><div className="kpi-title">{t.kpis.capital_initial}</div><div className="val force-white">{fmt(capitalInitialDisp)}</div></div>
+              <div className={`card ${cashFlowTotal>=0 ? 'halo-good' : 'halo-bad'}`}><div className="kpi-title">{t.kpis.cashflow}</div><div className={`val ${cashFlowTotal<0 ? 'neg' : 'pos'}`}>{fmt(cashFlowTotal)}</div></div>
+              <div className={`card ${pnlFiltered>=0 ? 'halo-good' : 'halo-bad'}`}><div className="kpi-title">{t.kpis.pnl_filtered}</div><div className={`val ${pnlFiltered<0 ? 'neg' : 'pos'}`}>{fmt(pnlFiltered)}</div></div>
+              <div className={`card ${pnlFiltered>=0 ? 'halo-good' : 'halo-bad'}`}><div className="kpi-title">{t.kpis.capital_total}</div><div className={`val ${pnlFiltered<0 ? 'neg' : 'pos'}`}>{fmt(capitalGlobal)}</div></div>
+              <div className={`card ${ returnPct >= 0 ? 'halo-good' : 'halo-bad'}`}><div className="kpi-title">{t.kpis?.return_pct || 'rentabilité'}</div><div className={`val ${ returnPct < 0 ? 'neg' : 'pos'}`}>{returnPct.toFixed(2)}%</div></div>
+              <div className={`card ${maxDDPct < 15 ? 'halo-good' : (maxDDPct <= 20 ? 'halo-warn' : 'halo-bad')}`}><div className="kpi-title">{t.kpis.maxdd_pct}</div><div className="val force-white">{maxDDPct.toFixed(2)}%</div></div>
+              <div className={`card ${maxDDAbs <= capitalInitialDisp*0.15 ? 'halo-good' : (maxDDAbs <= capitalInitialDisp*0.2 ? 'halo-warn' : 'halo-bad')}`}><div className="kpi-title">{t.kpis.maxdd_abs}</div><div className="val force-white">{fmt(maxDDAbs)}</div></div>
+              <div className="card"><div className="kpi-title">{t.kpis.active_days}</div><div className="val">{new Set(filtered.map(t => t.date)).size}</div></div>
+              <div className="card"><div className="kpi-title">{t.kpis.third_capital}</div><div className="val">{fmt(tiersTotal)}</div></div>
+              <div className="card"><div className="kpi-title">trades total</div><div className="val">{filtered.length}</div></div>
+            </div>
+
+            {/* Win rate + Ratios */}
+            <div className="grid-2" style={{marginTop:12}}>
+              <WinRateBlock rows={filtered}/>
+              <RatiosBlock rows={filtered} convert={convert} ccy={displayCcy}/>
+            </div>
+
+            {/* Courbe d’équité */}
+            <EquityBlock rows={filtered} cashflows={cashflowsAll} initial={CAPITAL_INITIAL_USD} convert={convert} ccy={displayCcy}/>
+
+            {/* Mapping / Corrélation */}
+            <div className="grid-2" style={{marginTop:12}}>
+              <MappingTable rows={filtered} convert={convert} ccy={displayCcy}/>
+              <CorrelationBlock rows={filtered} convert={convert} ccy={displayCcy}/>
+            </div>
+
+            {/* Calendrier */}
+            <div style={{marginTop:12}}>
+              <CalendarDaily rows={filtered} convert={convert} ccy={displayCcy} startEquity={convert(CAPITAL_INITIAL_USD,'USD',displayCcy)}/>
+            </div>
+
+            {/* Activité */}
+            <div style={{marginTop:12}}>
+              <ActivityBlocks rows={filtered}/>
+            </div>
           </>
         )}
 
         {view === 'compta' && (
-          <>
-            {/* --- contenu "compta" ici --- */}
-          </>
+          <div className="page-outer">
+            <div className="page-content">
+              <div className="card" style={{ padding: 16 }}>
+                <div className="kpi-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>Vue Comptable</span>
+                  <HelpTooltip text="Regroupe les flux par catégorie, exports CSV, etc." />
+                </div>
+                <p style={{ marginTop: 8, opacity: .8 }}>À venir…</p>
+              </div>
+            </div>
+          </div>
         )}
 
         {view === 'risk' && (
-          <>
-            {/* --- contenu "risk" ici --- */}
-          </>
+          <div className="page-outer">
+            <div className="page-content">
+              <div className="card" style={{ padding: 16 }}>
+                <div className="kpi-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>Analyse de risque</span>
+                  <HelpTooltip text="Seuils, verdicts, et recommandations. (Bientôt)" />
+                </div>
+                <p style={{ marginTop: 8, opacity: .8 }}>À venir…</p>
+              </div>
+            </div>
+          </div>
         )}
       </>
     )}
@@ -940,179 +1075,3 @@ return (
   </div>
 );
 } // <-- fin du composant App
-
-          <div className="header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-            <button className="btn ghost" onClick={()=>setView('home')}>← Accueil</button>
-            <div style={{opacity:.8, fontSize:12}}>
-              {view === 'control' ? 'Centre de contrôle' : view === 'compta' ? 'Comptabilité entreprise' : 'Gestion du risque'}
-            </div>
-          </div>
-
-          {/* ===== CONTENU SELON VIEW ===== */}
-          {view === 'control' && (
-            <>
-              {/* HEADER du dashboard */}
-              <div className="header">
-                <div>
-                  <h1 className="brand brand-minimal" style={{ fontSize: '28px' }}>
-                    {t.brand}
-                  </h1>
-
-                  {!editSub ? (
-                    <p className="subtitle">
-                      {subtitle}
-                      <button className="edit-pencil" onClick={() => setEditSub(true)}>✏️</button>
-                    </p>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
-                      <input className="sel" value={subtitle} onChange={e => setSubtitle(e.target.value)} />
-                      <button className="btn sm" onClick={() => setEditSub(false)}>ok</button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions ligne 1 */}
-                <div className="actions-row">
-                  <label className="btn">
-                    {t.actions.import_csv}
-                    <input
-                      type="file" accept=".csv"
-                      style={{position:'absolute',inset:0,opacity:0,cursor:'pointer'}}
-                      onChange={e=>{
-                        const f=e.target.files?.[0]; if(!f) return;
-                        const fr=new FileReader();
-                        fr.onload=()=>{
-                          const rows=parseCSV(String(fr.result)); const mapped=mapMT5Rows(rows);
-                          if(!mapped.length){ alert('CSV non reconnu. (Time/Symbol/Profit requis)'); return }
-                          setUserTrades(prev=>prev.concat(mapped));
-                        };
-                        fr.readAsText(f);
-                      }}
-                    />
-                  </label>
-                  <button className="btn" onClick={()=>setOpenFlow(true)}>{t.actions.add_flow}</button>
-                  <button className="btn" onClick={()=>setOpenTiers(true)}>{t.actions.third_capital}</button>
-                  <GuidePanel lang={lang}/>
-                  <button className="btn ghost" onClick={()=>setOpenRecap(true)}>{t.actions.recap}</button>
-                  <button className="btn ghost" onClick={reset}>{t.actions.reset}</button>
-                  <button className="btn ghost" onClick={()=>setOpenAbout(true)}>
-                  {t.actions.about}   {/* <-- au lieu de "À propos" */}  
-                  </button>
-                </div>
-
-                {/* Formulaires inline */}
-                <FlowModal openHook={[openFlow,setOpenFlow]} onSave={row=>setFlows(p=>p.concat([row]))} ccy={displayCcy} inline/>
-                <CapitalTiersModal openHook={[openTiers,setOpenTiers]} onAdd={row=>setTiers(p=>p.concat([row]))} displayCcy={displayCcy} inline/>
-                <CashflowsModal openHook={[openRecap,setOpenRecap]} rows={cashflowsAll} inline/>
-                <AboutModal openHook={[openAbout, setOpenAbout]} />
-                
-                {/* Actions ligne 2 */}
-                <div className="actions-row">
-                  <div className="kpi-title" style={{marginRight:6}}>devise</div>
-                  <select className="sel" style={{width:110}} value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)}>
-                    {['USD','EUR','CHF'].map(c=><option key={c}>{c}</option>)}
-                  </select>
-                  <div className="kpi-title" style={{marginLeft:12,marginRight:6}}>langue</div>
-                  <select className="sel" style={{width:150}} value={lang} onChange={e=>setLang(e.target.value)}>
-                    {LOCALES.map(l=><option key={l} value={l}>{l}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* FILTRES */}
-              <div className="card" style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:10}}>
-                <div><div className="kpi-title">{t.filters.asset}</div>
-                  <select className="sel" value={asset} onChange={e=>setAsset(e.target.value)}><option>{t.filters.all}</option>{assets.map(a=><option key={a}>{a}</option>)}</select>
-                </div>
-                <div><div className="kpi-title">{t.filters.broker}</div>
-                  <select className="sel" value={broker} onChange={e=>setBroker(e.target.value)}><option>{t.filters.all}</option>{brokers.map(a=><option key={a}>{a}</option>)}</select>
-                </div>
-                <div><div className="kpi-title">{t.filters.strategy}</div>
-                  <select className="sel" value={strategy} onChange={e=>setStrategy(e.target.value)}><option>{t.filters.all}</option>{strategies.map(a=><option key={a}>{a}</option>)}</select>
-                </div>
-                <div><div className="kpi-title">{t.filters.from}</div><input className="sel" type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/></div>
-                <div><div className="kpi-title">{t.filters.to}</div><input className="sel" type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/></div>
-                <div/><div/>
-              </div>
-
-              {/* KPI GRID */}
-              <div className="kpi-grid">
-                <div className="card"><div className="kpi-title">{t.kpis.capital_initial}</div><div className="val force-white">{fmt(capitalInitialDisp)}</div></div>
-                <div className={`card ${cashFlowTotal>=0 ? 'halo-good' : 'halo-bad'}`}><div className="kpi-title">{t.kpis.cashflow}</div><div className={`val ${cashFlowTotal<0 ? 'neg' : 'pos'}`}>{fmt(cashFlowTotal)}</div></div>
-                <div className={`card ${pnlFiltered>=0 ? 'halo-good' : 'halo-bad'}`}><div className="kpi-title">{t.kpis.pnl_filtered}</div><div className={`val ${pnlFiltered<0 ? 'neg' : 'pos'}`}>{fmt(pnlFiltered)}</div></div>
-                <div className={`card ${pnlFiltered>=0 ? 'halo-good' : 'halo-bad'}`}><div className="kpi-title">{t.kpis.capital_total}</div><div className={`val ${pnlFiltered<0 ? 'neg' : 'pos'}`}>{fmt(capitalGlobal)}</div></div>
-                <div className={`card ${ returnPct >= 0 ? 'halo-good' : 'halo-bad'}`}><div className="kpi-title">{t.kpis?.return_pct || 'rentabilité'}</div><div className={`val ${ returnPct < 0 ? 'neg' : 'pos'}`}>{returnPct.toFixed(2)}%</div></div>
-                <div className={`card ${maxDDPct < 15 ? 'halo-good' : (maxDDPct <= 20 ? 'halo-warn' : 'halo-bad')}`}><div className="kpi-title">{t.kpis.maxdd_pct}</div><div className="val force-white">{maxDDPct.toFixed(2)}%</div></div>
-                <div className={`card ${maxDDAbs <= capitalInitialDisp*0.15 ? 'halo-good' : (maxDDAbs <= capitalInitialDisp*0.2 ? 'halo-warn' : 'halo-bad')}`}><div className="kpi-title">{t.kpis.maxdd_abs}</div><div className="val force-white">{fmt(maxDDAbs)}</div></div>
-                <div className="card"><div className="kpi-title">{t.kpis.active_days}</div><div className="val">{new Set(filtered.map(t => t.date)).size}</div></div>
-                <div className="card"><div className="kpi-title">{t.kpis.third_capital}</div><div className="val">{fmt(tiersTotal)}</div></div>
-                <div className="card"><div className="kpi-title">trades total</div><div className="val">{filtered.length}</div></div>
-              </div>
-
-              {/* Win rate + Ratios */}
-              <div className="grid-2" style={{marginTop:12}}>
-                <WinRateBlock rows={filtered}/>
-                <RatiosBlock rows={filtered} convert={convert} ccy={displayCcy}/>
-              </div>
-
-              {/* Courbe d’équité */}
-              <EquityBlock rows={filtered} cashflows={cashflowsAll} initial={CAPITAL_INITIAL_USD} convert={convert} ccy={displayCcy}/>
-
-              {/* Mapping / Corrélation */}
-              <div className="grid-2" style={{marginTop:12}}>
-                <MappingTable rows={filtered} convert={convert} ccy={displayCcy}/>
-                <CorrelationBlock rows={filtered} convert={convert} ccy={displayCcy}/>
-              </div>
-
-              {/* Calendrier */}
-              <div style={{marginTop:12}}>
-                <CalendarDaily rows={filtered} convert={convert} ccy={displayCcy} startEquity={convert(CAPITAL_INITIAL_USD,'USD',displayCcy)}/>
-              </div>
-
-              {/* Activité */}
-              <div style={{marginTop:12}}>
-                <ActivityBlocks rows={filtered}/>
-              </div>
-            </>
-          )}
-
-          {view === 'compta' && (
-  <div className="page-outer">
-    <div className="page-content">
-      <div className="card" style={{ padding: 16 }}>
-        <div className="kpi-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span>Vue Comptable</span>
-          <HelpTooltip text="Regroupe les flux par catégorie, exports CSV, etc." />
-        </div>
-        <p style={{ marginTop: 8, opacity: .8 }}>À venir…</p>
-      </div>
-      {/* Ici tu pourras ajouter d'autres grilles/sections en pleine largeur */}
-    </div>
-  </div>
-)}
-
-          {view === 'risk' && (
-  <div className="page-outer">
-    <div className="page-content">
-      <div className="card" style={{ padding: 16 }}>
-        <div className="kpi-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span>Analyse de risque</span>
-          <HelpTooltip text="Seuils, verdicts, et recommandations. (Bientôt)" />
-        </div>
-        <p style={{ marginTop: 8, opacity: .8 }}>À venir…</p>
-      </div>
-      {/* Ajoute ici tes futures sections risk en pleine largeur */}
-    </div>
-  </div>
-)}
-
-          {/* Footer */}
-          <div className="footer" style={{ textAlign:'center', opacity:.7, fontSize:12, marginTop:20 }}>
-          ZooProjectVision • <a href="/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a>    
-          </div>
-
-        </>
-      )}
-    </div>
-  )
-}
