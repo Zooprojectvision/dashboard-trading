@@ -132,3 +132,15 @@ body{
   margin-top: 100px;
   gap: 48px;            /* si tu veux plus d’espace entre cartes, augmente ici */
 }
+/* --- Pages pleine largeur (compta / risk) --- */
+.page-outer {
+  width: 100%;
+  padding: 32px 32px 64px;   /* marge intérieure gauche/droite + bas */
+}
+
+.page-content {
+  max-width: none;           /* pas de largeur max, occupe tout l’écran */
+}
+
+/* Optionnel : un conteneur borné (si tu veux limiter un jour)
+.page-content.narrow { max-width: 1400px; margin: 0 auto; } */
