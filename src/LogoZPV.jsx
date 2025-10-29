@@ -1,39 +1,36 @@
 // src/LogoZPV.jsx
-import React from 'react';
-
 export default function LogoZPV({ size = 28 }) {
-  // on utilise la variable CSS --green (#20e3d6) déjà présente
-  // V = 2 segments, la barre droite est volontairement plus courte
+  const h = size;
+  const w = Math.round(size * 0.9);
+
   return (
-    <div className="brand-logo" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <span className="brand-word">ZooProject</span>
+    <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 8, lineHeight: 1 }}>
+      <span style={{ fontWeight: 700, color: 'var(--text)' }}>ZooProject</span>
+
+      {/* V turquoise, bras droit plus court */}
       <svg
-        width={size * 1.1}
-        height={size}
-        viewBox="0 0 110 100"
-        aria-label="V de Vision"
+        width={w}
+        height={h}
+        viewBox="0 0 90 100"
+        aria-label="Vision - V"
         role="img"
-        style={{ display: 'block' }}
+        style={{ display: 'inline-block', transform: 'translateY(2px)' }}
       >
-        {/* Barre gauche */}
+        {/* bras gauche */}
         <path
-          d="M10 10 L50 90"
-          fill="none"
-          stroke="var(--green)"
-          strokeWidth="14"
-          strokeLinecap="round"
+          d="M10 5 L35 5 L53 80 L40 95 Z"
+          fill="#20e3d6"
         />
-        {/* Barre droite (plus courte) */}
+        {/* bras droit (plus court) */}
         <path
-          d="M50 90 L100 42"
-          fill="none"
-          stroke="var(--green)"
-          strokeWidth="14"
-          strokeLinecap="round"
+          d="M55 5 L80 5 L62 62 L53 80 Z"
+          fill="#20e3d6"
         />
       </svg>
-      <span className="brand-word">ision</span>
+
+      <span style={{ fontWeight: 700, color: 'var(--text)' }}>ision</span>
     </div>
   );
 }
+
 
