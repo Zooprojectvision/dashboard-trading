@@ -129,8 +129,8 @@ body{
 }
 
 .home-grid {            /* éventuellement plus d'air entre les cartes aussi */
-  margin-top: 300px;
-  gap: 150px;            /* si tu veux plus d’espace entre cartes, augmente ici */
+  margin-top: 150px;
+  gap: 100px;            /* si tu veux plus d’espace entre cartes, augmente ici */
 }
 /* --- Pages pleine largeur (compta / risk) --- */
 .page-outer {
