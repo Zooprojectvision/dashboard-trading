@@ -175,3 +175,25 @@ body{
   transform-origin: left center;
   margin-left: 8px;
 }
+/* --- HOME: titre plus petit, plus fin, moins d'espace --- */
+.home-hero .brand {
+  /* taille un peu réduite (avant 10vw/128px) */
+  font-size: clamp(40px, 7vw, 96px) !important;
+  line-height: 1.0;
+  font-weight: 100;                 /* plus fin ; mets 200 si tu veux encore plus fin */
+  font-variation-settings: "wght" 300; /* utile si police variable (ex: Inter/Inter Tight) */
+  letter-spacing: 0.2em;
+  margin-bottom: 10px;              /* espace sous le titre (avant 28px) */
+}
+
+/* Sous-titre : resserrer l'espace */
+.home-hero .subtitle {
+  margin: 0 0 16px;                 /* avant 36px */
+  line-height: 1.3;
+}
+
+/* Badge version un peu plus discret et rapproché */
+.home-hero .badge-version {
+  transform: scale(1.0);            /* avant 1.15 */
+  margin-left: 6px;
+}
