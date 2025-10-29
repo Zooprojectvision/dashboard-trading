@@ -1043,9 +1043,10 @@ export default function App(){
           )}
 
           {/* Footer */}
-          <div className="footer" style={{ textAlign:'center', color:'var(--text)', opacity:.7, fontSize:12, marginTop:20 }}>
-            ZooProjectVision&nbsp;V{APP_VERSION} @ {new Date().getFullYear()}
+          <div className="footer" style={{ textAlign:'center', opacity:.7, fontSize:12, marginTop:20 }}>
+          ZooProjectVision • <a href="/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a>    
           </div>
+
         </>
       )}
     </div>
