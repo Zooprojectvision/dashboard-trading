@@ -890,7 +890,7 @@ export default function App(){
   const [editSub,setEditSub]=React.useState(false)
   React.useEffect(()=>{ try{ if(!editSub){ localStorage.setItem('zpv_subtitle',subtitle) } }catch{} },[subtitle,editSub])
 
-  // === RENDER ===
+ // === RENDER ===
 return (
   <div className="wrap">
     {view === 'home' ? (
