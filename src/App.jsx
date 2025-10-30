@@ -12,32 +12,32 @@ const I18N_DEFAULTS = {
   brand: "ZooProjectVision",
   subtitle_default: "Tableau de bord multi-actifs, multi-brokers, multi-stratégies.",
   actions: {
-    help: "Aide",
-    import_csv: "Importer CSV",
-    add_flow: "Ajouter un flux",
-    third_capital: "Capital tiers",
-    recap: "Récap",
-    reset: "Réinitialiser",
-    about: "À propos",
+    Help: "Aide",
+    Import_csv: "Importer CSV",
+    Add_flow: "Ajouter un flux",
+    Third_capital: "Capital tiers",
+    Recap: "Récap",
+    Reset: "Réinitialiser",
+    About: "À propos",
   },
   filters: {
-    asset: "Actif",
-    broker: "Broker",
-    strategy: "Stratégie",
-    from: "Du",
-    to: "Au",
-    all: "All",
+    Asset: "Actif",
+    Broker: "Broker",
+    Strategy: "Stratégie",
+    From: "Du",
+    To: "Au",
+    All: "All",
   },
   kpis: {
-    capital_initial: "Capital initial",
-    cashflow: "Cashflow",
-    pnl_filtered: "PnL (filtré)",
-    capital_total: "Capital total",
-    return_pct: "Rentabilité",
-    maxdd_pct: "Max DD %",
-    maxdd_abs: "Max DD (abs.)",
-    active_days: "Jours actifs",
-    third_capital: "Capital tiers",
+    Capital_Initial: "Capital Initial",
+    Cashflow: "Cashflow",
+    Pnl_Filtered: "PnL (Filtré)",
+    Capital_Total: "Capital Total",
+    Return_(%): "Rentabilité",
+    Maxdd_(%): "Max DD %",
+    Maxdd_Abs: "Max DD (Abs.)",
+    Active_Days: "Jours Actifs",
+    Third_Capital: "Capital Tiers",
   },
 };
 
@@ -107,11 +107,11 @@ function mapMT5Rows(rows){
     const mfe=Number(r['MFE']||r['MFE Profit']||r['Max Favorable Excursion']||0)
     const mae=Number(r['MAE']||r['MAE Profit']||r['Max Adverse Excursion']||0)
     return {
-      date,
-      asset,
-      broker,
-      strategy,
-      pnl:Number((pnl||0).toFixed(2)),
+      Date,
+      Asset,
+      Broker,
+      Strategy,
+      Pnl:Number((pnl||0).toFixed(2)),
       ccy:'USD',
       mfe:Number((Math.abs(mfe)||0).toFixed(2)),
       mae:Number((Math.abs(mae)||0).toFixed(2))
@@ -146,7 +146,7 @@ function genDemoTrades(){
 function AboutModal({ openHook }) {
   const [open, setOpen] = openHook || [false, () => {}];
   return (
-    <Modal open={open} onClose={() => setOpen(false)} title="À propos">
+    <Modal open={open} onClose={() => setOpen(false)} title="À Propos">
       <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>
         <div className="kpi-title">ZooProjectVision</div>
         <div style={{ marginTop: 6 }}>
