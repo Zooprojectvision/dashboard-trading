@@ -1,251 +1,468 @@
-/* ===== Global font lock ===== */
-.wrap {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  color: var(--text);
-}
-
-/* Import police Inter (Google Fonts) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-
-*{box-sizing:border-box}
-html,body,#root{height:100%}
-
-/* Variables & couleurs */
-/* ===== Thème (variables CSS) ===== */
+/* ===== Thème & variables globales ===== */
 :root {
   --bg: #0a0b0f;
   --panel: #111318;
   --panel-2: #0f1115;
 
-  /* Bleu marine pour tous les contours neutres */
+  /* Bleu marine pour tous les contours neutres / séparateurs */
   --border: #0f2a45;
-
-  /* Axes & traits fins (recharts, séparateurs) */
   --axis: #0f2a45;
+
   --text: #c5ccd3;
   --white: #ffffff;
   --green: #20e3d6;
   --pink: #ff5fa2;
   --orange: #ffb347;
   --accent: #6aa9ff;
+
+  /* espacement standard entre blocs */
+  --gap-block: 12px;
+
+  /* radius & ombre */
+  --r-md: 16px;
+  --shadow-1: 0 16px 40px rgba(0,0,0,0.6);
 }
-/* Police globale */
-body, .wrap, .page-outer, .page-content,
-.brand, .subtitle, .kpi-title, .val,
-.footer, .card, .btn, .sel, .table, .kpi-sub {
+
+/* ===== Reset léger / base ===== */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.4;
+  font-size: 14px;
+}
+
+/* Police globale : Inter partout */
+body,
+.wrap,
+.page-outer,
+.page-content,
+.brand,
+.subtitle,
+.kpi-title,
+.val,
+.footer,
+.card,
+.btn,
+.sel,
+.table,
+.kpi-sub,
+.header,
+.actions-row {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-weight: 400;
   font-style: normal;
-}
-/* ===== Fin du bloc :root ===== */
-
-  --r-xs:8px; --r-sm:12px; --r-md:16px; --r-lg:22px;
-  --shadow-1:0 6px 28px rgba(0,0,0,.30);
-  --shadow-2:0 10px 40px rgba(0,0,0,.40);
-
-  --gap-1:8px; --gap-2:12px; --gap-3:16px; --gap-4:20px;
-
-/* Pas de background ici (géré par theme-muso.css) */
-body{
-  margin:0;
-  color: var(--text, #c5ccd3);
-  font:14px/1.5 "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing:antialiased;
+  color: var(--text);
 }
 
-/* Layout */
-.wrap { max-width:none; width:100%; margin:0; padding:24px 24px; }
-.header { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
-.actions-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-.spacer { flex:1 1 auto; }
+/* ===== Layout global ===== */
 
-/* Brand */
-.brand { margin:0; font-weight:700; letter-spacing:.2px; font-size:24px; display:flex; align-items:center; gap:10px; }
-.badge-version{ margin-left:10px; padding:2px 8px; font-size:11px; font-weight:500; border:1px solid var(--border); border-radius:999px; background:rgba(255,255,255,.05); color:var(--text); }
-.subtitle{ margin:6px 0 0; font-size:12px; color:var(--text); display:flex; gap:8px; align-items:center; }
-.edit-pencil{ height:24px; padding:0 8px; border-radius:8px; background:transparent; color:var(--text); border:1px solid var(--border); cursor:pointer; }
+/* Conteneur principal de l'app */
+.wrap {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px;
+}
 
-/* Cards */
-.card{
+/* Pages "compta" / "risk" en plein écran */
+.page-outer {
+  width: 100%;
+}
+.page-content {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0; /* tu peux mettre 20px si tu veux une marge interne */
+}
+
+/* Header interne (barre retour Accueil + titre vue) */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--gap-block);
+}
+
+/* Ligne d'actions dans le centre de contrôle */
+.actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ===== Grilles et blocs ===== */
+
+/* 2 colonnes responsives (WinRate / Ratios, Mapping / Corrélation, etc.) */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--gap-block);
+  align-items: stretch;
+}
+
+/* 3 colonnes responsives (cartes d'accueil / hub, activité par heure-jour-mois) */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap-block);
+  align-items: stretch;
+}
+
+/* KPI cards au top du Centre de contrôle */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  gap: var(--gap-block);
+}
+
+/* Empilement vertical cohérent de gros blocs :
+   - section WinRate/Ratios
+   - Equity
+   - Mapping/Correlation
+   - Calendar
+   - Activity
+*/
+.section-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-block);
+  margin-top: var(--gap-block);
+}
+
+/* ===== Typo / titres / textes ===== */
+
+.brand {
+  display: flex;
+  align-items: center;
+  font-size: 48px;            /* ta taille actuelle pour la home */
+  font-weight: 400;           /* sobre, pas ultra bold */
+  line-height: 1.1;
+  letter-spacing: 0.2px;
+  color: var(--white);
+  margin: 0;
+  text-align: left;
+}
+
+.subtitle {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  opacity: 0.8;
+  margin: 8px 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+
+/* Sous-titre spécifique page d'accueil */
+.home-subtitle {
+  font-size: 16px;
+  line-height: 1.4;
+  text-align: center;
+  opacity: 0.9;
+  margin-top: 12px;
+  color: var(--text);
+}
+
+/* les petits labels genre "vue" */
+.kpi-sub {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* Titre à l'intérieur des cards / KPI label */
+.kpi-title {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-transform: lowercase; /* on gardait ce style */
+  color: var(--text);
+  opacity: 0.9;
+}
+
+/* Valeurs chiffrées importantes */
+.val {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--white);
+}
+
+.val.neg {
+  color: var(--pink);
+}
+.val.pos {
+  color: var(--green);
+}
+.val.force-white {
+  color: var(--white) !important;
+}
+
+/* bouton crayon pour éditer le sous-titre */
+.edit-pencil {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 0 0 6px;
+}
+
+/* ===== Cards / tableaux / inputs ===== */
+
+.card {
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
-  border: 1px solid var(--border);
-  border-radius: 16px;            /* on force l'arrondi, stable partout */
+  border: 1px solid var(--border);        /* bleu marine */
+  border-radius: var(--r-md);
   padding: 16px;
   box-shadow: var(--shadow-1);
   color: var(--text);
 }
 
-.card.tinted{
+.card.tinted {
   background: linear-gradient(
     180deg,
     rgba(255,255,255,0.02),
     rgba(255,255,255,0.00)
   );
-  border: 1px solid var(--border);
-  border-radius: 16px;
+}
+
+/* halos "état" autour des cards KPI/ratios */
+.halo-good {
+  border: 2px solid var(--green) !important;
+}
+.halo-warn {
+  border: 2px solid var(--orange) !important;
+}
+.halo-bad {
+  border: 2px solid var(--pink) !important;
+}
+.halo-neutral {
+  border: 1px solid var(--border) !important;
+}
+
+/* Tableaux */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
   color: var(--text);
 }
-
-/* États halo (cartes KPI vert/orange/rose) */
-.halo-good   { border: 2px solid var(--green)  !important; }
-.halo-warn   { border: 2px solid var(--orange) !important; }
-.halo-bad    { border: 2px solid var(--pink)   !important; }
-.halo-neutral{
-  border: 2px solid var(--border) !important;
+.table thead th {
+  text-align: left;
+  font-weight: 500;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--white);
+}
+.table tbody td,
+.table tbody th {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  font-weight: 400;
 }
 
-/* Typo */
-.kpi-title{ font-size:13px; font-weight:600; color:var(--text); text-transform:capitalize; margin-bottom:6px; }
-.kpi-sub{ font-size:12px; color:var(--text); }
-.val{ font-size:14px; font-weight:700; color:var(--text); }
-.val.pos,.val.neg,.val.force-white{ color:var(--text); }
-
-/* Inputs & Buttons */
-.btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; height:34px; padding:0 12px; gap:8px; border-radius:10px; background:#171a20; color:var(--text); border:1px solid var(--border); cursor:pointer; user-select:none; font-size:13px; transition:transform .08s ease, background .2s ease; }
-.btn:hover{ background:#1c2027 } .btn:active{ transform:translateY(1px) } .btn.ghost{ background:transparent } .btn.sm{ height:28px; padding:0 10px; font-size:12px }
-.sel{ width:100%; height:34px; padding:0 10px; border-radius:10px; background:#101319; color:var(--text); border:1px solid var(--border); font-size:13px; }
-
-/* Grids */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  column-gap: 12px;
-  row-gap: 12px;
-  align-items: stretch;
-}
-.grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
-.grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
-.grid-4{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px }
-@media (max-width:1200px){ .kpi-grid{ grid-template-columns:repeat(4,1fr) } }
-@media (max-width:640px){ .kpi-grid,.grid-2,.grid-3,.grid-4{ grid-template-columns:1fr } }
-
-/* Tables */
-.table{ width:100%; border-collapse:separate; border-spacing:0 }
-.table th,.table td{ padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; font-size:13px }
-.table th{ color:var(--text); font-weight:700 }
-
-/* Recharts */
-.recharts-tooltip-wrapper .recharts-default-tooltip{
-  background:rgba(20,22,28,.96)!important; border:1px solid var(--border)!important;
-  color:var(--text)!important; border-radius:12px!important; padding:8px 10px!important; font-size:12px;
-  box-shadow:var(--shadow-2);
-}
-.recharts-cartesian-axis-tick-value { fill: var(--text) !important; }
-.recharts-wrapper text, .recharts-wrapper tspan, .recharts-label, .recharts-text { fill: var(--text) !important; }
-
-/* WinRate donut */
-.wr-donut{ position:relative; height:220px; }
-.wr-center{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; text-align:center; }
-.wr-pct{ font-size:22px; color:var(--text); line-height:1; }
-.wr-sub{ font-size:12px; color:var(--text); margin-top:2px; }
-
-/* Calendar */
-.calendar-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:10px }
-.calendar-cell{ border:1px solid var(--border); border-radius:14px; padding:10px; min-height:92px; background:rgba(255,255,255,.02) }
-.calendar-top{ display:flex; justify-content:space-between; font-size:12px; color:var(--text); margin-bottom:4px }
-.calendar-metric{ font-size:12px; display:flex; justify-content:space-between; color:var(--text) }
-
-/* Scrollbar */
-::-webkit-scrollbar{ width:8px; height:8px }
-::-webkit-scrollbar-thumb{ background:#2b3038; border-radius:6px }
-::-webkit-scrollbar-thumb:hover{ background:#343a44 }
-
-/* V5.1.0 – Brand minimaliste & fin */
-.brand-minimal {
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-               Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
-               "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  font-weight: 200;          /* fin mais lisible; passe à 200 si tu veux ultra fin */
-  letter-spacing: 3px;     /* léger tracking pour l’élégance */
-  line-height: 1.2;
-}
-/* Brand XXL (accueil) */
-.brand-xxl {
-  font-size: clamp(72px, 10vw, 500px); /* ≈5× plus grand, mais responsive */
-  line-height: 0.50;
-}
-/* --- Spacings page d'accueil --- */
-.home-hero {            /* wrapper de l’en-tête d'accueil */
-  padding-top: 48px;
+/* Inputs / selects / boutons */
+.sel {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  line-height: 1.3;
+  min-height: 32px;
+  cursor: pointer;
 }
 
-.brand-xxl {            /* espace Brand -> Sous-titre */
-  margin-bottom: 16px;
+.form-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text);
+  gap: 4px;
 }
 
-.home-subtitle {        /* espace Sous-titre -> Cartes */
-  margin-top: 16px;
-  margin-bottom: 100px;  /* augmente l'écart avant la grille */
+.form-label span {
+  opacity: 0.8;
 }
 
-.home-grid {            /* éventuellement plus d'air entre les cartes aussi */
-  margin-top: 150px;
-  gap: 100px;            /* si tu veux plus d’espace entre cartes, augmente ici */
+.btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.3;
+  padding: 8px 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  white-space: nowrap;
 }
-/* --- Pages pleine largeur (compta / risk) --- */
-.page-outer {
-  width: 100%;
-  padding: 32px 32px 64px;   /* marge intérieure gauche/droite + bas */
+.btn.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn.sm {
+  font-size: 12px;
+  padding: 6px 10px;
+  min-height: 28px;
 }
 
-.page-content {
-  max-width: none;           /* pas de largeur max, occupe tout l’écran */
+/* ===== Aide (petit rond "?" info) ===== */
+.help-tooltip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: help;
+  opacity: .9;
+  color: var(--text);
+  background: var(--panel);
+  line-height: 1;
 }
 
-/* Optionnel : un conteneur borné (si tu veux limiter un jour)
-.page-content.narrow { max-width: 1400px; margin: 0 auto; } */
-/* Page d'accueil en pleine largeur */
+/* ===== Modales ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 60px;
+}
+
+.modal-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+  color: var(--text);
+  padding: 16px;
+  min-width: 320px;
+  max-width: 90vw;
+}
+
+/* ===== Home / Hub ===== */
 .home-hero {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 60px 48px 80px; /* ajuste comme tu veux */
+  max-width: 1600px;
+  margin: 40px auto 60px;
+  padding: 0 12px;
   text-align: center;
 }
 
-/* Optionnel : un peu d’air entre les blocs de la home */
-.home-hero .brand { margin-bottom: 28px; }
-.home-hero .subtitle { margin: 0 0 36px; }
-.home-hero .grid-3 { gap: 20px; }
-/* --- Home plein écran : titre géant --- */
-.home-hero .brand {
-  /* 5× plus grand, responsive */
-  font-size: clamp(56px, 10vw, 128px) !important;
-  line-height: 0.50;
-  letter-spacing: 0.2em;
+.home-grid {
+  margin-top: 32px;
+  text-align: left;
 }
 
-/* Optionnel : un peu plus d'espace autour du titre et du sous-titre */
-.home-hero .brand { margin-bottom: 28px; }
-.home-hero .subtitle { margin: 0 0 36px; }
-
-/* Optionnel : agrandir légèrement le badge de version à côté du titre */
-.home-hero .badge-version {
-  transform: scale(1.15);
-  transform-origin: left center;
-  margin-left: 8px;
+/* ===== WinRate donut centre label ===== */
+.wr-donut {
+  position: relative;
 }
-/* --- HOME: titre plus petit, plus fin, moins d'espace --- */
-.home-hero .brand {
-  /* taille un peu réduite (avant 10vw/128px) */
-  font-size: clamp(40px, 7vw, 96px) !important;
-  line-height: 1.0;
-  font-weight: 100;                 /* plus fin ; mets 200 si tu veux encore plus fin */
-  font-variation-settings: "wght" 300; /* utile si police variable (ex: Inter/Inter Tight) */
-  letter-spacing: 0.2em;
-  margin-bottom: 48px;              /* espace sous le titre (avant 28px) */
+.wr-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.wr-pct {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--white);
+  line-height: 1.1;
+}
+.wr-sub {
+  font-size: 12px;
+  opacity: .75;
+  line-height: 1.2;
 }
 
-/* Sous-titre : resserrer l'espace */
-.home-hero .subtitle {
-  margin: 0 0 16px;                 /* avant 36px */
+/* ===== Calendrier journalier ===== */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+  gap: var(--gap-block);
+}
+.calendar-cell {
+  background: var(--panel-2);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: var(--shadow-1);
+}
+
+.calendar-cell.halo-good {
+  border: 2px solid var(--green) !important;
+}
+.calendar-cell.halo-warn {
+  border: 2px solid var(--orange) !important;
+}
+.calendar-cell.halo-bad {
+  border: 2px solid var(--pink) !important;
+}
+
+.calendar-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+.calendar-metric {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
   line-height: 1.3;
+  margin-top: 2px;
+}
+.calendar-metric .val {
+  font-size: 12px;
+  font-weight: 500;
 }
 
-/* Badge version un peu plus discret et rapproché */
-.home-hero .badge-version {
-  transform: scale(1.0);            /* avant 1.15 */
-  margin-left: 6px;
+/* ===== Footer ===== */
+.footer {
+  text-align: center;
+  color: var(--text);
+  opacity: .7;
+  font-size: 12px;
+  margin-top: 20px;
 }
-/* Supprime tous les badges de version, partout */
-.badge-version { display: none !important; }
+
+/* liens dans le footer ou dans About */
+.footer a,
+a.btn-link,
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.footer a:hover {
+  text-decoration: underline;
+}
