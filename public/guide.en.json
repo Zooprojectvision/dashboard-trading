@@ -4,6 +4,6 @@
   "Ratios": "Win Rate, Risk/Reward, Expectancy, Sharpe, Sortino, Recovery.",
   "Courbes": "Équité (Trading seul et avec flux), HWM/LWM, PnL global, Stratégie(s).",
   "Agrégations": "Gains/Pertes par Heure/Jour/Mois.",
-  "Calendrier": "PnL du Jour, Rendement (%), Drawdown (%), Nombre de Trades; Week-Ends Inclus.",
+  "Calendrier": "PnL du Jour, Rendement pct, Drawdown pct, Nombre de Trades; Week-Ends Inclus.",
   "Persistance": "Imports, cashflows, Sous-Titre, Devise, Langue, Capital Tiers via localStorage."
 }
