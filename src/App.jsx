@@ -430,25 +430,33 @@ function RatiosBlock({ rows, convert, ccy }){
   const V=({v,suffix=''})=><span className="val" style={styleNum(v)}>{Number.isFinite(v)? v.toFixed(2)+suffix : '—'}</span>
 
   return (
-    <div className={`card ${verdict(sharpe)}`}>
-      <div className="grid-3">
-        <div className="card halo-neutral tinted">
-          <div className="kpi-title">expectancy par trade</div>
-          <div className="val" style={styleNum(expectancy)}>{Number(expectancy).toFixed(2)}</div>
-        </div>
-        <div className="card halo-neutral tinted">
-          <div className="kpi-title">sharpe (ann.)</div><V v={sharpe}/>
-          <div className="kpi-title" style={{marginTop:8}}>sortino (ann.)</div><V v={sortino}/>
-        </div>
-        <div className="card halo-neutral tinted">
-          <div className="kpi-title">risk / reward</div><V v={RR}/>
-          <div className="kpi-title" style={{marginTop:8}}>kelly (indicatif)</div><V v={kelly}/>
-          <div className="kpi-title" style={{marginTop:8}}>risque de ruine (≈)</div><V v={ror*100} suffix="%"/>
+  <div className={`card ${verdict(sharpe)}`}>
+    <div className="grid-3">
+      <div className="card halo-neutral tinted">
+        <div className="kpi-title">Expectancy par Trade</div>
+        <div className="val" style={styleNum(expectancy)}>
+          {Number(expectancy).toFixed(2)}
         </div>
       </div>
+
+      <div className="card halo-neutral tinted">
+        <div className="kpi-title">Sharpe (ann.)</div>
+        <V v={sharpe} />
+        <div className="kpi-title" style={{ marginTop: 8 }}>Sortino (ann.)</div>
+        <V v={sortino} />
+      </div>
+
+      <div className="card halo-neutral tinted">
+        <div className="kpi-title">Risk / Reward</div>
+        <V v={RR} />
+        <div className="kpi-title" style={{ marginTop: 8 }}>Kelly (indicatif)</div>
+        <V v={kelly} />
+        <div className="kpi-title" style={{ marginTop: 8 }}>Risque de Ruine (≈)</div>
+        <V v={ror * 100} suffix="%" />
+      </div>
     </div>
-  )
-}
+  </div>
+)
 
 /* ===== Corrélation des stratégies ===== */
 function CorrelationBlock({ rows, convert, ccy }){
