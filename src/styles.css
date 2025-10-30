@@ -60,13 +60,33 @@ body{
 .edit-pencil{ height:24px; padding:0 8px; border-radius:8px; background:transparent; color:var(--text); border:1px solid var(--border); cursor:pointer; }
 
 /* Cards */
-.card{ background:linear-gradient(180deg, var(--panel), var(--panel-2)); border:1px solid var(--border); border-radius:var(--r-md); padding:16px; box-shadow:var(--shadow-1); }
-.card.tinted{ background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00)); }
+.card{
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--border);
+  border-radius: 16px;            /* on force l'arrondi, stable partout */
+  padding: 16px;
+  box-shadow: var(--shadow-1);
+  color: var(--text);
+}
 
-.halo-good{border:2px solid var(--green)!important}
-.halo-warn{border:2px solid var(--orange)!important}
-.halo-bad{ border:2px solid var(--pink)!important}
-.halo-neutral{border:1px solid var(--border)!important}
+.card.tinted{
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.02),
+    rgba(255,255,255,0.00)
+  );
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--text);
+}
+
+/* États halo (cartes KPI vert/orange/rose) */
+.halo-good   { border: 2px solid var(--green)  !important; }
+.halo-warn   { border: 2px solid var(--orange) !important; }
+.halo-bad    { border: 2px solid var(--pink)   !important; }
+.halo-neutral{
+  border: 2px solid var(--border) !important;
+}
 
 /* Typo */
 .kpi-title{ font-size:13px; font-weight:600; color:var(--text); text-transform:capitalize; margin-bottom:6px; }
