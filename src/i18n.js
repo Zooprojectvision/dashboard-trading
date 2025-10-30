@@ -4,12 +4,12 @@ export const dict = {
     brand: 'ZooProjectVision',
     subtitle_default: 'Tableau de bord multi-actifs, multi-brokers, multi-stratégies.',
     actions: {
-      help:'Aide',
-      import_csv:'Importer CSV',
-      add_flow:'Ajouter un Flux',
-      third_capital:'Capital Tiers',
-      recap:'Récap',
-      reset:'Réinitialiser',
+      Help:'Aide',
+      Import_CSV:'Importer CSV',
+      Add_Flow:'Ajouter un Flux',
+      Third_Capital:'Capital Tiers',
+      Recap:'Récap',
+      Reset:'Réinitialiser',
     },
     filters:{ Asset:'Actif', Broker:'Broker', Strategy:'Stratégie', From:'Du', To:'Au', All:'All' },
     kpis:{
@@ -17,8 +17,8 @@ export const dict = {
       Cashflow:'Cashflow',
       Pnl_Filtered:'Pnl (Filtré)',
       Capital_Total:'Capital Total',
-      Return_(%):'Rentabilité',
-      Maxdd_(%):'Max dd (%)',
+      Return_pct:'Rentabilité',
+      Maxdd_pct:'Max dd (%)',
       Third Capital:'Capital Tiers'
     }
   }
