@@ -34,7 +34,7 @@ const I18N_DEFAULTS = {
     Pnl_Filtered: "PnL (Filtré)",
     Capital_Total: "Capital Total",
     Return_(%): "Rentabilité",
-    Maxdd_(%): "Max DD %",
+    Maxdd_(%): "Max DD (%)",
     Maxdd_Abs: "Max DD (Abs.)",
     Active_Days: "Jours Actifs",
     Third_Capital: "Capital Tiers",
