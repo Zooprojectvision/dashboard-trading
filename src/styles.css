@@ -446,24 +446,36 @@ body {
   width: 100%;
   padding: 12px 0;
 }
+
 .control-section {
   margin-top: 12px;
 }
+
 .control-grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 12px;
 }
+
 .col-12 { grid-column: span 12; }
 .col-8  { grid-column: span 8; }
 .col-6  { grid-column: span 6; }
 .col-4  { grid-column: span 4; }
 .col-3  { grid-column: span 3; }
-@media (max-width: 1200px) {
+
+/* casse la grille plus tôt pour éviter le scroll sur les écrans genre 1366px */
+@media (max-width: 1300px) {
   .col-8 { grid-column: span 12; }
+  .col-4 { grid-column: span 12; }
 }
+
+/* empile tout en 1 colonne sous 900px */
 @media (max-width: 900px) {
-  .col-6, .col-4, .col-3 { grid-column: span 12; }
+  .col-6,
+  .col-4,
+  .col-3 {
+    grid-column: span 12;
+  }
 }
 
 /* Calendrier mensuel */
@@ -515,5 +527,10 @@ body {
   }
   .home-hero {
     padding: 0 16px;
+  }
+  .block-tools {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    justify-content: flex-end;
   }
 }
