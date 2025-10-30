@@ -19,7 +19,8 @@ export const dict = {
       Capital_Total:'Capital Total',
       Return_pct:'Rentabilité',
       Maxdd_pct:'Max dd (%)',
-      Third Capital:'Capital Tiers'
+      Third_Capital: "Capital Tiers",
+      Trades_Total: "Trades Total",
     }
   }
 }
