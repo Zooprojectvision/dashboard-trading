@@ -38,10 +38,6 @@ html, body {
   padding: 6px 0;
   min-width: 0;
 }
-
-
-
-
 /* ===== Layout global ===== */
 body {
   margin: 0;
@@ -320,7 +316,7 @@ body {
   min-width: 280px;
   max-width: 90vw;
   color: var(--text);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.4;
 }
 
