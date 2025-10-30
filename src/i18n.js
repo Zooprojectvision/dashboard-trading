@@ -5,7 +5,7 @@ export const dict = {
     subtitle_default: 'Tableau de bord multi-actifs, multi-brokers, multi-stratégies.',
     actions: {
       Help:'Aide',
-      Import_CSV:'Importer CSV',
+      Import_csv:'Importer CSV',
       Add_Flow:'Ajouter un Flux',
       Third_Capital:'Capital Tiers',
       Recap:'Récap',
