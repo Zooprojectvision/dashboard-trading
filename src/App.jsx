@@ -457,7 +457,7 @@ function RatiosBlock({ rows, convert, ccy }){
     </div>
   </div>
 )
-
+}
 /* ===== Corrélation des stratégies ===== */
 function CorrelationBlock({ rows, convert, ccy }){
   const strats=React.useMemo(()=>Array.from(new Set(rows.map(r=>r.strategy))).sort(),[rows])
