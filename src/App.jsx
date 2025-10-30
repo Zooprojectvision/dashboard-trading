@@ -641,229 +641,293 @@ function ActivityBlocks({ rows }){
   )
 }
 
-/* ===== Calendrier journalier enrichi ===== */
-function CalendarDaily({ rows, convert, ccy, startEquity }){
-  const map=new Map()
-  rows.forEach(t=>{
-    const v=convert(t.pnl,t.ccy||'USD',ccy)
-    const o=map.get(t.date)||{ pnl:0, n:0 }
-    o.pnl+=v; o.n++; map.set(t.date,o)
-  })
-  const days=[...map.entries()].map(([date,o])=>({ date, pnl:o.pnl, n:o.n }))
-    .sort((a,b)=>a.date.localeCompare(b.date))
+/* ===== Calendrier mensuel (V5.1.1) ===== */
+function CalendarMonthly({ rows, convert, ccy, startEquity }) {
+  // agrégation par date
+  const map = new Map();
+  rows.forEach(t => {
+    const v = convert(t.pnl, t.ccy || 'USD', ccy);
+    const o = map.get(t.date) || { pnl: 0, n: 0 };
+    o.pnl += v; o.n++;
+    map.set(t.date, o);
+  });
 
-  let eq=startEquity, peak=eq
-  const out=days.map(d=>{
-    const prev=eq
-    eq+=d.pnl
-    peak=Math.max(peak,eq)
-    const ddAbs = Math.max(0, peak - eq)
-    const ddPct = peak>0 ? (ddAbs/peak)*100 : 0
-    const retPct = prev>0 ? (d.pnl/prev)*100 : 0
-    return { ...d, eq, retPct, ddAbs, ddPct }
-  })
+  // cible = mois du dernier trade filtré, sinon mois courant
+  const lastDateStr = rows.length ? rows[rows.length - 1].date : new Date().toISOString().slice(0,10);
+  const base = new Date(lastDateStr + 'T12:00:00Z');
+  const year = base.getUTCFullYear();
+  const month = base.getUTCMonth(); // 0..11
 
-  const verdict=v => v>=0 ? 'halo-good' : (v>-300 ? 'halo-warn' : 'halo-bad')
+  // bornes du mois (UTC)
+  const firstOfMonth = new Date(Date.UTC(year, month, 1));
+  const lastOfMonth  = new Date(Date.UTC(year, month + 1, 0));
+
+  // construire les jours affichés de Lundi à Dimanche
+  const start = new Date(firstOfMonth);
+  const startDow = (start.getUTCDay() + 6) % 7; // lundi=0
+  start.setUTCDate(start.getUTCDate() - startDow);
+
+  const end = new Date(lastOfMonth);
+  const endDow = (end.getUTCDay() + 6) % 7;
+  end.setUTCDate(end.getUTCDate() + (6 - endDow));
+
+  // générer la grille
+  const days = [];
+  let eq = startEquity, peak = eq;
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    const date = d.toISOString().slice(0,10);
+    const isInMonth = d.getUTCMonth() === month;
+    const dayData = map.get(date) || { pnl: 0, n: 0 };
+    // on calcule l’équité uniquement pour afficher un DD local indicatif
+    const prev = eq;
+    eq += isInMonth ? dayData.pnl : 0;
+    peak = Math.max(peak, eq);
+    const ddAbs = Math.max(0, peak - eq);
+    const retPct = prev > 0 ? (dayData.pnl / prev) * 100 : 0;
+
+    days.push({
+      date, inMonth: isInMonth, pnl: isInMonth ? dayData.pnl : null,
+      n: isInMonth ? dayData.n : 0,
+      retPct: isInMonth ? retPct : null,
+      ddAbs: isInMonth ? ddAbs : null
+    });
+  }
+
+  const verdict = v => v == null ? 'halo-neutral' : v >= 0 ? 'halo-good' : (v > -300 ? 'halo-warn' : 'halo-bad');
+
+  const weekDays = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
   return (
     <div className="card">
-      <div className="kpi-title">calendrier (journalier)</div>
-      <div className="calendar-grid" style={{marginTop:8}}>
-        {out.map(d=>(
-          <div key={d.date} className={`calendar-cell ${verdict(d.pnl)}`}>
-            <div className="calendar-top">
-              <span>{d.date}</span>
-              <span>{d.n} t.</span>
+      <div className="block-head">
+        <div className="block-title cap">Calendrier Mensuel</div>
+        <div className="block-tools">
+          <HelpTooltip text="Vue calendrier du mois (Lundi → Dimanche) avec week-end. Chaque case montre PnL du jour, rentabilité% et drawdown local." />
+        </div>
+      </div>
+
+      <div className="month-grid">
+        {/* En-têtes des jours */}
+        <div className="month-head">
+          {weekDays.map(d => (
+            <div key={d} className="cap">{d}</div>
+          ))}
+        </div>
+
+        {/* Jours */}
+        {days.map(d => (
+          <div key={d.date} className={`day-cell ${verdict(d.pnl)}`}>
+            <div className="day-top">
+              <span className={d.inMonth ? '' : 'day-muted'}>{d.date.slice(8,10)}/{d.date.slice(5,7)}</span>
+              <span className="day-muted">{d.n ? `${d.n} t.` : ''}</span>
             </div>
-            <div className="calendar-metric">
-              <span>pnl</span>
-              <span className="val" style={styleNum(d.pnl)}>{d.pnl.toFixed(2)}</span>
-            </div>
-            <div className="calendar-metric">
-              <span>rentabilité</span>
-              <span className="val" style={styleNum(d.retPct)}>{d.retPct.toFixed(2)}%</span>
-            </div>
-            <div className="calendar-metric">
-              <span>dd%</span>
-              <span className="val">{d.ddPct.toFixed(2)}%</span>
-            </div>
-            <div className="calendar-metric">
-              <span>dd abs</span>
-              <span className="val">{d.ddAbs.toFixed(2)}</span>
-            </div>
+            {d.inMonth ? (
+              <>
+                <div className="day-metric">
+                  <span className="cap">PnL</span>
+                  <span className="val" style={styleNum(d.pnl)}>{(d.pnl ?? 0).toFixed(2)}</span>
+                </div>
+                <div className="day-metric">
+                  <span className="cap">Rentabilité</span>
+                  <span className="val" style={styleNum(d.retPct)}>{Number(d.retPct ?? 0).toFixed(2)}%</span>
+                </div>
+                <div className="day-metric">
+                  <span className="cap">DD Abs</span>
+                  <span className="val">{Number(d.ddAbs ?? 0).toFixed(2)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="day-muted" style={{fontSize:12}}>—</div>
+            )}
           </div>
         ))}
       </div>
     </div>
-  )
+  );
 }
 
-/* ===== Courbe d’équité ===== */
-function EquityBlock({ rows, cashflows, initial, convert, ccy }){
-  const [mode,setMode]=React.useState('global') // 'global' | 'strat'
+/* ===== Courbe d’équité (V5.1.1) ===== */
+function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
+  const [mode, setMode] = React.useState('global'); // 'global' | 'strat'
 
-  const byDate=React.useMemo(()=>{
-    const m=new Map()
-    rows.forEach(r=>{
-      const v=convert(r.pnl,r.ccy||'USD',ccy)
-      m.set(r.date,(m.get(r.date)||0)+v)
-    })
+  // Série agrégée par date
+  const byDate = React.useMemo(() => {
+    const m = new Map();
+    rows.forEach(r => {
+      const v = convert(r.pnl, r.ccy || 'USD', ccy);
+      m.set(r.date, (m.get(r.date) || 0) + v);
+    });
     return [...m.entries()]
-      .map(([date,pnl])=>({date,pnl}))
-      .sort((a,b)=>a.date.localeCompare(b.date))
-  },[rows,ccy,convert])
+      .map(([date, pnl]) => ({ date, pnl }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [rows, ccy, convert]);
 
-  const strats=React.useMemo(
-    ()=>Array.from(new Set(rows.map(r=>r.strategy))).sort(),
+  // Equity globale + Peak + DD (abs)
+  let eq = convert(initial, 'USD', ccy);
+  let peak = eq;
+  const globalSeries = byDate.map(d => {
+    eq += d.pnl;
+    peak = Math.max(peak, eq);
+    const drawdownAbs = Math.max(0, peak - eq);
+    return {
+      date: d.date,
+      equity: eq,
+      pnl: d.pnl,
+      peakEquity: peak,
+      drawdownAbs
+    };
+  });
+
+  const fluxDates = new Set(cashflows.map(c => c.date));
+  const scatterFlux = globalSeries
+    .filter(x => fluxDates.has(x.date))
+    .map(x => ({ date: x.date, equity: x.equity }));
+  const scatterLoss = globalSeries
+    .filter(x => x.pnl < 0)
+    .map(x => ({ date: x.date, equity: x.equity }));
+
+  // Série cumulée par stratégie
+  const strats = React.useMemo(
+    () => Array.from(new Set(rows.map(r => r.strategy))).sort(),
     [rows]
-  )
-
-  const byDateStrat=React.useMemo(()=>{
-    const m=new Map()
-    rows.forEach(r=>{
-      const v=convert(r.pnl,r.ccy||'USD',ccy)
-      if(!m.has(r.date)) m.set(r.date,new Map())
-      const mm=m.get(r.date)
-      mm.set(r.strategy,(mm.get(r.strategy)||0)+v)
-    })
-    return m
-  },[rows,ccy,convert])
-
-  const dates=React.useMemo(
-    ()=>Array.from(new Set([...byDate.map(d=>d.date)])).sort(),
-    [byDate]
-  )
-
-  let eq=convert(initial,'USD',ccy), peak=eq, maxDrop=0
-  const globalSeries=byDate.map(d=>{
-    eq+=d.pnl
-    peak=Math.max(peak,eq)
-    maxDrop=Math.max(maxDrop,peak-eq)
-    return {date:d.date, equity:eq, pnl:d.pnl}
-  })
-  const maxDDAbs=maxDrop
-  const maxDDPct= peak>0 ? (maxDrop/peak)*100 : 0
-
-  const stratSeries=React.useMemo(()=>{
-    const acc={}
-    strats.forEach(s=>acc[s]=0)
-    const out=dates.map(date=>{
-      const mm=byDateStrat.get(date)||new Map()
-      const row={date}
-      strats.forEach(s=>{
-        acc[s]+= (mm.get(s)||0)
-        row[s]=acc[s]
-      })
-      return row
-    })
-    return out
-  },[strats,dates,byDateStrat])
-
-  const fluxDates=new Set(cashflows.map(c=>c.date))
-  const scatterFlux=globalSeries
-    .filter(x=>fluxDates.has(x.date))
-    .map(x=>({ date:x.date, equity:x.equity }))
-  const scatterLoss=globalSeries
-    .filter(x=>x.pnl<0)
-    .map(x=>({ date:x.date, equity:x.equity }))
+  );
+  const byDateStrat = React.useMemo(() => {
+    const m = new Map();
+    rows.forEach(r => {
+      const v = convert(r.pnl, r.ccy || 'USD', ccy);
+      if (!m.has(r.date)) m.set(r.date, new Map());
+      const mm = m.get(r.date);
+      mm.set(r.strategy, (mm.get(r.strategy) || 0) + v);
+    });
+    return m;
+  }, [rows, ccy, convert]);
+  const dates = React.useMemo(
+    () => Array.from(new Set(globalSeries.map(d => d.date))).sort(),
+    [globalSeries]
+  );
+  const stratSeries = React.useMemo(() => {
+    const acc = {};
+    strats.forEach(s => (acc[s] = 0));
+    const out = dates.map(date => {
+      const mm = byDateStrat.get(date) || new Map();
+      const row = { date };
+      strats.forEach(s => {
+        acc[s] += mm.get(s) || 0;
+        row[s] = acc[s];
+      });
+      return row;
+    });
+    return out;
+  }, [strats, dates, byDateStrat]);
 
   return (
-    <div className="card" style={{height:460}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <div className="kpi-title">courbe d’équité</div>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <span className="kpi-sub">vue</span>
-          <select
-            className="sel"
-            style={{ width:260 }}
-            value={mode}
-            onChange={e=>setMode(e.target.value)}
-          >
-            <option value="global">global (pnl cumulé)</option>
-            <option value="strat">par stratégie (pnl cumulé)</option>
+    <div className="card">
+      <div className="block-head">
+        <div className="block-title cap">Courbe d’Équité</div>
+        <div className="block-tools">
+          <HelpTooltip text="Équité cumulée. En mode Global, les pointillés montrent le Plus Haut (peak) et le Drawdown (écart au plus haut) après chaque jour/trade."/>
+          <span className="kpi-sub" style={{opacity:.85}}>Vue</span>
+          <select className="sel" value={mode} onChange={e => setMode(e.target.value)}>
+            <option value="global">Global (PnL cumulé)</option>
+            <option value="strat">Par Stratégie (PnL cumulé)</option>
           </select>
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height="86%">
+      <ResponsiveContainer width="100%" height={420}>
         {mode === 'global' ? (
           <ComposedChart data={globalSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
             <CartesianGrid stroke="#2b2b2b" />
             <XAxis
               dataKey="date"
-              stroke={C.axis}
+              stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{ stroke: C.axis }}
-              tick={{ fontSize: 11 }}
+              axisLine={{ stroke: 'var(--axis-text)' }}
+              tick={{ fontSize: 11, fill: 'var(--axis-text)' }}
             />
             <YAxis
-              stroke={C.axis}
+              stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{ stroke: C.axis }}
-              tick={{ fontSize: 11 }}
+              axisLine={{ stroke: 'var(--axis-text)' }}
+              tick={{ fontSize: 11, fill: 'var(--axis-text)' }}
             />
             <Tooltip />
             <Legend />
+
+            {/* Équité principale */}
             <Line
               type="monotone"
               dataKey="equity"
               name="Équité"
               dot={false}
-              stroke={C.white}
+              stroke="var(--white)"
               strokeWidth={1.8}
             />
-            <Scatter
-              data={scatterLoss}
-              dataKey="equity"
-              name="perte"
-              fill={C.pink}
+
+            {/* Peak (plus haut atteint) – pointillé */}
+            <Line
+              type="monotone"
+              dataKey="peakEquity"
+              name="Peak"
+              dot={false}
+              stroke="var(--text)"
+              strokeWidth={1}
+              strokeDasharray="4 4"
             />
-            <Scatter
-              data={scatterFlux}
-              dataKey="equity"
-              name="flux"
-              fill={C.blue}
+
+            {/* Drawdown absolu – pointillé (on l’affiche sur l’axe principal pour lisibilité) */}
+            <Line
+              type="monotone"
+              dataKey="drawdownAbs"
+              name="DD (abs.)"
+              dot={false}
+              stroke="var(--pink)"
+              strokeWidth={1}
+              strokeDasharray="3 3"
             />
+
+            {/* Points info */}
+            <Scatter data={scatterLoss} dataKey="equity" name="Perte" fill="var(--pink)" />
+            <Scatter data={scatterFlux} dataKey="equity" name="Flux"  fill="var(--accent)" />
           </ComposedChart>
         ) : (
-          <LineChart data={stratSeries} margin={{ left:8, right:8, top:8, bottom:8 }}>
+          <LineChart data={stratSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
             <CartesianGrid stroke="#2b2b2b" />
             <XAxis
               dataKey="date"
-              stroke={C.axis}
+              stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{stroke:C.axis}}
-              tick={{fontSize:11}}
+              axisLine={{ stroke: 'var(--axis-text)' }}
+              tick={{ fontSize: 11, fill: 'var(--axis-text)' }}
             />
             <YAxis
-              stroke={C.axis}
+              stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{stroke:C.axis}}
-              tick={{fontSize:11}}
+              axisLine={{ stroke: 'var(--axis-text)' }}
+              tick={{ fontSize: 11, fill: 'var(--axis-text)' }}
             />
             <Tooltip />
             <Legend />
-            {strats.map((s,i)=>(
+            {strats.map((s, i) => (
               <Line
                 key={s}
                 type="monotone"
                 dataKey={s}
                 name={s}
                 dot={false}
-                stroke={[C.white, C.green, C.pink, C.orange][i % 4]}
+                stroke={['var(--white)','var(--green)','var(--pink)','var(--orange)'][i % 4]}
                 strokeWidth={1.6}
               />
             ))}
           </LineChart>
         )}
       </ResponsiveContainer>
-
-      <div style={{marginTop:8, fontSize:12}}>
-        max dd ≈ <b className="val">{maxDDAbs.toFixed(2)}</b> ({maxDDPct.toFixed(2)}%) •
+      <div style={{marginTop:8, fontSize:12, color:'var(--text)'}}>
+        <span style={{opacity:.9}}>Pointillés :</span> Peak (gris), DD (rose). •
         <span style={{opacity:.85}}>  points bleus = flux, points roses = jours perdants</span>
       </div>
     </div>
-  )
+  );
 }
 
 /* ===== Cashflows (récap + export) ===== */
@@ -1247,351 +1311,266 @@ export default function App(){
             </div>
           </div>
 
-          {/* ===== CONTENU SELON VIEW ===== */}
-          {view === 'control' && (
-            <>
-              {/* HEADER du dashboard */}
-              <div className="header">
-                <div>
-                  <h1
-                    className="brand brand-minimal"
-                    style={{ fontSize:'28px' }}
-                  >
-                    {t.brand}
-                  </h1>
-
-                  {!editSub ? (
-                    <p className="subtitle">
-                      {subtitle}
-                      <button
-                        className="edit-pencil"
-                        onClick={()=>setEditSub(true)}
-                      >
-                        ✏️
-                      </button>
-                    </p>
-                  ) : (
-                    <div
-                      style={{
-                        display:'flex',
-                        gap:8,
-                        alignItems:'center',
-                        marginTop:6
-                      }}
-                    >
-                      <input
-                        className="sel"
-                        value={subtitle}
-                        onChange={e=>setSubtitle(e.target.value)}
-                      />
-                      <button
-                        className="btn sm"
-                        onClick={()=>setEditSub(false)}
-                      >
-                        ok
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions ligne 1 */}
-                <div className="actions-row">
-                  <label className="btn">
-                    {t.actions.import_csv}
-                    <input
-                      type="file"
-                      accept=".csv"
-                      style={{
-                        position:'absolute',
-                        inset:0,
-                        opacity:0,
-                        cursor:'pointer'
-                      }}
-                      onChange={e=>{
-                        const f=e.target.files?.[0]; if(!f) return;
-                        const fr=new FileReader();
-                        fr.onload=()=>{
-                          const rows=parseCSV(String(fr.result));
-                          const mapped=mapMT5Rows(rows);
-                          if(!mapped.length){
-                            alert('CSV non reconnu. (Time/Symbol/Profit requis)');
-                            return
-                          }
-                          setUserTrades(prev=>prev.concat(mapped));
-                        };
-                        fr.readAsText(f);
-                      }}
-                    />
-                  </label>
-
-                  <button className="btn" onClick={()=>setOpenFlow(true)}>
-                    {t.actions.add_flow}
-                  </button>
-
-                  <button className="btn" onClick={()=>setOpenTiers(true)}>
-                    {t.actions.third_capital}
-                  </button>
-
-                  <GuidePanel lang={lang}/>
-
-                  <button
-                    className="btn ghost"
-                    onClick={()=>setOpenRecap(true)}
-                  >
-                    {t.actions.recap}
-                  </button>
-
-                  <button className="btn ghost" onClick={reset}>
-                    {t.actions.reset}
-                  </button>
-
-                  <button
-                    className="btn ghost"
-                    onClick={() => setOpenAbout(true)}
-                  >
-                    À propos / Changelog
-                  </button>
-                </div>
-
-                {/* Formulaires inline */}
-                <FlowModal
-                  openHook={[openFlow,setOpenFlow]}
-                  onSave={row=>setFlows(p=>p.concat([row]))}
-                  ccy={displayCcy}
-                  inline
-                />
-                <CapitalTiersModal
-                  openHook={[openTiers,setOpenTiers]}
-                  onAdd={row=>setTiers(p=>p.concat([row]))}
-                  displayCcy={displayCcy}
-                  inline
-                />
-                <CashflowsModal
-                  openHook={[openRecap,setOpenRecap]}
-                  rows={cashflowsAll}
-                  inline
-                />
-                <AboutModal openHook={[openAbout, setOpenAbout]} />
-
-                {/* Actions ligne 2 */}
-                <div className="actions-row">
-                  <div className="kpi-title" style={{marginRight:6}}>
-                    devise
-                  </div>
-                  <select
-                    className="sel"
-                    style={{width:110}}
-                    value={displayCcy}
-                    onChange={e=>setDisplayCcy(e.target.value)}
-                  >
-                    {['USD','EUR','CHF'].map(c=>
-                      <option key={c}>{c}</option>
-                    )}
-                  </select>
-
-                  <div className="kpi-title" style={{marginLeft:12,marginRight:6}}>
-                    langue
-                  </div>
-                  <select
-                    className="sel"
-                    style={{width:150}}
-                    value={lang}
-                    onChange={e=>setLang(e.target.value)}
-                  >
-                    {LOCALES.map(l=>
-                      <option key={l} value={l}>{l}</option>
-                    )}
-                  </select>
-                </div>
+         {view === 'control' && (
+  <>
+   
+    <div className="control-page">
+      {/* Bandeau haut : Titre + sous-titre + actions principales */}
+      <div className="card">
+        <div className="block-head">
+          <div>
+            <h1 className="brand" style={{fontSize:28, margin:0}}>{t.brand}</h1>
+            {!editSub ? (
+              <p className="subtitle cap" style={{marginTop:6}}>
+                {subtitle}
+                <button className="edit-pencil" onClick={()=>setEditSub(true)}>✏️</button>
+              </p>
+            ) : (
+              <div style={{display:'flex',gap:8,alignItems:'center',marginTop:6}}>
+                <input className="sel" value={subtitle} onChange={e=>setSubtitle(e.target.value)} />
+                <button className="btn sm" onClick={()=>setEditSub(false)}>OK</button>
               </div>
+            )}
+          </div>
 
-              {/* FILTRES */}
-              <div
-                className="card"
-                style={{
-                  display:'grid',
-                  gridTemplateColumns:'repeat(7,1fr)',
-                  gap:10
+          <div className="block-tools" style={{flexWrap:'wrap', justifyContent:'flex-end'}}>
+            <label className="btn">
+              {t.actions.import_csv}
+              <input
+                type="file"
+                accept=".csv"
+                style={{position:'absolute', inset:0, opacity:0, cursor:'pointer'}}
+                onChange={e=>{
+                  const f=e.target.files?.[0]; if(!f) return;
+                  const fr=new FileReader();
+                  fr.onload=()=>{
+                    const rows=parseCSV(String(fr.result));
+                    const mapped=mapMT5Rows(rows);
+                    if(!mapped.length){
+                      alert('CSV non reconnu. (Time/Symbol/Profit requis)');
+                      return
+                    }
+                    setUserTrades(prev=>prev.concat(mapped));
+                  };
+                  fr.readAsText(f);
                 }}
-              >
-                <div>
-                  <div className="kpi-title">{t.filters.asset}</div>
-                  <select
-                    className="sel"
-                    value={asset}
-                    onChange={e=>setAsset(e.target.value)}
-                  >
-                    <option>{t.filters.all}</option>
-                    {assets.map(a=>
-                      <option key={a}>{a}</option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <div className="kpi-title">{t.filters.broker}</div>
-                  <select
-                    className="sel"
-                    value={broker}
-                    onChange={e=>setBroker(e.target.value)}
-                  >
-                    <option>{t.filters.all}</option>
-                    {brokers.map(a=>
-                      <option key={a}>{a}</option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <div className="kpi-title">{t.filters.strategy}</div>
-                  <select
-                    className="sel"
-                    value={strategy}
-                    onChange={e=>setStrategy(e.target.value)}
-                  >
-                    <option>{t.filters.all}</option>
-                    {strategies.map(a=>
-                      <option key={a}>{a}</option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <div className="kpi-title">{t.filters.from}</div>
-                  <input
-                    className="sel"
-                    type="date"
-                    value={dateFrom}
-                    onChange={e=>setDateFrom(e.target.value)}
-                    style={{ fontFamily:'inherit', fontSize:14 }}
-                  />
-                </div>
-
-                <div>
-                  <div className="kpi-title">{t.filters.to}</div>
-                  <input
-                    className="sel"
-                    type="date"
-                    value={dateTo}
-                    onChange={e=>setDateTo(e.target.value)}
-                    style={{ fontFamily:'inherit', fontSize:14 }}
-                  />
-                </div>
-
-                <div/>
-                <div/>
-              </div>
-
-              {/* KPI GRID */}
-              <div className="kpi-grid">
-                <div className="card">
-                  <div className="kpi-title">{t.kpis.capital_initial}</div>
-                  <div className="val force-white">
-                    {fmt(capitalInitialDisp)}
-                  </div>
-                </div>
-
-                <div className={`card ${cashFlowTotal>=0 ? 'halo-good' : 'halo-bad'}`}>
-                  <div className="kpi-title">{t.kpis.cashflow}</div>
-                  <div className={`val ${cashFlowTotal<0 ? 'neg' : 'pos'}`}>
-                    {fmt(cashFlowTotal)}
-                  </div>
-                </div>
-
-                <div className={`card ${pnlFiltered>=0 ? 'halo-good' : 'halo-bad'}`}>
-                  <div className="kpi-title">{t.kpis.pnl_filtered}</div>
-                  <div className={`val ${pnlFiltered<0 ? 'neg' : 'pos'}`}>
-                    {fmt(pnlFiltered)}
-                  </div>
-                </div>
-
-                <div className={`card ${pnlFiltered>=0 ? 'halo-good' : 'halo-bad'}`}>
-                  <div className="kpi-title">{t.kpis.capital_total}</div>
-                  <div className={`val ${pnlFiltered<0 ? 'neg' : 'pos'}`}>
-                    {fmt(capitalGlobal)}
-                  </div>
-                </div>
-
-                <div className={`card ${ returnPct >= 0 ? 'halo-good' : 'halo-bad'}`}>
-                  <div className="kpi-title">
-                    {t.kpis?.return_pct || 'rentabilité'}
-                  </div>
-                  <div className={`val ${ returnPct < 0 ? 'neg' : 'pos'}`}>
-                    {returnPct.toFixed(2)}%
-                  </div>
-                </div>
-
-                <div className={`card ${maxDDPct < 15 ? 'halo-good' : (maxDDPct <= 20 ? 'halo-warn' : 'halo-bad')}`}>
-                  <div className="kpi-title">{t.kpis.maxdd_pct}</div>
-                  <div className="val force-white">
-                    {maxDDPct.toFixed(2)}%
-                  </div>
-                </div>
-
-                <div className={`card ${maxDDAbs <= capitalInitialDisp*0.15 ? 'halo-good' : (maxDDAbs <= capitalInitialDisp*0.2 ? 'halo-warn' : 'halo-bad')}`}>
-                  <div className="kpi-title">{t.kpis.maxdd_abs}</div>
-                  <div className="val force-white">
-                    {fmt(maxDDAbs)}
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="kpi-title">{t.kpis.active_days}</div>
-                  <div className="val">
-                    {new Set(filtered.map(t => t.date)).size}
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="kpi-title">{t.kpis.third_capital}</div>
-                  <div className="val">
-                    {fmt(tiersTotal)}
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="kpi-title">trades total</div>
-                  <div className="val">{filtered.length}</div>
-                </div>
-              </div>
-
-              {/* Win rate + Ratios */}
-              <div className="grid-2" style={{marginTop:12}}>
-                <WinRateBlock rows={filtered}/>
-                <RatiosBlock rows={filtered} convert={convert} ccy={displayCcy}/>
-              </div>
-
-              {/* Courbe d’équité */}
-              <EquityBlock
-                rows={filtered}
-                cashflows={cashflowsAll}
-                initial={CAPITAL_INITIAL_USD}
-                convert={convert}
-                ccy={displayCcy}
               />
+            </label>
 
-              {/* Mapping / Corrélation */}
-              <div className="grid-2" style={{marginTop:12}}>
-                <MappingTable rows={filtered} convert={convert} ccy={displayCcy}/>
-                <CorrelationBlock rows={filtered} convert={convert} ccy={displayCcy}/>
-              </div>
+            <button className="btn" onClick={()=>setOpenFlow(true)}>{t.actions.add_flow}</button>
+            <button className="btn" onClick={()=>setOpenTiers(true)}>{t.actions.third_capital}</button>
+            <button className="btn ghost" onClick={()=>setOpenRecap(true)}>{t.actions.recap}</button>
+            <GuidePanel lang={lang}/>
+            <button className="btn ghost" onClick={reset}>{t.actions.reset}</button>
+            <button className="btn ghost" onClick={()=>setOpenAbout(true)}>À propos / Changelog</button>
 
-              {/* Calendrier */}
-              <div style={{marginTop:12}}>
-                <CalendarDaily
-                  rows={filtered}
-                  convert={convert}
-                  ccy={displayCcy}
-                  startEquity={convert(CAPITAL_INITIAL_USD,'USD',displayCcy)}
-                />
-              </div>
+            {/* Devise / Langue */}
+            <div className="kpi-title cap" style={{marginLeft:10}}>Devise</div>
+            <select className="sel" style={{width:110}} value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)}>
+              {['USD','EUR','CHF'].map(c=> <option key={c}>{c}</option>)}
+            </select>
 
-              {/* Activité */}
-              <div style={{marginTop:12}}>
-                <ActivityBlocks rows={filtered}/>
+            <div className="kpi-title cap" style={{marginLeft:10}}>Langue</div>
+            <select className="sel" style={{width:150}} value={lang} onChange={e=>setLang(e.target.value)}>
+              {LOCALES.map(l=> <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Formulaires inline */}
+        <FlowModal openHook={[openFlow,setOpenFlow]} onSave={row=>setFlows(p=>p.concat([row]))} ccy={displayCcy} inline />
+        <CapitalTiersModal openHook={[openTiers,setOpenTiers]} onAdd={row=>setTiers(p=>p.concat([row]))} displayCcy={displayCcy} inline />
+        <CashflowsModal openHook={[openRecap,setOpenRecap]} rows={cashflowsAll} inline />
+        <AboutModal openHook={[openAbout, setOpenAbout]} />
+      </div>
+
+      {/* Filtres */}
+      <div className="control-section">
+        <div className="card">
+          <div className="block-head">
+            <div className="block-title cap">Filtres</div>
+            <div className="block-tools">
+              <HelpTooltip text="Filtre les données visibles (actif, broker, stratégie, période)." />
+            </div>
+          </div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:10}}>
+            <div>
+              <div className="kpi-title cap">Actif</div>
+              <select className="sel" value={asset} onChange={e=>setAsset(e.target.value)}>
+                <option>{t.filters.all}</option>
+                {assets.map(a=> <option key={a}>{a}</option>)}
+              </select>
+            </div>
+            <div>
+              <div className="kpi-title cap">Broker</div>
+              <select className="sel" value={broker} onChange={e=>setBroker(e.target.value)}>
+                <option>{t.filters.all}</option>
+                {brokers.map(a=> <option key={a}>{a}</option>)}
+              </select>
+            </div>
+            <div>
+              <div className="kpi-title cap">Stratégie</div>
+              <select className="sel" value={strategy} onChange={e=>setStrategy(e.target.value)}>
+                <option>{t.filters.all}</option>
+                {strategies.map(a=> <option key={a}>{a}</option>)}
+              </select>
+            </div>
+            <div>
+              <div className="kpi-title cap">Du</div>
+              <input className="sel" type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/>
+            </div>
+            <div>
+              <div className="kpi-title cap">Au</div>
+              <input className="sel" type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/>
+            </div>
+            <div/>
+            <div/>
+          </div>
+        </div>
+      </div>
+
+      {/* KPIs principaux */}
+      <div className="control-section">
+        <div className="block-head" style={{marginBottom:6}}>
+          <div className="block-title cap">Indicateurs Principaux</div>
+          <div className="block-tools">
+            <HelpTooltip text="Vue d’ensemble: capital, flux, PnL filtré, drawdown, jours actifs, capital tiers, nombre de trades."/>
+          </div>
+        </div>
+        <div className="kpi-grid">
+          <div className="card halo-neutral">
+            <div className="kpi-title cap">Capital Initial</div>
+            <div className="val val-main">{fmt(capitalInitialDisp)}</div>
+          </div>
+          <div className="card">
+            <div className="kpi-title cap">Cashflow</div>
+            <div className={`val ${cashFlowTotal<0?'neg':'pos'}`}>{fmt(cashFlowTotal)}</div>
+          </div>
+          <div className="card">
+            <div className="kpi-title cap">PnL (Filtré)</div>
+            <div className={`val ${pnlFiltered<0?'neg':'pos'}`}>{fmt(pnlFiltered)}</div>
+          </div>
+          <div className="card">
+            <div className="kpi-title cap">Capital Total</div>
+            <div className={`val ${pnlFiltered<0?'neg':'pos'}`}>{fmt(capitalGlobal)}</div>
+          </div>
+          <div className="card">
+            <div className="kpi-title cap">Rentabilité</div>
+            <div className={`val ${returnPct<0?'neg':'pos'}`}>{returnPct.toFixed(2)}%</div>
+          </div>
+          <div className="card">
+            <div className="kpi-title cap">Max DD %</div>
+            <div className="val val-main">{maxDDPct.toFixed(2)}%</div>
+          </div>
+          <div className="card">
+            <div className="kpi-title cap">Max DD (Abs.)</div>
+            <div className="val val-main">{fmt(maxDDAbs)}</div>
+          </div>
+          <div className="card">
+            <div className="kpi-title cap">Jours Actifs</div>
+            <div className="val val-main">{new Set(filtered.map(t => t.date)).size}</div>
+          </div>
+          <div className="card">
+            <div className="kpi-title cap">Capital Tiers</div>
+            <div className="val val-main">{fmt(tiersTotal)}</div>
+          </div>
+          <div className="card">
+            <div className="kpi-title cap">Trades Total</div>
+            <div className="val val-main">{filtered.length}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grille principale */}
+      <div className="control-section control-grid">
+        {/* Equité (col-8) */}
+        <div className="col-8">
+          <EquityBlock
+            rows={filtered}
+            cashflows={cashflowsAll}
+            initial={CAPITAL_INITIAL_USD}
+            convert={convert}
+            ccy={displayCcy}
+          />
+        </div>
+
+        {/* Win rate + Ratios (col-4) */}
+        <div className="col-4">
+          <div className="grid-2">
+            <div className="card">
+              <div className="block-head">
+                <div className="block-title cap">Taux de Réussite</div>
+                <div className="block-tools">
+                  <HelpTooltip text="Part des trades gagnants vs perdants sur la période filtrée." />
+                </div>
               </div>
-            </>
-          )}
+              <WinRateBlock rows={filtered}/>
+            </div>
+
+            <div className="card">
+              <div className="block-head">
+                <div className="block-title cap">Ratios (Pro)</div>
+                <div className="block-tools">
+                  <HelpTooltip text="Expectancy, Sharpe, Sortino, Risk/Reward, Kelly (indicatif), Risque de Ruine (~). Le badge couleur résume la qualité du risque." />
+                </div>
+              </div>
+              <RatiosBlock rows={filtered} convert={convert} ccy={displayCcy}/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Corrélation & Mapping */}
+      <div className="control-section control-grid">
+        <div className="col-6">
+          <div className="card">
+            <div className="block-head">
+              <div className="block-title cap">Corrélation Entre Stratégies</div>
+              <div className="block-tools">
+                <HelpTooltip text="Mesure de proximité entre stratégies. Faible corrélation = meilleure diversification." />
+              </div>
+            </div>
+            <CorrelationBlock rows={filtered} convert={convert} ccy={displayCcy}/>
+          </div>
+        </div>
+        <div className="col-6">
+          <div className="card">
+            <div className="block-head">
+              <div className="block-title cap">Mapping Stratégie × Broker</div>
+              <div className="block-tools">
+                <HelpTooltip text="Performance agrégée par couple Stratégie/Broker : PnL, nombre de trades, expectancy." />
+              </div>
+            </div>
+            <MappingTable rows={filtered} convert={convert} ccy={displayCcy}/>
+          </div>
+        </div>
+      </div>
+
+      {/* Calendrier mensuel */}
+      <div className="control-section">
+        <CalendarMonthly
+          rows={filtered}
+          convert={convert}
+          ccy={displayCcy}
+          startEquity={convert(CAPITAL_INITIAL_USD,'USD',displayCcy)}
+        />
+      </div>
+
+      {/* Activité */}
+      <div className="control-section">
+        <div className="card">
+          <div className="block-head">
+            <div className="block-title cap">Activité</div>
+            <div className="block-tools">
+              <HelpTooltip text="Répartition des trades gagnants/perdants par heure, par jour de semaine, par mois." />
+            </div>
+          </div>
+          <ActivityBlocks rows={filtered}/>
+        </div>
+      </div>
+    </div>
+  </>
+)}
 
           {view === 'compta' && (
             <div className="page-outer">
