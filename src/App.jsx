@@ -629,15 +629,15 @@ function ActivityBlocks({ rows }){
   return (
     <div className="grid-3">
       <div className="card">
-        <div className="kpi-title">activité par heure</div>
+        <div className="kpi-title">Activité par Heure</div>
         {bar(hour,'h')}
       </div>
       <div className="card">
-        <div className="kpi-title">activité par jour (lundi…dimanche)</div>
+        <div className="kpi-title">Activité par Jour (Lundi…Dimanche)</div>
         {bar(dow.map((x,i)=>({...x,d:dowLabel[i]})),'d')}
       </div>
       <div className="card">
-        <div className="kpi-title">activité par mois (janvier…décembre)</div>
+        <div className="kpi-title">Activité par Mois (Janvier…Décembre)</div>
         {bar(mon.map((x,i)=>({...x,m:monLabel[i]})),'m')}
       </div>
     </div>
