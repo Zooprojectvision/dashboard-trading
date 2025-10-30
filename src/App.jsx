@@ -566,6 +566,7 @@ function MappingTable({ rows, convert, ccy }){
     o.pnl+=v; o.n+=1
     map.set(k,o)
   })
+
   const items = Array.from(map.entries()).map(([k,v])=>{
     const [strategy, broker]=k.split('||')
     return {
@@ -580,8 +581,7 @@ function MappingTable({ rows, convert, ccy }){
   )
 
   return (
-    <div className="card">
-      <div className="kpi-title">mapping stratégie × broker</div>
+    <>
       <table className="table" style={{marginTop:6}}>
         <thead>
           <tr>
@@ -608,7 +608,7 @@ function MappingTable({ rows, convert, ccy }){
           ))}
         </tbody>
       </table>
-    </div>
+    </>
   )
 }
 
