@@ -6,22 +6,20 @@ export const dict = {
     actions: {
       help:'Aide',
       import_csv:'Importer CSV',
-      add_flow:'Ajouter un flux',
-      third_capital:'Capital tiers',
+      add_flow:'Ajouter un Flux',
+      third_capital:'Capital Tiers',
       recap:'Récap',
       reset:'Réinitialiser',
     },
-    filters:{ asset:'actif', broker:'broker', strategy:'stratégie', from:'du', to:'au', all:'All' },
+    filters:{ Asset:'Actif', Broker:'Broker', Strategy:'Stratégie', From:'Du', To:'Au', All:'All' },
     kpis:{
-      capital_initial:'capital initial',
-      cashflow:'cashflow',
-      pnl_filtered:'pnl (filtré)',
-      capital_total:'capital total',
-      return_pct:'rentabilité',
-      maxdd_pct:'max dd (%)',
-      maxdd_abs:'max dd (abs)',
-      active_days:'jours actifs',
-      third_capital:'capital tiers'
+      Capital_Initial:'Capital Initial',
+      Cashflow:'Cashflow',
+      Pnl_Filtered:'Pnl (Filtré)',
+      Capital_Total:'Capital Total',
+      Return_(%):'Rentabilité',
+      Maxdd_(%):'Max dd (%)',
+      Third Capital:'Capital Tiers'
     }
   }
 }
