@@ -373,37 +373,33 @@ function WinRateBlock({ rows }) {
     { name: 'Perdants', value: counts.l }
   ]
 
-  return (
-    <div className="card">
-      <div className="kpi-title">Taux de réussite</div>
+    return (
+    <div className="wr-donut" style={{ height: 220 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={donut}
+            dataKey="value"
+            nameKey="name"
+            innerRadius={64}
+            outerRadius={84}
+            paddingAngle={1.5}
+            stroke="none"
+            isAnimationActive={false}
+          >
+            <Cell fill="var(--green)" />
+            <Cell fill="var(--pink)" />
+          </Pie>
+          <Tooltip />
+        </PieChart>
+      </ResponsiveContainer>
 
-      <div className="wr-donut" style={{ height: 220 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={donut}
-              dataKey="value"
-              nameKey="name"
-              innerRadius={64}
-              outerRadius={84}
-              paddingAngle={1.5}
-              stroke="none"
-              isAnimationActive={false}
-            >
-              <Cell fill="var(--green)" />
-              <Cell fill="var(--pink)" />
-            </Pie>
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
-
-        <div className="wr-center">
-          <div className="wr-pct">{counts.wr.toFixed(1)}%</div>
-          <div className="wr-sub">sur {counts.total} trades</div>
-        </div>
+      <div className="wr-center">
+        <div className="wr-pct">{counts.wr.toFixed(1)}%</div>
+        <div className="wr-sub">sur {counts.total} trades</div>
       </div>
     </div>
-  )
+  );
 }
 
 /* ===== Ratios Pro ===== */
@@ -435,7 +431,6 @@ function RatiosBlock({ rows, convert, ccy }){
 
   return (
     <div className={`card ${verdict(sharpe)}`}>
-      <div className="kpi-title">ratios (pro)</div>
       <div className="grid-3">
         <div className="card halo-neutral tinted">
           <div className="kpi-title">expectancy par trade</div>
