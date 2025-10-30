@@ -16,6 +16,9 @@
   --pink: #ff5fa2;
   --orange: #ffb347;
   --accent: #6aa9ff;
+
+  /* Couleur des axes / ticks / labels graphiques */
+  --axis-text: #c5ccd3;
 }
 
 /* ===== Layout global ===== */
@@ -125,15 +128,6 @@ body {
     rgba(255,255,255,0.02),
     rgba(255,255,255,0.00)
   );
-}
-
-/* halos (verdict risk) */
-.halo-good   { border: 2px solid var(--green) !important; }
-.halo-warn   { border: 2px solid var(--orange) !important; }
-.halo-bad    { border: 2px solid var(--pink) !important; }
-/* bordure neutre doit rester fine, pas épaisse */
-.halo-neutral {
-  border: 1px solid var(--border) !important;
 }
 
 /* Titres KPI / petites légendes */
@@ -512,6 +506,3 @@ body {
   font-size: 12px;
 }
 .day-muted { opacity: .55; }
-
-/* Axes/labels Recharts – helpers via CSS variables (utilisées côté JSX) */
-:root { --axis-text: var(--text); }
