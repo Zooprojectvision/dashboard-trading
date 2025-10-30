@@ -466,3 +466,10 @@ a {
 .footer a:hover {
   text-decoration: underline;
 }
+/* Harmonisation des espacements entre sections majeures (V5.1.2) */
+.section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;       /* espace vertical fixe entre chaque bloc */
+  margin-top: 12px; /* espace top avant le groupe */
+}
