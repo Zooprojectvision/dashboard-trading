@@ -460,9 +460,13 @@ function RatiosBlock({ rows, convert, ccy }){
 }
 /* ===== Corrélation des stratégies ===== */
 function CorrelationBlock({ rows, convert, ccy }){
-  const strats=React.useMemo(()=>Array.from(new Set(rows.map(r=>r.strategy))).sort(),[rows])
-  if(strats.length<2) return null
-  const byDateStrat=React.useMemo(()=>{
+  const strats = React.useMemo(
+    () => Array.from(new Set(rows.map(r=>r.strategy))).sort(),
+    [rows]
+  )
+  if (strats.length < 2) return null
+
+  const byDateStrat = React.useMemo(() => {
     const m=new Map()
     rows.forEach(t=>{
       const d=t.date, s=t.strategy, v=convert(t.pnl,t.ccy||'USD',ccy)
@@ -471,19 +475,27 @@ function CorrelationBlock({ rows, convert, ccy }){
       mm.set(s,(mm.get(s)||0)+v)
     })
     return m
-  },[rows,ccy,convert])
-  const dates=React.useMemo(()=>Array.from(byDateStrat.keys()).sort(),[byDateStrat])
-  const series=React.useMemo(()=>{
+  }, [rows, ccy, convert])
+
+  const dates = React.useMemo(
+    () => Array.from(byDateStrat.keys()).sort(),
+    [byDateStrat]
+  )
+
+  const series = React.useMemo(() => {
     const s={}
     strats.forEach(st=>{
       s[st]=dates.map(d=> (byDateStrat.get(d).get(st)||0))
     })
     return s
-  },[strats,dates,byDateStrat])
+  }, [strats, dates, byDateStrat])
+
+  const meanArr = a => a.length ? a.reduce((sum,x)=>sum+x,0)/a.length : 0
+
   const corr=(a,b)=>{
     const n=Math.min(a.length,b.length); if(!n) return 0
     const ax=a.slice(0,n), bx=b.slice(0,n)
-    const ma=mean(ax), mb=mean(bx)
+    const ma=meanArr(ax), mb=meanArr(bx)
     let num=0,da=0,db=0
     for(let i=0;i<n;i++){
       const x=ax[i]-ma, y=bx[i]-mb
@@ -492,19 +504,20 @@ function CorrelationBlock({ rows, convert, ccy }){
     const den=Math.sqrt(da*db)
     return den>0? num/den : 0
   }
+
   const verdict=c=>{
     const a=Math.abs(c)
     if(a<=0.30) return 'halo-good'
     if(a<=0.60) return 'halo-warn'
     return 'halo-bad'
   }
-  const matrix=strats.map((s1,i)=>
-    strats.map((s2,j)=> i===j?1:corr(series[s1],series[s2]))
+
+  const matrix = strats.map((s1,i)=>
+    strats.map((s2,j)=> i===j ? 1 : corr(series[s1],series[s2]))
   )
 
   return (
-    <div className="card">
-      <div className="kpi-title">corrélation des stratégies</div>
+    <>
       <div style={{overflowX:'auto', marginTop:8}}>
         <table className="table">
           <thead>
@@ -520,7 +533,7 @@ function CorrelationBlock({ rows, convert, ccy }){
                 {row.map((c,j)=>(
                   <td key={j}>
                     <div
-                      className={`card halo-neutral`}
+                      className="card halo-neutral"
                       style={{
                         padding:'8px 10px',
                         textAlign:'center',
@@ -539,7 +552,7 @@ function CorrelationBlock({ rows, convert, ccy }){
           </tbody>
         </table>
       </div>
-    </div>
+    </>
   )
 }
 
