@@ -440,16 +440,16 @@ function RatiosBlock({ rows, convert, ccy }){
       </div>
 
       <div className="card halo-neutral tinted">
-        <div className="kpi-title">Sharpe (ann.)</div>
+        <div className="kpi-title">Sharpe (Ann.)</div>
         <V v={sharpe} />
-        <div className="kpi-title" style={{ marginTop: 8 }}>Sortino (ann.)</div>
+        <div className="kpi-title" style={{ marginTop: 8 }}>Sortino (Ann.)</div>
         <V v={sortino} />
       </div>
 
       <div className="card halo-neutral tinted">
         <div className="kpi-title">Risk / Reward</div>
         <V v={RR} />
-        <div className="kpi-title" style={{ marginTop: 8 }}>Kelly (indicatif)</div>
+        <div className="kpi-title" style={{ marginTop: 8 }}>Kelly (Indicatif)</div>
         <V v={kelly} />
         <div className="kpi-title" style={{ marginTop: 8 }}>Risque de Ruine (≈)</div>
         <V v={ror * 100} suffix="%" />
