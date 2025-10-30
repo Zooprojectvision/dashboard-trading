@@ -587,9 +587,9 @@ function MappingTable({ rows, convert, ccy }){
           <tr>
             <th>stratégie</th>
             <th>broker</th>
-            <th style={{textAlign:'right'}}>pnl</th>
-            <th style={{textAlign:'right'}}>trades</th>
-            <th style={{textAlign:'right'}}>expectancy</th>
+            <th style={{textAlign:'right'}}>Pnl</th>
+            <th style={{textAlign:'right'}}>Trades</th>
+            <th style={{textAlign:'right'}}>Expectancy</th>
           </tr>
         </thead>
         <tbody>
@@ -632,8 +632,8 @@ function ActivityBlocks({ rows }){
         <XAxis dataKey={xKey} stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}}/>
         <YAxis allowDecimals={false} stroke={C.axis} tickLine={false} axisLine={{stroke:C.axis}}/>
         <Tooltip/><Legend/>
-        <Bar dataKey="win" name="gagnants" fill="var(--green)"/>
-        <Bar dataKey="loss" name="perdants" fill="var(--pink)"/>
+        <Bar dataKey="win" name="Gagnants" fill="var(--green)"/>
+        <Bar dataKey="loss" name="Perdants" fill="var(--pink)"/>
       </BarChart>
     </ResponsiveContainer>
   )
