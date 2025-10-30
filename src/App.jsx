@@ -14,11 +14,11 @@ const I18N_DEFAULTS = {
   actions: {
     Help: "Aide",
     Import_csv: "Importer CSV",
-    Add_flow: "Ajouter un flux",
-    Third_capital: "Capital tiers",
+    Add_Flow: "Ajouter un Flux",
+    Third_Capital: "Capital Tiers",
     Recap: "Récap",
     Reset: "Réinitialiser",
-    About: "À propos",
+    About: "À Propos",
   },
   filters: {
     Asset: "Actif",
