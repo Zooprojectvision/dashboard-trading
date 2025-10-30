@@ -585,8 +585,8 @@ function MappingTable({ rows, convert, ccy }){
       <table className="table" style={{marginTop:6}}>
         <thead>
           <tr>
-            <th>stratégie</th>
-            <th>broker</th>
+            <th>Stratégie</th>
+            <th>Broker</th>
             <th style={{textAlign:'right'}}>Pnl</th>
             <th style={{textAlign:'right'}}>Trades</th>
             <th style={{textAlign:'right'}}>Expectancy</th>
