@@ -506,3 +506,14 @@ body {
   font-size: 12px;
 }
 .day-muted { opacity: .55; }
+@media (max-width: 1400px) {
+  .wrap {
+    padding: 16px;
+  }
+  .header {
+    padding: 0 16px;
+  }
+  .home-hero {
+    padding: 0 16px;
+  }
+}
