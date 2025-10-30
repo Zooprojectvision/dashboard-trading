@@ -518,16 +518,31 @@ body {
   font-size: 12px;
 }
 .day-muted { opacity: .55; }
+.day-metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.day-muted {
+  opacity: .55;
+}
+
+/* Évite le débordement horizontal de la barre d'actions sur les écrans genre 1366px */
 @media (max-width: 1400px) {
   .wrap {
     padding: 16px;
   }
+
   .header {
     padding: 0 16px;
   }
+
   .home-hero {
     padding: 0 16px;
   }
+
   .block-tools {
     flex-wrap: wrap;
     row-gap: 8px;
