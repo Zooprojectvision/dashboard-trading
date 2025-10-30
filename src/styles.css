@@ -30,6 +30,17 @@ html, body {
   /* Couleur des axes / ticks / labels graphiques */
   --axis-text: #c5ccd3;
 }
+.kpi-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto; /* label | valeur | verdict */
+  align-items: center;
+  gap: 8px 12px;
+  padding: 6px 0;
+  min-width: 0;
+}
+
+
+
 
 /* ===== Layout global ===== */
 body {
