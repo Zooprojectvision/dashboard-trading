@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
+
+    <!-- Permet au navigateur d'accepter le clair -->
+    <meta name="color-scheme" content="light dark" />
+
     <title>ZooProjectVision - Centre de Contrôle V5.0.6</title>
 
     <meta
@@ -21,14 +24,20 @@
       rel="stylesheet"
     />
 
-    <!-- 👉 TA FEUILLE DE STYLE GLOBALE -->
+    <!-- ta feuille CSS -->
     <link rel="stylesheet" href="/src/styles.css" />
 
-    <meta name="theme-color" content="#000000" />
+    <!-- On peut aussi mettre un theme-color clair -->
+    <meta name="theme-color" content="#ffffff" />
   </head>
 
-  <body>
-    <div id="root"></div>
+  <body style="margin:0; background:#ffffff; color:#000000;">
+    <!-- TRÈS IMPORTANT : on entoure root avec .wrap -->
+    <div class="wrap">
+      <div id="root"></div>
+    </div>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+
