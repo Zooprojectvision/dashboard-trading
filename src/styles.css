@@ -729,4 +729,141 @@ body,
   opacity: 1;
   pointer-events: auto;
 }
+/* ==== FORCE DARK FINAL OVERRIDE ==== */
+
+/* Corps de page */
+body,
+.wrap {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  min-height: 100vh;
+}
+
+/* Cartes, panneaux, modales, cellules calendrier */
+.wrap .card,
+.wrap .modal-card,
+.wrap .calendar-cell,
+.wrap .day-cell {
+  background: linear-gradient(180deg, var(--panel), var(--panel-2)) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  box-shadow: 0 16px 40px rgba(0,0,0,.6) !important;
+}
+
+/* En-têtes / petits labels / titres blocs */
+.wrap .block-head,
+.wrap .block-title,
+.wrap .kpi-title,
+.wrap .kpi-sub,
+.wrap .cap,
+.wrap .subtitle,
+.wrap .kpi-row,
+.wrap .block-tools,
+.wrap .badge,
+.wrap .badge-dot,
+.wrap .day-top,
+.wrap .day-metric,
+.wrap .day-muted {
+  color: var(--text) !important;
+  opacity: 0.85 !important;
+  border-color: var(--border) !important;
+  background: transparent !important;
+}
+
+/* Valeurs numériques */
+.wrap .val,
+.wrap .val-main,
+.wrap .wr-pct,
+.wrap .wr-center {
+  color: var(--white) !important;
+}
+
+/* Positif / négatif restent flashy */
+.wrap .val.neg { color: var(--pink) !important; }
+.wrap .val.pos { color: var(--green) !important; }
+
+/* Boutons / selects */
+.wrap .sel,
+.wrap .btn,
+.wrap .btn.sm,
+.wrap .btn.ghost,
+.wrap .btn.ghost.sm {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+}
+
+/* Icône crayon */
+.wrap .edit-pencil {
+  color: var(--text) !important;
+  opacity: .6 !important;
+}
+
+/* Tableaux */
+.wrap .table,
+.wrap table,
+.wrap .table th,
+.wrap .table td,
+.wrap table th,
+.wrap table td {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.wrap .table th {
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  opacity: 0.8 !important;
+}
+
+.wrap .table td {
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Calendrier (cases jour) */
+.wrap .month-grid .day-cell {
+  background: var(--panel-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+
+/* Bordures/halos statut calendrier */
+.wrap .halo-good    { border-color: var(--green) !important; }
+.wrap .halo-warn    { border-color: var(--orange) !important; }
+.wrap .halo-bad     { border-color: var(--pink) !important; }
+.wrap .halo-neutral { border-color: var(--border) !important; }
+
+/* Tooltip "?" */
+.wrap .help-tooltip {
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  background: var(--panel-2) !important;
+  opacity: .9 !important;
+}
+
+/* Footer */
+.wrap .footer {
+  color: var(--text) !important;
+  background: transparent !important;
+  border-top: 0 !important;
+}
+
+/* Axes / labels Recharts sur fond sombre */
+.wrap .recharts-cartesian-axis-tick text,
+.wrap .recharts-legend-item-text,
+.wrap .recharts-tooltip-wrapper,
+.wrap .recharts-default-tooltip,
+.wrap .recharts-text {
+  fill: var(--axis-text) !important;
+  color: var(--axis-text) !important;
+  background: rgba(0,0,0,0.8) !important;
+}
+
+.wrap .recharts-cartesian-grid line,
+.wrap .recharts-cartesian-axis-line,
+.wrap .recharts-cartesian-axis-tick-line {
+  stroke: var(--axis) !important;
+}
 
