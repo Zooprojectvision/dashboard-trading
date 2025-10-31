@@ -1082,9 +1082,47 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
 function HomeHub({ setView, t, subtitle }) {
   return (
     <div className="home-hero">
-      <h1 className="brand" style={{justifyContent:'center', gap:10}}>
-        {t?.brand || 'ZooProjectVision'}
-      </h1>
+      function HubCard({ title, subtitle, tooltip, onClick }) {
+  return (
+    <button
+      className="card"
+      onClick={onClick}
+      style={{
+        textAlign:'left',
+        padding:18,
+        border:'1px solid var(--border)',
+        borderRadius:16,
+        width:'100%',
+        cursor:'pointer',
+        position:'relative',
+      }}
+    >
+      <div
+        className="kpi-title"
+        style={{
+          display:'flex',
+          alignItems:'center',
+          gap:6,
+          color:'var(--white)',        // <-- titre en blanc
+        }}
+      >
+        <span>{title}</span>
+        <HelpTooltip text={tooltip}/>
+      </div>
+
+      <div
+        style={{
+          marginTop:6,
+          color:'var(--text)',
+          opacity:.85,
+          fontSize:13,
+        }}
+      >
+        {subtitle}
+      </div>
+    </button>
+  )
+}
 
       <p className="subtitle home-subtitle" style={{justifyContent:'center'}}>
         {subtitle || 'Le tableau de bord de performance trading Edouard & Michel Jimenez'}
