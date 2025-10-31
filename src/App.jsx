@@ -1063,11 +1063,31 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
         cursor:'pointer'
       }}
     >
-      <div className="kpi-title" style={{display:'flex', alignItems:'center', gap:6}}>
-        <span>{title}</span>
+      <div
+        className="kpi-title"
+        style={{
+          display:'flex',
+          alignItems:'center',
+          gap:6
+        }}
+      >
+        {/* Titre en blanc */}
+        <span style={{ color: 'var(--white)', fontWeight: 500 }}>
+          {title}
+        </span>
+
         <HelpTooltip text={tooltip}/>
       </div>
-      <div style={{marginTop:6, color:'var(--text)', opacity:.85, fontSize:13}}>
+
+      {/* Sous-texte reste gris / normal */}
+      <div
+        style={{
+          marginTop:6,
+          color:'var(--text)',
+          opacity:.85,
+          fontSize:13
+        }}
+      >
         {subtitle}
       </div>
     </button>
