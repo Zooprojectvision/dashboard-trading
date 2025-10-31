@@ -1108,7 +1108,7 @@ function HomeHub({ setView, t, subtitle }) {
       <div className="grid-3 home-grid" style={{textAlign:'left'}}>
         <HubCard
           title="Centre de Contrôle"
-          subtitle="Vue complète: imports CSV, filtres, KPI, equity, corrélation, calendrier, activité."
+          subtitle="Vue complète: filtres, equity, corrélation, calendrier, activité."
           tooltip="Tableau de bord principal. Toutes les métriques en un coup d'œil."
           onClick={()=>setView('control')}
         />
