@@ -722,7 +722,6 @@ body,
   pointer-events: none;
   transition: opacity .12s;
 }
-
 /* affiche la bulle au hover du ? */
 .ratio-label:hover .ratio-tooltip,
 .ratio-help:focus + .ratio-tooltip {
