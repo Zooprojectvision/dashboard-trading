@@ -1167,6 +1167,12 @@ export default function App(){
   // (state view/lang/etc, puis return ...)
 }
 
+/* ===== APP (main) ===== */
+export default function App(){
+  // le contenu d'App reste comme dans ta version précédente
+  // (state view/lang/etc, puis return ...)
+}
+
 
 export default function App(){
 
