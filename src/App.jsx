@@ -1335,45 +1335,87 @@ export default function App(){
   const noData = filtered.length === 0
 
 
-   // ============================
-  // RENDER (DEBUG MODE)
+     // ============================
+  // RENDER
   // ============================
   return (
-    <>
-      {/* DEBUG OVERLAY */}
-      <div
-        style={{
-          position:'fixed',
-          top:0,
-          left:0,
-          right:0,
-          padding:'20px',
-          background:'red',
-          color:'#fff',
-          fontSize:'20px',
-          fontWeight:'bold',
-          zIndex:999999
-        }}
-      >
-        DEBUG: App est monté dans le DOM
-      </div>
+    return (
+  <div
+    className="wrap"
+    style={{
+      backgroundColor:'#ffffff',   // fond blanc forcé
+      color:'#000000',              // texte noir forcé
+      minHeight:'100vh',            // prend tout l'écran
+      position:'relative',
+      zIndex:1
+    }}
+  >
+    {view === 'home' ? (
+      <HomeHub setView={setView} t={t} subtitle={subtitle} />
+    ) : (
+      <>
+        {/* Barre de navigation locale */}
+        <div
+          className="header"
+          style={{
+            display:'flex',
+            justifyContent:'space-between',
+            alignItems:'center'
+          }}
+        >
+          <button className="btn ghost" onClick={()=>setView('home')}>← Accueil</button>
+          <div style={{ opacity:.8, fontSize:12 }}>
+            {view === 'control'
+              ? 'Centre de contrôle'
+              : view === 'compta'
+              ? 'Comptabilité entreprise'
+              : 'Gestion du risque'}
+          </div>
+        </div>
 
-      {/* CONTENU TEST CLAIR */}
-      <div
-        style={{
-          background:'#111',
-          color:'#fff',
-          minHeight:'100vh',
-          padding:'40px',
-          fontFamily:'sans-serif'
-        }}
-      >
-        <h1>Test contenu App</h1>
-        <p>
-          Si tu vois ce texte blanc, React rend bien ton composant.
-          Donc le problème vient du CSS global (par exemple une div full screen noire au-dessus).
-        </p>
-      </div>
-    </>
-  )
-}
+        {view === 'control' && (
+          <div className="control-page">
+            {/* ...tout le contenu control-page exactement comme tu l'avais (card, filtres, KPIs, EquityBlock, etc.)... */}
+          </div>
+        )}
+
+        {view === 'compta' && (
+          <div className="page-outer">
+            <div className="page-content">
+              <div className="card" style={{ padding: 16 }}>
+                <div
+                  className="kpi-title"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <span>Vue Comptable</span>
+                  <HelpTooltip text="Regroupe les flux par catégorie, exports CSV, etc." />
+                </div>
+                <p style={{ marginTop: 8, opacity: .8 }}>À venir…</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {view === 'risk' && (
+          <div className="page-outer">
+            <div className="page-content">
+              <div className="card" style={{ padding: 16 }}>
+                <div
+                  className="kpi-title"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <span>Analyse de Risque</span>
+                  <HelpTooltip text="Seuils, verdicts, et recommandations. (Bientôt)" />
+                </div>
+                <p style={{ marginTop: 8, opacity: .8 }}>À venir…</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    )}
+
+    {/* Footer visible sur toutes les pages */}
+    <AppFooter />
+  </div>
+)
