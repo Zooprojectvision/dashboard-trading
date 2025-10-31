@@ -98,7 +98,7 @@ body {
   font-size: 48px;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  color: var(--white);
+  color: var(--accent); /* bleu ciel global */
   margin: 0;
 }
 
