@@ -1081,15 +1081,50 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
 
 function HomeHub({ setView, t, subtitle }) {
   return (
-    <div className="home-hero">
+    <div className="home-hero" style={{ textAlign: 'center', maxWidth: 900, margin: '0 auto' }}>
+      
+      {/* Titre principal / brand */}
+      <h1
+        className="brand"
+        style={{
+          fontSize: 32,
+          fontWeight: 600,
+          color: 'var(--white)',
+          margin: 0,
+          lineHeight: 1.2
+        }}
+      >
+        {t.brand || 'ZooProjectVision'}
+      </h1>
+
+      {/* Sous-titre */}
       <p
         className="subtitle home-subtitle"
-        style={{ justifyContent: 'center' }}
+        style={{
+          marginTop: 8,
+          color: 'var(--text)',
+          opacity: .85,
+          fontSize: 14,
+          lineHeight: 1.5,
+          display: 'flex',
+          justifyContent: 'center',
+          textAlign: 'center'
+        }}
       >
         {subtitle || 'Le tableau de bord de performance trading Edouard & Michel Jimenez'}
       </p>
 
-      <div className="grid-3 home-grid" style={{ textAlign: 'left' }}>
+      {/* Cartes hub */}
+      <div
+        className="grid-3 home-grid"
+        style={{
+          textAlign: 'left',
+          marginTop: 24,
+          gap: 16,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit,minmax(min(260px,100%),1fr))'
+        }}
+      >
         <HubCard
           title="Centre de Contrôle"
           subtitle="Vue complète: filtres, equity, corrélation, calendrier, activité."
