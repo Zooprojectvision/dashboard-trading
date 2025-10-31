@@ -905,30 +905,31 @@ body,
 /* la bulle d'explication */
 .help-bubble {
   position: absolute;
-  left: 24px;
-  top: 0;
+  bottom: 100%;
+  left: 0;
+  transform: translateY(-8px);
 
-  min-width: 220px;
-  max-width: 260px;
+  /* fond plein opaque */
+  background: #0f111a; /* ou var(--panel) si tu préfères */
+  color: var(--white);
 
-  background: var(--panel);           /* fond sombre */
-  color: var(--text);                 /* gris clair lisible */
-  font-size: 14px;                    /* plus grand */
-  line-height: 1.5;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+
+  font-size: 14px;
+  line-height: 1.4;
   font-weight: 400;
+  max-width: 260px;
+  white-space: normal;    /* autorise le retour à la ligne */
+  word-break: break-word; /* évite les mots trop longs */
 
-  padding: 8px 10px;
-
-  border: 0;                          /* PAS de cadre */
-  border-radius: 0;                   /* PAS de coins arrondis style carte */
-  box-shadow: none;                   /* PAS d'ombre carte */
-
+  box-shadow: 0 24px 64px rgba(0,0,0,0.8);
   z-index: 9999;
 
   opacity: 0;
   pointer-events: none;
   transition: opacity .12s;
-  white-space: normal;
 }
 
 /* on affiche la bulle au hover */
