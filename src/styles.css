@@ -708,20 +708,25 @@ body,
   top: calc(100% + 6px);
   min-width: 220px;
   max-width: 260px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--text);
-  box-shadow: 0 20px 40px rgba(0,0,0,.8);
-  z-index: 9999;
 
+  /* fond propre sombre sans contour */
+  background: var(--panel);
+  border: 0;                 /* <-- plus de bordure */
+  border-radius: 0;          /* <-- plus d'encadré arrondi / effet boîte */
+  box-shadow: none;          /* <-- plus d'effet carte flottante */
+
+  /* lisibilité ++ */
+  padding: 8px 10px;
+  font-size: 14px;           /* <-- texte plus grand */
+  line-height: 1.5;
+  color: var(--text);
+
+  z-index: 9999;
   opacity: 0;
   pointer-events: none;
   transition: opacity .12s;
 }
+
 /* affiche la bulle au hover du ? */
 .ratio-label:hover .ratio-tooltip,
 .ratio-help:focus + .ratio-tooltip {
