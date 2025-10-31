@@ -1040,20 +1040,20 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
       className="card"
       onClick={onClick}
       style={{
-        textAlign:'left',
-        padding:18,
-        border:'1px solid var(--border)',
-        borderRadius:16,
-        width:'100%',
-        cursor:'pointer'
+        textAlign: 'left',
+        padding: 18,
+        border: '1px solid var(--border)',
+        borderRadius: 16,
+        width: '100%',
+        cursor: 'pointer'
       }}
     >
       <div
         className="kpi-title"
         style={{
-          display:'flex',
-          alignItems:'center',
-          gap:6
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
         }}
       >
         {/* Titre en blanc */}
@@ -1061,16 +1061,16 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
           {title}
         </span>
 
-        <HelpTooltip text={tooltip}/>
+        <HelpTooltip text={tooltip} />
       </div>
 
       {/* Sous-texte reste gris / normal */}
       <div
         style={{
-          marginTop:6,
-          color:'var(--text)',
-          opacity:.85,
-          fontSize:13
+          marginTop: 6,
+          color: 'var(--text)',
+          opacity: .85,
+          fontSize: 13
         }}
       >
         {subtitle}
@@ -1082,74 +1082,37 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
 function HomeHub({ setView, t, subtitle }) {
   return (
     <div className="home-hero">
-      function HubCard({ title, subtitle, tooltip, onClick }) {
-  return (
-    <button
-      className="card"
-      onClick={onClick}
-      style={{
-        textAlign:'left',
-        padding:18,
-        border:'1px solid var(--border)',
-        borderRadius:16,
-        width:'100%',
-        cursor:'pointer',
-        position:'relative',
-      }}
-    >
-      <div
-        className="kpi-title"
-        style={{
-          display:'flex',
-          alignItems:'center',
-          gap:6,
-          color:'var(--white)',        // <-- titre en blanc
-        }}
+      <p
+        className="subtitle home-subtitle"
+        style={{ justifyContent: 'center' }}
       >
-        <span>{title}</span>
-        <HelpTooltip text={tooltip}/>
-      </div>
-
-      <div
-        style={{
-          marginTop:6,
-          color:'var(--text)',
-          opacity:.85,
-          fontSize:13,
-        }}
-      >
-        {subtitle}
-      </div>
-    </button>
-  )
-}
-
-      <p className="subtitle home-subtitle" style={{justifyContent:'center'}}>
         {subtitle || 'Le tableau de bord de performance trading Edouard & Michel Jimenez'}
       </p>
 
-      <div className="grid-3 home-grid" style={{textAlign:'left'}}>
+      <div className="grid-3 home-grid" style={{ textAlign: 'left' }}>
         <HubCard
           title="Centre de Contrôle"
           subtitle="Vue complète: filtres, equity, corrélation, calendrier, activité."
           tooltip="Tableau de bord principal. Toutes les métriques en un coup d'œil."
-          onClick={()=>setView('control')}
+          onClick={() => setView('control')}
         />
+
         <HubCard
           title="Comptabilité Entreprise"
           subtitle="Suivi des flux (payouts, frais, dépôts), catégories et exports."
           tooltip="Regroupe et catégorise les flux pour une vision 'entreprise'."
-          onClick={()=>setView('compta')}
+          onClick={() => setView('compta')}
         />
+
         <HubCard
           title="Gestion du Risque"
           subtitle="Seuils, verdicts, et recommandations d’ajustement."
           tooltip="Analyse des risques et propositions (taille de lot, horaires, TP/SL)."
-          onClick={()=>setView('risk')}
+          onClick={() => setView('risk')}
         />
       </div>
     </div>
-  )
+  );
 }
 
 /* ===== Footer global ===== */
@@ -1171,6 +1134,7 @@ function AppFooter() {
 }
 
 /* ===== APP (main) ===== */
+
 export default function App(){
 
   // --- Navigation simple ---
