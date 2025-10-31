@@ -62,26 +62,11 @@ const styleNum = v => ({ color: (Number(v) < 0 ? 'var(--pink)' : 'var(--text)') 
 
 function HelpTooltip({ text }) {
   return (
-    <span
-      className="help-tooltip"
-      title={text}
-      aria-label="Aide"
-      style={{
-        display:'inline-flex',
-        alignItems:'center',
-        justifyContent:'center',
-        width:18, height:18,
-        border:'1px solid var(--border)',
-        borderRadius:'50%',
-        fontSize:12,
-        cursor:'help',
-        marginLeft:6,
-        opacity:.9
-      }}
-    >
-      ?
+    <span className="help-wrap">
+      <span className="help-icon">?</span>
+      <span className="help-bubble">{text}</span>
     </span>
-  )
+  );
 }
 
 /* ===== CSV utils (MQL4/MQL5 exports) ===== */
