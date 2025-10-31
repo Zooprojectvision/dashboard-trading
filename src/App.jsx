@@ -99,24 +99,25 @@ function parseCSV(text){
 }
 function mapMT5Rows(rows){
   return rows.map((r)=>{
-    const date=(r['Time']||r['Open time']||r['Open Time']||r['Date']||'').slice(0,10)
-    const asset=r['Symbol']||r['Instrument']||r['Symbol name']||'UNKNOWN'
-    const broker=r['Broker']||'Unknown'
-    const strategy=r['Strategy']||'Unknown'
-    const pnl=Number(r['Profit']||r['PnL']||r['PL']||r['Net P/L']||0)
-    const mfe=Number(r['MFE']||r['MFE Profit']||r['Max Favorable Excursion']||0)
-    const mae=Number(r['MAE']||r['MAE Profit']||r['Max Adverse Excursion']||0)
+    const date   = (r['Time'] || r['Open time'] || r['Open Time'] || r['Date'] || '').slice(0,10)
+    const asset  = r['Symbol'] || r['Instrument'] || r['Symbol name'] || 'UNKNOWN'
+    const broker = r['Broker'] || 'Unknown'
+    const strategy = r['Strategy'] || 'Unknown'
+    const pnl = Number(r['Profit'] || r['PnL'] || r['PL'] || r['Net P/L'] || 0)
+    const mfe = Number(r['MFE'] || r['MFE Profit'] || r['Max Favorable Excursion'] || 0)
+    const mae = Number(r['MAE'] || r['MAE Profit'] || r['Max Adverse Excursion'] || 0)
+
     return {
-      Date,
-      Asset,
-      Broker,
-      Strategy,
-      Pnl:Number((pnl||0).toFixed(2)),
-      ccy:'USD',
-      mfe:Number((Math.abs(mfe)||0).toFixed(2)),
-      mae:Number((Math.abs(mae)||0).toFixed(2))
+      date,
+      asset,
+      broker,
+      strategy,
+      pnl: Number((pnl || 0).toFixed(2)),
+      ccy: 'USD',
+      mfe: Number((Math.abs(mfe) || 0).toFixed(2)),
+      mae: Number((Math.abs(mae) || 0).toFixed(2)),
     }
-  }).filter(r=>r.date)
+  }).filter(r => r.date)
 }
 
 /* ===== Démo 90 jours (Darwinex + Axi Select) ===== */
@@ -218,8 +219,8 @@ function GuidePanel({ lang }){
   return (
     <>
       <button className="btn ghost" onClick={()=>setOpen(true)}>
-        {(dict[lang]?.actions?.help) || I18N_DEFAULTS.actions.help}
-      </button>
+  {(dict[lang]?.actions?.Help) || I18N_DEFAULTS.actions.Help}
+</button>
       <Modal open={open} onClose={()=>setOpen(false)} title={data?.title||'Aide & Guide'}>
         <div style={{color:'var(--text)',fontSize:12,lineHeight:1.6}}>
           {data?.intro && <p>{data.intro}</p>}
@@ -1106,30 +1107,37 @@ export default function App(){
 
   // --- Langue (avec fallback) ---
   const [lang, setLang] = React.useState('fr')
-  const t = React.useMemo(() => deepMerge(I18N_DEFAULTS, dict[lang] || {}), [lang])
+  const t = React.useMemo(
+    () => deepMerge(I18N_DEFAULTS, dict[lang] || {}),
+    [lang]
+  )
 
   // --- Devise d’affichage ---
-  const [displayCcy,setDisplayCcy]=React.useState('USD')
+  const [displayCcy, setDisplayCcy] = React.useState('USD')
 
   // --- FX (cache + fallback) ---
-  const fallback={
+  const fallback = {
     USD:{USD:1,EUR:0.93,CHF:0.88},
     EUR:{USD:1/0.93,EUR:1,CHF:0.88/0.93},
     CHF:{USD:1/0.88,EUR:0.93/0.88,CHF:1}
   }
-  const [rates,setRates]=React.useState(null)
+
+  const [rates, setRates] = React.useState(null)
+
   React.useEffect(()=>{
-    const key='fx_cache_v1', now=Date.now()
+    const key='fx_cache_v1'
+    const now=Date.now()
     try{
       const cached=localStorage.getItem(key)
       if(cached){
         const {at,data}=JSON.parse(cached)
-        if(now-at<24*3600*1000){
+        if(now-at < 24*3600*1000){
           setRates(data)
           return
         }
       }
     }catch{}
+
     fetch('https://api.exchangerate.host/latest?base=USD&symbols=EUR,CHF')
       .then(r=>r.json())
       .then(j=>{
@@ -1143,133 +1151,155 @@ export default function App(){
       })
       .catch(()=>{})
   },[])
-  const convert=(val,from='USD',to=displayCcy)=>{
-    if(val==null) return 0
-    if(from===to) return Number(Number(val).toFixed(2))
-    const tab=rates||fallback
-    const r=(tab[from]&&tab[from][to])?tab[from][to]:1
-    return Number((Number(val)*r).toFixed(2))
+
+  const convert = (val, from='USD', to=displayCcy) => {
+    if (val == null) return 0
+    if (from === to) return Number(Number(val).toFixed(2))
+    const tab = rates || fallback
+    const r = (tab[from] && tab[from][to]) ? tab[from][to] : 1
+    return Number((Number(val) * r).toFixed(2))
   }
-  const fmt=(v,ccy=displayCcy)=>{
-    try{
-      return new Intl.NumberFormat(undefined,{
+
+  const fmt = (v, ccy=displayCcy) => {
+    try {
+      return new Intl.NumberFormat(undefined, {
         style:'currency',
         currency:ccy,
         minimumFractionDigits:2,
         maximumFractionDigits:2
-      }).format(v??0)
-    }catch{
-      return `${(v??0).toFixed(2)} ${ccy}`
+      }).format(v ?? 0)
+    } catch {
+      // fallback simple string
+      return `${(v ?? 0).toFixed(2)} ${ccy}`
     }
   }
 
-  // --- Données trades ---
-  const demo=React.useMemo(()=>genDemoTrades(),[])
-  const [userTrades,setUserTrades]=React.useState([])
-  const tradesAll=React.useMemo(()=>demo.concat(userTrades),[demo,userTrades])
+  // --- Données trades (démo + imports utilisateur) ---
+  const demo = React.useMemo(() => genDemoTrades(), [])
+  const [userTrades, setUserTrades] = React.useState([])
+  const tradesAll = React.useMemo(
+    () => demo.concat(userTrades),
+    [demo, userTrades]
+  )
 
   // --- Capital & flux ---
-  const CAPITAL_INITIAL_USD=100000
-  const [flows,setFlows]=React.useState(()=>{
-    try{
-      const raw=localStorage.getItem('zpv_flows')
-      return raw?JSON.parse(raw):[]
-    }catch{return[]}
+  const CAPITAL_INITIAL_USD = 100000
+
+  const [flows, setFlows] = React.useState(() => {
+    try {
+      const raw = localStorage.getItem('zpv_flows')
+      return raw ? JSON.parse(raw) : []
+    } catch { return [] }
   })
-  React.useEffect(()=>{
-    try{localStorage.setItem('zpv_flows',JSON.stringify(flows))}catch{}
-  },[flows])
-  const [tiers,setTiers]=React.useState(()=>{
-    try{
-      const raw=localStorage.getItem('zpv_tiers')
-      return raw?JSON.parse(raw):[]
-    }catch{return[]}
+  React.useEffect(() => {
+    try { localStorage.setItem('zpv_flows', JSON.stringify(flows)) } catch {}
+  }, [flows])
+
+  const [tiers, setTiers] = React.useState(() => {
+    try {
+      const raw = localStorage.getItem('zpv_tiers')
+      return raw ? JSON.parse(raw) : []
+    } catch { return [] }
   })
-  React.useEffect(()=>{
-    try{localStorage.setItem('zpv_tiers',JSON.stringify(tiers))}catch{}
-  },[tiers])
+  React.useEffect(() => {
+    try { localStorage.setItem('zpv_tiers', JSON.stringify(tiers)) } catch {}
+  }, [tiers])
 
   // --- Filtres ---
-  const [asset,setAsset]=React.useState('All')
-  const [broker,setBroker]=React.useState('All')
-  const [strategy,setStrategy]=React.useState('All')
-  const [dateFrom,setDateFrom]=React.useState('')
-  const [dateTo,setDateTo]=React.useState('')
-  const reset=()=>{
-    setAsset('All');
-    setBroker('All');
-    setStrategy('All');
-    setDateFrom('');
-    setDateTo('');
+  const [asset,setAsset] = React.useState('All')
+  const [broker,setBroker] = React.useState('All')
+  const [strategy,setStrategy] = React.useState('All')
+  const [dateFrom,setDateFrom] = React.useState('')
+  const [dateTo,setDateTo] = React.useState('')
+
+  const reset = () => {
+    setAsset('All')
+    setBroker('All')
+    setStrategy('All')
+    setDateFrom('')
+    setDateTo('')
   }
 
-  const assets=React.useMemo(
-    ()=>Array.from(new Set(tradesAll.map(t=>t.asset))),
+  const assets = React.useMemo(
+    () => Array.from(new Set(tradesAll.map(t => t.asset))),
     [tradesAll]
   )
-  const brokers=React.useMemo(
-    ()=>Array.from(new Set(tradesAll.map(t=>t.broker))),
+  const brokers = React.useMemo(
+    () => Array.from(new Set(tradesAll.map(t => t.broker))),
     [tradesAll]
   )
-  const strategies=React.useMemo(
-    ()=>Array.from(new Set(tradesAll.map(t=>t.strategy))),
+  const strategies = React.useMemo(
+    () => Array.from(new Set(tradesAll.map(t => t.strategy))),
     [tradesAll]
   )
 
-  const filtered=React.useMemo(()=>tradesAll.filter(t=>{
-    if(asset!=='All' && t.asset!==asset) return false
-    if(broker!=='All' && t.broker!==broker) return false
-    if(strategy!=='All' && t.strategy!==strategy) return false
-    if(dateFrom && t.date<dateFrom) return false
-    if(dateTo && t.date>dateTo) return false
+  const filtered = React.useMemo(() => tradesAll.filter(t => {
+    if (asset !== 'All' && t.asset !== asset) return false
+    if (broker !== 'All' && t.broker !== broker) return false
+    if (strategy !== 'All' && t.strategy !== strategy) return false
+    if (dateFrom && t.date < dateFrom) return false
+    if (dateTo && t.date > dateTo) return false
     return true
-  }),[tradesAll,asset,broker,strategy,dateFrom,dateTo])
+  }), [tradesAll, asset, broker, strategy, dateFrom, dateTo])
 
-  // --- KPI / Cashflows ---
+  // --- Cashflows selon période sélectionnée ---
   const cashflowsAll = flows
-  const cashflowsInRange = React.useMemo(()=> cashflowsAll.filter(c=>(
-    (!dateFrom||c.date>=dateFrom)&&(!dateTo||c.date<=dateTo)
-  )), [cashflowsAll,dateFrom,dateTo])
-  const capitalInitialDisp=React.useMemo(
-    ()=>convert(CAPITAL_INITIAL_USD,'USD',displayCcy),
-    [displayCcy,rates]
-  )
-  const cashFlowTotal=React.useMemo(
-    ()=>sum(cashflowsInRange.map(c=>convert(c.amount,c.ccy||'USD',displayCcy))),
-    [cashflowsInRange,displayCcy,rates]
-  )
-  const pnlFiltered=React.useMemo(
-    ()=>sum(filtered.map(t=>convert(t.pnl,t.ccy||'USD',displayCcy))),
-    [filtered,displayCcy,rates]
-  )
-  const capitalBase=capitalInitialDisp+cashFlowTotal
-  const capitalGlobal=capitalBase+pnlFiltered
-  const returnPct = React.useMemo(
-    ()=>(capitalBase > 0 ? (pnlFiltered / capitalBase) * 100 : 0),
-    [capitalBase,pnlFiltered]
+  const cashflowsInRange = React.useMemo(() => cashflowsAll.filter(c => (
+    (!dateFrom || c.date >= dateFrom) && (!dateTo || c.date <= dateTo)
+  )), [cashflowsAll, dateFrom, dateTo])
+
+  // --- KPI Capital / PnL / DD ---
+  const capitalInitialDisp = React.useMemo(
+    () => convert(CAPITAL_INITIAL_USD,'USD',displayCcy),
+    [displayCcy, rates]
   )
 
-  // --- DD global (pour KPI) ---
-  const byDate=React.useMemo(()=>{
-    const m=new Map()
-    filtered.forEach(t=>{
-      const v=convert(t.pnl,t.ccy||'USD',displayCcy)
-      m.set(t.date,(m.get(t.date)||0)+v)
+  const cashFlowTotal = React.useMemo(
+    () => cashflowsInRange.reduce((acc, c) =>
+      acc + convert(c.amount, c.ccy || 'USD', displayCcy)
+    , 0),
+    [cashflowsInRange, displayCcy, rates]
+  )
+
+  const pnlFiltered = React.useMemo(
+    () => filtered.reduce((acc, t) =>
+      acc + convert(t.pnl, t.ccy || 'USD', displayCcy)
+    , 0),
+    [filtered, displayCcy, rates]
+  )
+
+  const capitalBase   = capitalInitialDisp + cashFlowTotal
+  const capitalGlobal = capitalBase + pnlFiltered
+
+  const returnPct = React.useMemo(
+    () => (capitalBase > 0 ? (pnlFiltered / capitalBase) * 100 : 0),
+    [capitalBase, pnlFiltered]
+  )
+
+  // Drawdown
+  const byDate = React.useMemo(() => {
+    const m = new Map()
+    filtered.forEach(t => {
+      const v = convert(t.pnl, t.ccy || 'USD', displayCcy)
+      m.set(t.date, (m.get(t.date) || 0) + v)
     })
     return [...m.entries()]
-      .map(([date,pnl])=>({date,pnl}))
-      .sort((a,b)=>a.date.localeCompare(b.date))
-  },[filtered,displayCcy,rates])
-  let eq=capitalInitialDisp, peak=eq, maxDrop=0
-  byDate.forEach(p=>{
-    eq+=p.pnl
-    peak=Math.max(peak,eq)
-    maxDrop=Math.max(maxDrop,peak-eq)
-  })
-  const maxDDAbs=maxDrop
-  const maxDDPct= peak>0 ? (maxDrop/peak)*100 : 0
+      .map(([date,pnl]) => ({ date, pnl }))
+      .sort((a,b) => a.date.localeCompare(b.date))
+  }, [filtered, displayCcy, rates])
 
-  // --- Capital tiers total ---
+  let eq = capitalInitialDisp
+  let peak = eq
+  let maxDrop = 0
+  byDate.forEach(p => {
+    eq += p.pnl
+    peak = Math.max(peak, eq)
+    maxDrop = Math.max(maxDrop, peak - eq)
+  })
+  const maxDDAbs = maxDrop
+  const maxDDPct = peak > 0 ? (maxDrop / peak) * 100 : 0
+
+  // --- Capital Tiers total ---
   const tiersTotal = React.useMemo(
     () => tiers.reduce((s, r) =>
       s + convert(Number(r.amount) || 0, r.ccy || 'USD', displayCcy)
@@ -1277,29 +1307,37 @@ export default function App(){
     [tiers, displayCcy, rates]
   )
 
-  // --- UI state ---
-  const [openFlow,setOpenFlow]=React.useState(false)
-  const [openTiers,setOpenTiers]=React.useState(false)
-  const [openRecap,setOpenRecap]=React.useState(false)
-  const [openAbout, setOpenAbout] = React.useState(false)
+  // --- États pour les modales ---
+  const [openFlow,setOpenFlow] = React.useState(false)
+  const [openTiers,setOpenTiers] = React.useState(false)
+  const [openRecap,setOpenRecap] = React.useState(false)
+  const [openAbout,setOpenAbout] = React.useState(false)
 
-  const [subtitle,setSubtitle]=React.useState(()=>{
-    try{
-      return localStorage.getItem('zpv_subtitle')||t.subtitle_default
-    }catch{
+  // --- Sous-titre editable ---
+  const [subtitle,setSubtitle] = React.useState(() => {
+    try {
+      return localStorage.getItem('zpv_subtitle') || t.subtitle_default
+    } catch {
       return t.subtitle_default
     }
   })
-  const [editSub,setEditSub]=React.useState(false)
-  React.useEffect(()=>{
-    try{
-      if(!editSub){
-        localStorage.setItem('zpv_subtitle',subtitle)
-      }
-    }catch{}
-  },[subtitle,editSub])
+  const [editSub,setEditSub] = React.useState(false)
 
-  /* === RENDER === */
+  React.useEffect(() => {
+    try {
+      if (!editSub) {
+        localStorage.setItem('zpv_subtitle', subtitle)
+      }
+    } catch {}
+  }, [subtitle, editSub, t])
+
+  // --- noData (⚠ c'est ICI et uniquement ici) ---
+  const noData = filtered.length === 0
+
+
+  // ============================
+  // RENDER
+  // ============================
   return (
     <div className="wrap">
       {view === 'home' ? (
@@ -1325,270 +1363,302 @@ export default function App(){
             </div>
           </div>
 
-// juste avant le JSX du view === 'control'
+          {view === 'control' && (
+            <div className="control-page">
 
-const noData = filtered.length === 0;
-          
-         {view === 'control' && (
-  <>
-   
-    <div className="control-page">
-      {/* Bandeau haut : Titre + sous-titre + actions principales */}
-      <div className="card">
-        <div className="block-head">
-          <div>
-            <h1 className="brand" style={{fontSize:28, margin:0}}>{t.brand}</h1>
-            {!editSub ? (
-              <p className="subtitle cap" style={{marginTop:6}}>
-                {subtitle}
-                <button className="edit-pencil" onClick={()=>setEditSub(true)}>✏️</button>
-              </p>
-            ) : (
-              <div style={{display:'flex',gap:8,alignItems:'center',marginTop:6}}>
-                <input className="sel" value={subtitle} onChange={e=>setSubtitle(e.target.value)} />
-                <button className="btn sm" onClick={()=>setEditSub(false)}>OK</button>
+              {/* Bandeau haut : Titre + sous-titre + actions principales */}
+              <div className="card">
+                <div className="block-head">
+                  <div>
+                    <h1 className="brand" style={{fontSize:28, margin:0}}>{t.brand}</h1>
+                    {!editSub ? (
+                      <p className="subtitle cap" style={{marginTop:6}}>
+                        {subtitle}
+                        <button className="edit-pencil" onClick={()=>setEditSub(true)}>✏️</button>
+                      </p>
+                    ) : (
+                      <div style={{display:'flex',gap:8,alignItems:'center',marginTop:6}}>
+                        <input className="sel" value={subtitle} onChange={e=>setSubtitle(e.target.value)} />
+                        <button className="btn sm" onClick={()=>setEditSub(false)}>OK</button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="block-tools" style={{flexWrap:'wrap', justifyContent:'flex-end'}}>
+                    <label className="btn">
+                      {t.actions?.Import_csv || I18N_DEFAULTS.actions.Import_csv}
+                      <input
+                        type="file"
+                        accept=".csv"
+                        style={{position:'absolute', inset:0, opacity:0, cursor:'pointer'}}
+                        onChange={e=>{
+                          const f=e.target.files?.[0]; if(!f) return;
+                          const fr=new FileReader();
+                          fr.onload=()=>{
+                            const rows=parseCSV(String(fr.result));
+                            const mapped=mapMT5Rows(rows);
+                            if(!mapped.length){
+                              alert('CSV non reconnu. (Time/Symbol/Profit requis)');
+                              return
+                            }
+                            setUserTrades(prev=>prev.concat(mapped));
+                          };
+                          fr.readAsText(f);
+                        }}
+                      />
+                    </label>
+
+                    <button className="btn" onClick={()=>setOpenFlow(true)}>
+                      {t.actions?.Add_Flow || I18N_DEFAULTS.actions.Add_Flow}
+                    </button>
+                    <button className="btn" onClick={()=>setOpenTiers(true)}>
+                      {t.actions?.Third_Capital || I18N_DEFAULTS.actions.Third_Capital}
+                    </button>
+                    <button className="btn ghost" onClick={()=>setOpenRecap(true)}>
+                      {t.actions?.Recap || I18N_DEFAULTS.actions.Recap}
+                    </button>
+                    <GuidePanel lang={lang}/>
+                    <button className="btn ghost" onClick={reset}>
+                      {t.actions?.Reset || I18N_DEFAULTS.actions.Reset}
+                    </button>
+                    <button className="btn ghost" onClick={()=>setOpenAbout(true)}>
+                      {t.actions?.About || I18N_DEFAULTS.actions.About}
+                    </button>
+
+                    {/* Devise / Langue */}
+                    <div className="kpi-title cap" style={{marginLeft:10}}>Devise</div>
+                    <select className="sel" style={{width:110}} value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)}>
+                      {['USD','EUR','CHF'].map(c=> <option key={c}>{c}</option>)}
+                    </select>
+
+                    <div className="kpi-title cap" style={{marginLeft:10}}>Langue</div>
+                    <select className="sel" style={{width:150}} value={lang} onChange={e=>setLang(e.target.value)}>
+                      {LOCALES.map(l=> <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Formulaires inline */}
+                <FlowModal
+                  openHook={[openFlow,setOpenFlow]}
+                  onSave={row=>setFlows(p=>p.concat([row]))}
+                  ccy={displayCcy}
+                  inline
+                />
+                <CapitalTiersModal
+                  openHook={[openTiers,setOpenTiers]}
+                  onAdd={row=>setTiers(p=>p.concat([row]))}
+                  displayCcy={displayCcy}
+                  inline
+                />
+                <CashflowsModal
+                  openHook={[openRecap,setOpenRecap]}
+                  rows={cashflowsAll}
+                  inline
+                />
+                <AboutModal
+                  openHook={[openAbout, setOpenAbout]}
+                />
               </div>
-            )}
-          </div>
 
-          <div className="block-tools" style={{flexWrap:'wrap', justifyContent:'flex-end'}}>
-            <label className="btn">
-              {t.actions.import_csv}
-              <input
-                type="file"
-                accept=".csv"
-                style={{position:'absolute', inset:0, opacity:0, cursor:'pointer'}}
-                onChange={e=>{
-                  const f=e.target.files?.[0]; if(!f) return;
-                  const fr=new FileReader();
-                  fr.onload=()=>{
-                    const rows=parseCSV(String(fr.result));
-                    const mapped=mapMT5Rows(rows);
-                    if(!mapped.length){
-                      alert('CSV non reconnu. (Time/Symbol/Profit requis)');
-                      return
-                    }
-                    setUserTrades(prev=>prev.concat(mapped));
-                  };
-                  fr.readAsText(f);
-                }}
-              />
-            </label>
-
-            <button className="btn" onClick={()=>setOpenFlow(true)}>{t.actions.add_flow}</button>
-            <button className="btn" onClick={()=>setOpenTiers(true)}>{t.actions.third_capital}</button>
-            <button className="btn ghost" onClick={()=>setOpenRecap(true)}>{t.actions.recap}</button>
-            <GuidePanel lang={lang}/>
-            <button className="btn ghost" onClick={reset}>{t.actions.reset}</button>
-            <button className="btn ghost" onClick={()=>setOpenAbout(true)}>À propos / Changelog</button>
-
-            {/* Devise / Langue */}
-            <div className="kpi-title cap" style={{marginLeft:10}}>Devise</div>
-            <select className="sel" style={{width:110}} value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)}>
-              {['USD','EUR','CHF'].map(c=> <option key={c}>{c}</option>)}
-            </select>
-
-            <div className="kpi-title cap" style={{marginLeft:10}}>Langue</div>
-            <select className="sel" style={{width:150}} value={lang} onChange={e=>setLang(e.target.value)}>
-              {LOCALES.map(l=> <option key={l} value={l}>{l}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Formulaires inline */}
-        <FlowModal openHook={[openFlow,setOpenFlow]} onSave={row=>setFlows(p=>p.concat([row]))} ccy={displayCcy} inline />
-        <CapitalTiersModal openHook={[openTiers,setOpenTiers]} onAdd={row=>setTiers(p=>p.concat([row]))} displayCcy={displayCcy} inline />
-        <CashflowsModal openHook={[openRecap,setOpenRecap]} rows={cashflowsAll} inline />
-        <AboutModal openHook={[openAbout, setOpenAbout]} />
-      </div>
-
-      {/* Filtres */}
-      <div className="control-section">
-        <div className="card">
-          <div className="block-head">
-            <div className="block-title cap">Filtres</div>
-            <div className="block-tools">
-              <HelpTooltip text="Filtre les données visibles (actif, broker, stratégie, période)." />
-            </div>
-          </div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:10}}>
-            <div>
-              <div className="kpi-title cap">Actif</div>
-              <select className="sel" value={asset} onChange={e=>setAsset(e.target.value)}>
-                <option>{t.filters.all}</option>
-                {assets.map(a=> <option key={a}>{a}</option>)}
-              </select>
-            </div>
-            <div>
-              <div className="kpi-title cap">Broker</div>
-              <select className="sel" value={broker} onChange={e=>setBroker(e.target.value)}>
-                <option>{t.filters.all}</option>
-                {brokers.map(a=> <option key={a}>{a}</option>)}
-              </select>
-            </div>
-            <div>
-              <div className="kpi-title cap">Stratégie</div>
-              <select className="sel" value={strategy} onChange={e=>setStrategy(e.target.value)}>
-                <option>{t.filters.all}</option>
-                {strategies.map(a=> <option key={a}>{a}</option>)}
-              </select>
-            </div>
-            <div>
-              <div className="kpi-title cap">Du</div>
-              <input className="sel" type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/>
-            </div>
-            <div>
-              <div className="kpi-title cap">Au</div>
-              <input className="sel" type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/>
-            </div>
-            <div/>
-            <div/>
-          </div>
-        </div>
-      </div>
-
-      {/* KPIs principaux */}
-      <div className="control-section">
-        <div className="block-head" style={{marginBottom:6}}>
-          <div className="block-title cap">Indicateurs Principaux</div>
-          <div className="block-tools">
-            <HelpTooltip text="Vue d’ensemble: capital, flux, PnL filtré, drawdown, jours actifs, capital tiers, nombre de trades."/>
-          </div>
-        </div>
-        <div className="kpi-grid">
-          <div className="card halo-neutral">
-            <div className="kpi-title cap">Capital Initial</div>
-            <div className="val val-main">{fmt(capitalInitialDisp)}</div>
-          </div>
-          <div className="card">
-            <div className="kpi-title cap">Cashflow</div>
-            <div className={`val ${cashFlowTotal<0?'neg':'pos'}`}>{fmt(cashFlowTotal)}</div>
-          </div>
-          <div className="card">
-            <div className="kpi-title cap">PnL (Filtré)</div>
-            <div className={`val ${pnlFiltered<0?'neg':'pos'}`}>{fmt(pnlFiltered)}</div>
-          </div>
-          <div className="card">
-            <div className="kpi-title cap">Capital Total</div>
-            <div className={`val ${pnlFiltered<0?'neg':'pos'}`}>{fmt(capitalGlobal)}</div>
-          </div>
-          <div className="card">
-            <div className="kpi-title cap">Rentabilité</div>
-            <div className={`val ${returnPct<0?'neg':'pos'}`}>{returnPct.toFixed(2)}%</div>
-          </div>
-          <div className="card">
-            <div className="kpi-title cap">Max DD %</div>
-            <div className="val val-main">{maxDDPct.toFixed(2)}%</div>
-          </div>
-          <div className="card">
-            <div className="kpi-title cap">Max DD (Abs.)</div>
-            <div className="val val-main">{fmt(maxDDAbs)}</div>
-          </div>
-          <div className="card">
-            <div className="kpi-title cap">Jours Actifs</div>
-            <div className="val val-main">{new Set(filtered.map(t => t.date)).size}</div>
-          </div>
-          <div className="card">
-            <div className="kpi-title cap">Capital Tiers</div>
-            <div className="val val-main">{fmt(tiersTotal)}</div>
-          </div>
-          <div className="card">
-            <div className="kpi-title cap">Trades Total</div>
-            <div className="val val-main">{filtered.length}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Grille principale */}
-      <div className="control-section control-grid">
-        {/* Equité (col-8) */}
-        <div className="col-8">
-          <EquityBlock
-            rows={filtered}
-            cashflows={cashflowsAll}
-            initial={CAPITAL_INITIAL_USD}
-            convert={convert}
-            ccy={displayCcy}
-          />
-        </div>
-
-        {/* Win rate + Ratios (col-4) */}
-        <div className="col-4">
-          <div className="grid-2">
-            <div className="card">
-              <div className="block-head">
-                <div className="block-title cap">Taux de Réussite</div>
-                <div className="block-tools">
-                  <HelpTooltip text="Part des trades gagnants vs perdants sur la période filtrée." />
+              {/* Filtres */}
+              <div className="control-section">
+                <div className="card">
+                  <div className="block-head">
+                    <div className="block-title cap">Filtres</div>
+                    <div className="block-tools">
+                      <HelpTooltip text="Filtre les données visibles (Actif, Broker, Stratégie, Période)." />
+                    </div>
+                  </div>
+                  <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:10}}>
+                    <div>
+                      <div className="kpi-title cap">Actif</div>
+                      <select className="sel" value={asset} onChange={e=>setAsset(e.target.value)}>
+                        <option>All</option>
+                        {assets.map(a=> <option key={a}>{a}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <div className="kpi-title cap">Broker</div>
+                      <select className="sel" value={broker} onChange={e=>setBroker(e.target.value)}>
+                        <option>All</option>
+                        {brokers.map(a=> <option key={a}>{a}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <div className="kpi-title cap">Stratégie</div>
+                      <select className="sel" value={strategy} onChange={e=>setStrategy(e.target.value)}>
+                        <option>All</option>
+                        {strategies.map(a=> <option key={a}>{a}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <div className="kpi-title cap">Du</div>
+                      <input className="sel" type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/>
+                    </div>
+                    <div>
+                      <div className="kpi-title cap">Au</div>
+                      <input className="sel" type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/>
+                    </div>
+                    <div/>
+                    <div/>
+                  </div>
                 </div>
               </div>
-              <WinRateBlock rows={filtered}/>
-            </div>
 
-            <div className="card">
-              <div className="block-head">
-                <div className="block-title cap">Ratios (Pro)</div>
-                <div className="block-tools">
-                  <HelpTooltip text="Expectancy, Sharpe, Sortino, Risk/Reward, Kelly (indicatif), Risque de Ruine (~). Le badge couleur résume la qualité du risque." />
+              {/* KPIs principaux */}
+              <div className="control-section">
+                <div className="block-head" style={{marginBottom:6}}>
+                  <div className="block-title cap">Indicateurs Principaux</div>
+                  <div className="block-tools">
+                    <HelpTooltip text="Vue d’ensemble: Capital, Flux, PnL Filtré, Drawdown, Jours Actifs, Capital Tiers, Nombre de Trades."/>
+                  </div>
+                </div>
+
+                <div className="kpi-grid">
+                  <div className="card halo-neutral">
+                    <div className="kpi-title cap">Capital Initial</div>
+                    <div className="val val-main">{fmt(capitalInitialDisp)}</div>
+                  </div>
+                  <div className="card">
+                    <div className="kpi-title cap">Cashflow</div>
+                    <div className={`val ${cashFlowTotal<0?'neg':'pos'}`}>{fmt(cashFlowTotal)}</div>
+                  </div>
+                  <div className="card">
+                    <div className="kpi-title cap">PnL (Filtré)</div>
+                    <div className={`val ${pnlFiltered<0?'neg':'pos'}`}>{fmt(pnlFiltered)}</div>
+                  </div>
+                  <div className="card">
+                    <div className="kpi-title cap">Capital Total</div>
+                    <div className={`val ${pnlFiltered<0?'neg':'pos'}`}>{fmt(capitalGlobal)}</div>
+                  </div>
+                  <div className="card">
+                    <div className="kpi-title cap">Rentabilité</div>
+                    <div className={`val ${returnPct<0?'neg':'pos'}`}>{returnPct.toFixed(2)}%</div>
+                  </div>
+                  <div className="card">
+                    <div className="kpi-title cap">Max DD %</div>
+                    <div className="val val-main">{maxDDPct.toFixed(2)}%</div>
+                  </div>
+                  <div className="card">
+                    <div className="kpi-title cap">Max DD (Abs.)</div>
+                    <div className="val val-main">{fmt(maxDDAbs)}</div>
+                  </div>
+                  <div className="card">
+                    <div className="kpi-title cap">Jours Actifs</div>
+                    <div className="val val-main">{new Set(filtered.map(t => t.date)).size}</div>
+                  </div>
+                  <div className="card">
+                    <div className="kpi-title cap">Capital Tiers</div>
+                    <div className="val val-main">{fmt(tiersTotal)}</div>
+                  </div>
+                  <div className="card">
+                    <div className="kpi-title cap">Trades Total</div>
+                    <div className="val val-main">{filtered.length}</div>
+                  </div>
                 </div>
               </div>
-              <RatiosBlock rows={filtered} convert={convert} ccy={displayCcy}/>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Corrélation & Mapping */}
-      <div className="control-section control-grid">
-        <div className="col-6">
-          <div className="card">
-            <div className="block-head">
-              <div className="block-title cap">Corrélation Entre Stratégies</div>
-              <div className="block-tools">
-                <HelpTooltip text="Mesure de proximité entre stratégies. Faible corrélation = meilleure diversification." />
+              {/* Grille principale */}
+              <div className="control-section control-grid">
+                {/* Equité (col-8) */}
+                <div className="col-8">
+                  <EquityBlock
+                    rows={filtered}
+                    cashflows={cashflowsAll}
+                    initial={CAPITAL_INITIAL_USD}
+                    convert={convert}
+                    ccy={displayCcy}
+                  />
+                </div>
+
+                {/* Win rate + Ratios (col-4) */}
+                <div className="col-4">
+                  <div className="grid-2">
+                    <div className="card">
+                      <div className="block-head">
+                        <div className="block-title cap">Taux de Réussite</div>
+                        <div className="block-tools">
+                          <HelpTooltip text="Part des trades gagnants vs perdants sur la période filtrée." />
+                        </div>
+                      </div>
+                      <WinRateBlock rows={filtered}/>
+                    </div>
+
+                    <div className="card">
+                      <div className="block-head">
+                        <div className="block-title cap">Ratios (Pro)</div>
+                        <div className="block-tools">
+                          <HelpTooltip text="Expectancy, Sharpe, Sortino, Risk/Reward, Kelly (indicatif), Risque de Ruine (~). Le badge couleur résume la qualité du risque." />
+                        </div>
+                      </div>
+                      <RatiosBlock rows={filtered} convert={convert} ccy={displayCcy}/>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <CorrelationBlock rows={filtered} convert={convert} ccy={displayCcy}/>
-          </div>
-        </div>
-        <div className="col-6">
-          <div className="card">
-            <div className="block-head">
-              <div className="block-title cap">Mapping Stratégie × Broker</div>
-              <div className="block-tools">
-                <HelpTooltip text="Performance agrégée par couple Stratégie/Broker : PnL, nombre de trades, expectancy." />
+
+              {/* Corrélation & Mapping */}
+              <div className="control-section control-grid">
+                <div className="col-6">
+                  <div className="card">
+                    <div className="block-head">
+                      <div className="block-title cap">Corrélation Entre Stratégies</div>
+                      <div className="block-tools">
+                        <HelpTooltip text="Mesure de proximité entre stratégies. Faible corrélation = meilleure diversification." />
+                      </div>
+                    </div>
+                    <CorrelationBlock rows={filtered} convert={convert} ccy={displayCcy}/>
+                  </div>
+                </div>
+                <div className="col-6">
+                  <div className="card">
+                    <div className="block-head">
+                      <div className="block-title cap">Mapping Stratégie × Broker</div>
+                      <div className="block-tools">
+                        <HelpTooltip text="Performance agrégée par couple Stratégie/Broker : PnL, Nombre de Trades, Expectancy." />
+                      </div>
+                    </div>
+                    <MappingTable rows={filtered} convert={convert} ccy={displayCcy}/>
+                  </div>
+                </div>
               </div>
-            </div>
-            <MappingTable rows={filtered} convert={convert} ccy={displayCcy}/>
-          </div>
-        </div>
-      </div>
 
-      {/* Calendrier mensuel */}
-      <div className="control-section">
-        <CalendarMonthly
-          rows={filtered}
-          convert={convert}
-          ccy={displayCcy}
-          startEquity={convert(CAPITAL_INITIAL_USD,'USD',displayCcy)}
-        />
-      </div>
+              {/* Calendrier mensuel */}
+              <div className="control-section">
+                <CalendarMonthly
+                  rows={filtered}
+                  convert={convert}
+                  ccy={displayCcy}
+                  startEquity={convert(CAPITAL_INITIAL_USD,'USD',displayCcy)}
+                />
+              </div>
 
-      {/* Activité */}
-      <div className="control-section">
-        <div className="card">
-          <div className="block-head">
-            <div className="block-title cap">Activité</div>
-            <div className="block-tools">
-              <HelpTooltip text="Répartition des trades gagnants/perdants par heure, par jour de semaine, par mois." />
+              {/* Activité */}
+              <div className="control-section">
+                <div className="card">
+                  <div className="block-head">
+                    <div className="block-title cap">Activité</div>
+                    <div className="block-tools">
+                      <HelpTooltip text="Répartition des trades gagnants/perdants par heure, par jour de semaine, par mois." />
+                    </div>
+                  </div>
+                  <ActivityBlocks rows={filtered}/>
+                </div>
+              </div>
+
+              {/* Message si pas de données (optionnel) */}
+              {noData && (
+                <div className="card halo-warn" style={{marginTop:20, textAlign:'center'}}>
+                  <div className="kpi-title cap">Aucune Donnée</div>
+                  <div style={{fontSize:13, opacity:.8, marginTop:6}}>
+                    Ajuste les filtres ou importe un CSV pour voir les stats.
+                  </div>
+                </div>
+              )}
+
             </div>
-          </div>
-          <ActivityBlocks rows={filtered}/>
-        </div>
-      </div>
-    </div>
-  </>
-)}
+          )}
 
           {view === 'compta' && (
             <div className="page-outer">
@@ -1615,7 +1685,7 @@ const noData = filtered.length === 0;
                     className="kpi-title"
                     style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                   >
-                    <span>Analyse de risque</span>
+                    <span>Analyse de Risque</span>
                     <HelpTooltip text="Seuils, verdicts, et recommandations. (Bientôt)" />
                   </div>
                   <p style={{ marginTop: 8, opacity: .8 }}>À venir…</p>
@@ -1629,5 +1699,5 @@ const noData = filtered.length === 0;
       {/* Footer visible sur toutes les pages */}
       <AppFooter />
     </div>
-  );
+  )
 }
