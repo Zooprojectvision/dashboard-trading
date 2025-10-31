@@ -1325,6 +1325,10 @@ export default function App(){
             </div>
           </div>
 
+// juste avant le JSX du view === 'control'
+
+const noData = filtered.length === 0;
+          
          {view === 'control' && (
   <>
    
