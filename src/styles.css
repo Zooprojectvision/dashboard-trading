@@ -927,3 +927,7 @@ body,
 }
 
 /* points scatter, lignes restent comme défini inline (var(--pink) etc.), ça va sur fond blanc */
+body {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
