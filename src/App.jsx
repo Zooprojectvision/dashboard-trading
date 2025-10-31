@@ -433,11 +433,9 @@ function RatiosBlock({ rows, convert, ccy }){
   <div className={`card ${verdict(sharpe)}`}>
     <div className="grid-3">
       <div className="card halo-neutral tinted">
-        <div className="kpi-title">Expectancy par Trade</div>
-        <div className="val" style={styleNum(expectancy)}>
-          {Number(expectancy).toFixed(2)}
-        </div>
-      </div>
+  <div className="kpi-title">Expectancy par Trade</div>
+  <V v={expectancy} />
+</div>
 
       <div className="card halo-neutral tinted">
         <div className="kpi-title">Sharpe (Ann.)</div>
