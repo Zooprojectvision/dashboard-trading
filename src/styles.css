@@ -912,29 +912,4 @@ body,
   box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
   background-image: none !important;
 }
-/* === THEME CLAIR FORCE DANS .wrap === */
-.wrap {
-  /* fonds */
-  --bg: #ffffff;
-  --panel: #ffffff;
-  --panel-2: #ffffff;
 
-  /* bordures / grilles */
-  --border: #cccccc;
-  --axis: #cccccc;
-
-  /* texte principal */
-  --text: #000000;
-  --axis-text: #000000;
-
-  /* ATTENTION: super important pour les graphiques.
-     Avant var(--white) = blanc pour ligne equity.
-     En clair on veut une ligne foncée visible. */
-  --white: #000000;
-
-  /* Couleurs status (on les garde vives mais lisibles sur blanc) */
-  --green: #00aa55;
-  --pink: #ff006e;
-  --orange: #ff9900;
-  --accent: #0066ff; /* bleu pour les points 'Flux' etc. */
-}
