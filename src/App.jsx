@@ -1700,4 +1700,4 @@ export default function App(){
       <AppFooter />
     </div>
   )
-}
+} // <--- très important : ça ferme la fonction App
