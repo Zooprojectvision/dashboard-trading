@@ -866,4 +866,8 @@ body,
 .wrap .recharts-cartesian-axis-tick-line {
   stroke: var(--axis) !important;
 }
+/* Titres des cartes sur la Home uniquement */
+.home-grid .card .kpi-title span {
+  color: var(--accent) !important; /* bleu ciel défini dans :root (#6aa9ff) */
+}
 
