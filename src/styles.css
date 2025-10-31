@@ -95,11 +95,12 @@ body {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-weight: 500;
-  font-size: 48px;      /* tu peux garder 32 ou remettre 48 si tu préfères grand */
+  font-size: 48px;      /* monte à 48px si tu veux plus massif */
   letter-spacing: -0.03em;
   line-height: 1.2;
-  color: var(--accent) !important; /* <-- BLEU CIEL forcé */
   margin: 0;
+
+  color: var(--accent) !important; /* BLEU CIEL partout */
 }
 
 .subtitle {
@@ -665,14 +666,6 @@ body,
   color: var(--white);
 }
 
-/* Le gros titre principal (brand) */
-.brand {
-  font-size: 32px;      /* avant 48px */
-  line-height: 1.2;
-  font-weight: 500;
-  color: var(--white);
-  letter-spacing: -0.03em;
-}
 /* -------- Info-bulle explicative des ratios -------- */
 .ratio-label {
   display: inline-flex;
@@ -704,27 +697,36 @@ body,
 /* bulle flottante */
 .ratio-tooltip {
   position: absolute;
-  left: 0;
-  top: calc(100% + 6px);
+
+  /* bulle à GAUCHE du ? comme help-bubble */
+  right: 100%;
+  bottom: 50%;
+  transform: translate(-8px, 50%);
+
   min-width: 220px;
   max-width: 260px;
 
-  /* fond propre sombre sans contour */
-  background: var(--panel);
-  border: 0;                 /* <-- plus de bordure */
-  border-radius: 0;          /* <-- plus d'encadré arrondi / effet boîte */
-  box-shadow: none;          /* <-- plus d'effet carte flottante */
+  background: #0f111a;   /* fond sombre opaque */
+  color: #ffffff;        /* texte blanc */
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 
-  /* lisibilité ++ */
-  padding: 8px 10px;
-  font-size: 14px;           /* <-- texte plus grand */
+  padding: 12px 14px;
+  font-size: 15px;
   line-height: 1.5;
-  color: var(--text);
+  font-weight: 400;
 
   z-index: 9999;
   opacity: 0;
   pointer-events: none;
   transition: opacity .12s;
+}
+
+.ratio-label:hover .ratio-tooltip,
+.ratio-help:focus + .ratio-tooltip {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* affiche la bulle au hover du ? */
@@ -874,7 +876,8 @@ body,
 .home-grid .card .kpi-title span {
   color: var(--accent) !important; /* bleu ciel défini dans :root (#6aa9ff) */
 }
-/* Nouveau système d'aide hover */
+
+  /* ===== Nouveau système d'aide ("?" + bulle) ===== */
 
 .help-wrap {
   position: relative;
@@ -883,58 +886,70 @@ body,
   margin-left: 6px;
 }
 
-/* le petit ? rond */
 .help-icon {
   width: 18px;
   height: 18px;
   min-width: 18px;
   min-height: 18px;
-  border: 1px solid var(--border);
   border-radius: 50%;
   font-size: 12px;
   line-height: 1;
-  color: var(--text);
-  background: var(--panel-2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: help;
+
+  /* style du cercle ? */
+  background: var(--panel-2);
+  color: var(--text);
+  border: 0;              /* plus de cadre visible */
+  box-shadow: none;
   opacity: .9;
 }
 
-/* la bulle d'explication */
+/* La bulle d'explication */
 .help-bubble {
   position: absolute;
-  bottom: 100%;
-  left: 0;
-  transform: translateY(-8px);
 
-  /* fond plein opaque */
-  background: #0f111a; /* ou var(--panel) si tu préfères */
-  color: var(--white);
+  /* on place la bulle À GAUCHE du ? */
+  right: 100%;            /* ancrée à gauche du point d'interrogation */
+  bottom: 50%;
+  transform: translate(-8px, 50%); /* petit décalage pour respirer */
 
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
+  max-width: 280px;
+  white-space: normal;
+  word-break: break-word;
 
-  font-size: 14px;
-  line-height: 1.4;
+  /* STYLE VISUEL DEMANDÉ */
+  background: #0f111a;    /* fond opaque sombre */
+  color: #ffffff;         /* texte blanc lisible */
+  border: 0;              /* PAS de bordure = pas de cadre */
+  border-radius: 0;       /* pas d'arrondi "carte" */
+  box-shadow: none;       /* pas d'ombre "card" */
+
+  padding: 12px 14px;     /* + grand, + lisible */
+  font-size: 15px;        /* texte plus grand */
+  line-height: 1.5;
   font-weight: 400;
-  max-width: 260px;
-  white-space: normal;    /* autorise le retour à la ligne */
-  word-break: break-word; /* évite les mots trop longs */
 
-  box-shadow: 0 24px 64px rgba(0,0,0,0.8);
   z-index: 9999;
-
   opacity: 0;
   pointer-events: none;
   transition: opacity .12s;
 }
 
-/* on affiche la bulle au hover */
+/* Affichage au survol */
 .help-wrap:hover .help-bubble {
   opacity: 1;
   pointer-events: auto;
 }
+
+/* On neutralise l'ancien style .help-tooltip si encore présent quelque part */
+.help-tooltip {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--text) !important;
+}
+
 
