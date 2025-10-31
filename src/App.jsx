@@ -1336,16 +1336,15 @@ export default function App(){
 
 
      // ============================
-  // RENDER
-  // ============================
-  return (
-    return (
+// RENDER
+// ============================
+return (
   <div
     className="wrap"
     style={{
-      backgroundColor:'#ffffff',   // fond blanc forcé
-      color:'#000000',              // texte noir forcé
-      minHeight:'100vh',            // prend tout l'écran
+      backgroundColor:'#ffffff',
+      color:'#000000',
+      minHeight:'100vh',
       position:'relative',
       zIndex:1
     }}
@@ -1375,7 +1374,298 @@ export default function App(){
 
         {view === 'control' && (
           <div className="control-page">
-            {/* ...tout le contenu control-page exactement comme tu l'avais (card, filtres, KPIs, EquityBlock, etc.)... */}
+
+            {/* Bandeau haut : Titre + sous-titre + actions principales */}
+            <div className="card">
+              <div className="block-head">
+                <div>
+                  <h1 className="brand" style={{fontSize:28, margin:0}}>{t.brand}</h1>
+                  {!editSub ? (
+                    <p className="subtitle cap" style={{marginTop:6}}>
+                      {subtitle}
+                      <button className="edit-pencil" onClick={()=>setEditSub(true)}>✏️</button>
+                    </p>
+                  ) : (
+                    <div style={{display:'flex',gap:8,alignItems:'center',marginTop:6}}>
+                      <input className="sel" value={subtitle} onChange={e=>setSubtitle(e.target.value)} />
+                      <button className="btn sm" onClick={()=>setEditSub(false)}>OK</button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="block-tools" style={{flexWrap:'wrap', justifyContent:'flex-end'}}>
+                  <label className="btn">
+                    {t.actions?.Import_csv || I18N_DEFAULTS.actions.Import_csv}
+                    <input
+                      type="file"
+                      accept=".csv"
+                      style={{position:'absolute', inset:0, opacity:0, cursor:'pointer'}}
+                      onChange={e=>{
+                        const f=e.target.files?.[0]; if(!f) return;
+                        const fr=new FileReader();
+                        fr.onload=()=>{
+                          const rows=parseCSV(String(fr.result));
+                          const mapped=mapMT5Rows(rows);
+                          if(!mapped.length){
+                            alert('CSV non reconnu. (Time/Symbol/Profit requis)');
+                            return
+                          }
+                          setUserTrades(prev=>prev.concat(mapped));
+                        };
+                        fr.readAsText(f);
+                      }}
+                    />
+                  </label>
+
+                  <button className="btn" onClick={()=>setOpenFlow(true)}>
+                    {t.actions?.Add_Flow || I18N_DEFAULTS.actions.Add_Flow}
+                  </button>
+                  <button className="btn" onClick={()=>setOpenTiers(true)}>
+                    {t.actions?.Third_Capital || I18N_DEFAULTS.actions.Third_Capital}
+                  </button>
+                  <button className="btn ghost" onClick={()=>setOpenRecap(true)}>
+                    {t.actions?.Recap || I18N_DEFAULTS.actions.Recap}
+                  </button>
+                  <GuidePanel lang={lang}/>
+                  <button className="btn ghost" onClick={reset}>
+                    {t.actions?.Reset || I18N_DEFAULTS.actions.Reset}
+                  </button>
+                  <button className="btn ghost" onClick={()=>setOpenAbout(true)}>
+                    {t.actions?.About || I18N_DEFAULTS.actions.About}
+                  </button>
+
+                  {/* Devise / Langue */}
+                  <div className="kpi-title cap" style={{marginLeft:10}}>Devise</div>
+                  <select className="sel" style={{width:110}} value={displayCcy} onChange={e=>setDisplayCcy(e.target.value)}>
+                    {['USD','EUR','CHF'].map(c=> <option key={c}>{c}</option>)}
+                  </select>
+
+                  <div className="kpi-title cap" style={{marginLeft:10}}>Langue</div>
+                  <select className="sel" style={{width:150}} value={lang} onChange={e=>setLang(e.target.value)}>
+                    {LOCALES.map(l=> <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Formulaires inline */}
+              <FlowModal
+                openHook={[openFlow,setOpenFlow]}
+                onSave={row=>setFlows(p=>p.concat([row]))}
+                ccy={displayCcy}
+                inline
+              />
+              <CapitalTiersModal
+                openHook={[openTiers,setOpenTiers]}
+                onAdd={row=>setTiers(p=>p.concat([row]))}
+                displayCcy={displayCcy}
+                inline
+              />
+              <CashflowsModal
+                openHook={[openRecap,setOpenRecap]}
+                rows={cashflowsAll}
+                inline
+              />
+              <AboutModal
+                openHook={[openAbout, setOpenAbout]}
+              />
+            </div>
+
+            {/* Filtres */}
+            <div className="control-section">
+              <div className="card">
+                <div className="block-head">
+                  <div className="block-title cap">Filtres</div>
+                  <div className="block-tools">
+                    <HelpTooltip text="Filtre les données visibles (Actif, Broker, Stratégie, Période)." />
+                  </div>
+                </div>
+                <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:10}}>
+                  <div>
+                    <div className="kpi-title cap">Actif</div>
+                    <select className="sel" value={asset} onChange={e=>setAsset(e.target.value)}>
+                      <option>All</option>
+                      {assets.map(a=> <option key={a}>{a}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div className="kpi-title cap">Broker</div>
+                    <select className="sel" value={broker} onChange={e=>setBroker(e.target.value)}>
+                      <option>All</option>
+                      {brokers.map(a=> <option key={a}>{a}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div className="kpi-title cap">Stratégie</div>
+                    <select className="sel" value={strategy} onChange={e=>setStrategy(e.target.value)}>
+                      <option>All</option>
+                      {strategies.map(a=> <option key={a}>{a}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div className="kpi-title cap">Du</div>
+                    <input className="sel" type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/>
+                  </div>
+                  <div>
+                    <div className="kpi-title cap">Au</div>
+                    <input className="sel" type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{ fontFamily:'inherit', fontSize:14 }}/>
+                  </div>
+                  <div/>
+                  <div/>
+                </div>
+              </div>
+            </div>
+
+            {/* KPIs principaux */}
+            <div className="control-section">
+              <div className="block-head" style={{marginBottom:6}}>
+                <div className="block-title cap">Indicateurs Principaux</div>
+                <div className="block-tools">
+                  <HelpTooltip text="Vue d’ensemble: Capital, Flux, PnL Filtré, Drawdown, Jours Actifs, Capital Tiers, Nombre de Trades."/>
+                </div>
+              </div>
+
+              <div className="kpi-grid">
+                <div className="card halo-neutral">
+                  <div className="kpi-title cap">Capital Initial</div>
+                  <div className="val val-main">{fmt(capitalInitialDisp)}</div>
+                </div>
+                <div className="card">
+                  <div className="kpi-title cap">Cashflow</div>
+                  <div className={`val ${cashFlowTotal<0?'neg':'pos'}`}>{fmt(cashFlowTotal)}</div>
+                </div>
+                <div className="card">
+                  <div className="kpi-title cap">PnL (Filtré)</div>
+                  <div className={`val ${pnlFiltered<0?'neg':'pos'}`}>{fmt(pnlFiltered)}</div>
+                </div>
+                <div className="card">
+                  <div className="kpi-title cap">Capital Total</div>
+                  <div className={`val ${pnlFiltered<0?'neg':'pos'}`}>{fmt(capitalGlobal)}</div>
+                </div>
+                <div className="card">
+                  <div className="kpi-title cap">Rentabilité</div>
+                  <div className={`val ${returnPct<0?'neg':'pos'}`}>{returnPct.toFixed(2)}%</div>
+                </div>
+                <div className="card">
+                  <div className="kpi-title cap">Max DD %</div>
+                  <div className="val val-main">{maxDDPct.toFixed(2)}%</div>
+                </div>
+                <div className="card">
+                  <div className="kpi-title cap">Max DD (Abs.)</div>
+                  <div className="val val-main">{fmt(maxDDAbs)}</div>
+                </div>
+                <div className="card">
+                  <div className="kpi-title cap">Jours Actifs</div>
+                  <div className="val val-main">{new Set(filtered.map(t => t.date)).size}</div>
+                </div>
+                <div className="card">
+                  <div className="kpi-title cap">Capital Tiers</div>
+                  <div className="val val-main">{fmt(tiersTotal)}</div>
+                </div>
+                <div className="card">
+                  <div className="kpi-title cap">Trades Total</div>
+                  <div className="val val-main">{filtered.length}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Grille principale */}
+            <div className="control-section control-grid">
+              {/* Equité (col-8) */}
+              <div className="col-8">
+                <EquityBlock
+                  rows={filtered}
+                  cashflows={cashflowsAll}
+                  initial={CAPITAL_INITIAL_USD}
+                  convert={convert}
+                  ccy={displayCcy}
+                />
+              </div>
+
+              {/* Win rate + Ratios (col-4) */}
+              <div className="col-4">
+                <div className="grid-2">
+                  <div className="card">
+                    <div className="block-head">
+                      <div className="block-title cap">Taux de Réussite</div>
+                      <div className="block-tools">
+                        <HelpTooltip text="Part des trades gagnants vs perdants sur la période filtrée." />
+                      </div>
+                    </div>
+                    <WinRateBlock rows={filtered}/>
+                  </div>
+
+                  <div className="card">
+                    <div className="block-head">
+                      <div className="block-title cap">Ratios (Pro)</div>
+                      <div className="block-tools">
+                        <HelpTooltip text="Expectancy, Sharpe, Sortino, Risk/Reward, Kelly (indicatif), Risque de Ruine (~). Le badge couleur résume la qualité du risque." />
+                      </div>
+                    </div>
+                    <RatiosBlock rows={filtered} convert={convert} ccy={displayCcy}/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Corrélation & Mapping */}
+            <div className="control-section control-grid">
+              <div className="col-6">
+                <div className="card">
+                  <div className="block-head">
+                    <div className="block-title cap">Corrélation Entre Stratégies</div>
+                    <div className="block-tools">
+                      <HelpTooltip text="Mesure de proximité entre stratégies. Faible corrélation = meilleure diversification." />
+                    </div>
+                  </div>
+                  <CorrelationBlock rows={filtered} convert={convert} ccy={displayCcy}/>
+                </div>
+              </div>
+              <div className="col-6">
+                <div className="card">
+                  <div className="block-head">
+                    <div className="block-title cap">Mapping Stratégie × Broker</div>
+                    <div className="block-tools">
+                      <HelpTooltip text="Performance agrégée par couple Stratégie/Broker : PnL, Nombre de Trades, Expectancy." />
+                    </div>
+                  </div>
+                  <MappingTable rows={filtered} convert={convert} ccy={displayCcy}/>
+                </div>
+              </div>
+            </div>
+
+                       {/* Calendrier mensuel */}
+            <div className="control-section">
+              <CalendarMonthly
+                rows={filtered}
+                convert={convert}
+                ccy={displayCcy}
+                startEquity={convert(CAPITAL_INITIAL_USD,'USD',displayCcy)}
+              />
+            </div>
+
+            {/* Activité */}
+            <div className="control-section">
+              <div className="card">
+                <div className="block-head">
+                  <div className="block-title cap">Activité</div>
+                  <div className="block-tools">
+                    <HelpTooltip text="Répartition des trades gagnants/perdants par heure, par jour de semaine, par mois." />
+                  </div>
+                </div>
+
+                <ActivityBlocks rows={filtered}/>
+              </div>
+            </div>
+
+            {/* Message si pas de données */}
+            {noData && (
+              <div className="card halo-warn" style={{marginTop:20, textAlign:'center'}}>
+                <div className="kpi-title cap">Aucune Donnée</div>
+                <div style={{fontSize:13, opacity:.8, marginTop:6}}>
+                  Ajuste les filtres ou importe un CSV pour voir les stats.
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1415,7 +1705,8 @@ export default function App(){
       </>
     )}
 
-    {/* Footer visible sur toutes les pages */}
+     {/* Footer visible sur toutes les pages */}
     <AppFooter />
   </div>
 )
+} // <--- très important : ça ferme la fonction App
