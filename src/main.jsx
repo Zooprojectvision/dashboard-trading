@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 
 import './styles.css'        // thème sombre d’origine
-import './light-override.css' // <-- on va créer ce fichier juste après
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
