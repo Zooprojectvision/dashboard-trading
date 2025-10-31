@@ -1107,19 +1107,19 @@ function HomeHub({ setView, t, subtitle }) {
 
       <div className="grid-3 home-grid" style={{textAlign:'left'}}>
         <HubCard
-          title="Centre de contrôle"
+          title="Centre de Contrôle"
           subtitle="Vue complète: imports CSV, filtres, KPI, equity, corrélation, calendrier, activité."
           tooltip="Tableau de bord principal. Toutes les métriques en un coup d'œil."
           onClick={()=>setView('control')}
         />
         <HubCard
-          title="Comptabilité entreprise"
+          title="Comptabilité Entreprise"
           subtitle="Suivi des flux (payouts, frais, dépôts), catégories et exports."
           tooltip="Regroupe et catégorise les flux pour une vision 'entreprise'."
           onClick={()=>setView('compta')}
         />
         <HubCard
-          title="Gestion du risque"
+          title="Gestion du Risque"
           subtitle="Seuils, verdicts, et recommandations d’ajustement."
           tooltip="Analyse des risques et propositions (taille de lot, horaires, TP/SL)."
           onClick={()=>setView('risk')}
