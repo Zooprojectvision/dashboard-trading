@@ -50,7 +50,7 @@ function deepMerge(a, b) {
   return out;
 }
 
-/* ===== Couleurs / helpers ===== */
+/* ===== helpers ===== */
 const C = {
   axis:"#c9cdd1", white:"#ffffff", green:"#20e3d6", pink:"#ff5fa2", orange:"#ffb347", blue:"#4da3ff"
 }
@@ -82,6 +82,7 @@ function parseCSV(text){
   }
   return rows
 }
+
 function mapMT5Rows(rows){
   return rows.map((r)=>{
     const date   = (r['Time'] || r['Open time'] || r['Open Time'] || r['Date'] || '').slice(0,10)
@@ -128,34 +129,6 @@ function genDemoTrades(){
 }
 
 /* ===== Modale générique ===== */
-
-function AboutModal({ openHook }) {
-  const [open, setOpen] = openHook || [false, () => {}];
-  return (
-    <Modal open={open} onClose={() => setOpen(false)} title="À Propos">
-      <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>
-        <div className="kpi-title">ZooProjectVision</div>
-        <div style={{ marginTop: 6 }}>
-          <div>Version : <b>V{APP_VERSION}</b></div>
-          <div style={{ opacity: .85, marginTop: 6 }}>
-            Consulte le changelog pour les nouveautés et correctifs.
-          </div>
-          <div style={{ marginTop: 10 }}>
-            <a
-              href="/CHANGELOG.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn ghost sm"
-            >
-              Ouvrir le changelog
-            </a>
-          </div>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
 function Modal({ open, onClose, title, actions, children, inline=false }){
   if(!open) return null
   if (inline) {
@@ -188,6 +161,33 @@ function Modal({ open, onClose, title, actions, children, inline=false }){
   )
 }
 
+function AboutModal({ openHook }) {
+  const [open, setOpen] = openHook || [false, () => {}];
+  return (
+    <Modal open={open} onClose={() => setOpen(false)} title="À Propos">
+      <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>
+        <div className="kpi-title">ZooProjectVision</div>
+        <div style={{ marginTop: 6 }}>
+          <div>Version : <b>V{APP_VERSION}</b></div>
+          <div style={{ opacity: .85, marginTop: 6 }}>
+            Consulte le changelog pour les nouveautés et correctifs.
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <a
+              href="/CHANGELOG.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn ghost sm"
+            >
+              Ouvrir le changelog
+            </a>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 /* ===== Guide ===== */
 function GuidePanel({ lang }){
   const [open,setOpen]=React.useState(false)
@@ -204,8 +204,8 @@ function GuidePanel({ lang }){
   return (
     <>
       <button className="btn ghost" onClick={()=>setOpen(true)}>
-  {(dict[lang]?.actions?.Help) || I18N_DEFAULTS.actions.Help}
-</button>
+        {(dict[lang]?.actions?.Help) || I18N_DEFAULTS.actions.Help}
+      </button>
       <Modal open={open} onClose={()=>setOpen(false)} title={data?.title||'Aide & Guide'}>
         <div style={{color:'var(--text)',fontSize:12,lineHeight:1.6}}>
           {data?.intro && <p>{data.intro}</p>}
@@ -359,7 +359,7 @@ function WinRateBlock({ rows }) {
     { name: 'Perdants', value: counts.l }
   ]
 
-    return (
+  return (
     <div className="wr-donut" style={{ height: 220 }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
@@ -398,12 +398,17 @@ function RatiosBlock({ rows, convert, ccy }){
     })
     return Array.from(m,([date,pnl])=>({date,pnl})).sort((a,b)=>a.date.localeCompare(b.date))
   },[rows,ccy,convert])
+
   const daily=byDate.map(r=>r.pnl)
   const avg=mean(daily), sd=std(daily), dsd=downsideStd(daily)
+
   const wins=rows.filter(t=>t.pnl>0).map(t=>convert(t.pnl,t.ccy||'USD',ccy))
   const loss=rows.filter(t=>t.pnl<0).map(t=>Math.abs(convert(t.pnl,t.ccy||'USD',ccy)))
-  const p= rows.length ? wins.length/rows.length : 0, q=1-p
-  const avgW= wins.length? mean(wins):0, avgL= loss.length? mean(loss):0
+
+  const p= rows.length ? wins.length/rows.length : 0
+  const q=1-p
+  const avgW= wins.length? mean(wins):0
+  const avgL= loss.length? mean(loss):0
   const RR= avgL>0? (avgW/avgL):0
   const expectancy= rows.length? (sum(daily)/rows.length):0
   const sharpe= sd>0? (avg/sd)*Math.sqrt(252):0
@@ -416,40 +421,39 @@ function RatiosBlock({ rows, convert, ccy }){
   const V=({v,suffix=''})=><span className="val" style={styleNum(v)}>{Number.isFinite(v)? v.toFixed(2)+suffix : '—'}</span>
 
   return (
-  <div className={`card ${verdict(sharpe)}`}>
-    <div className="grid-3">
-      <div className="card halo-neutral tinted">
-  <div className="kpi-title">Expectancy par Trade</div>
-  <V v={expectancy} />
-</div>
+    <div className={`card ${verdict(sharpe)}`}>
+      <div className="grid-3">
+        <div className="card halo-neutral tinted">
+          <div className="kpi-title">Expectancy par Trade</div>
+          <V v={expectancy} />
+        </div>
 
-      <div className="card halo-neutral tinted">
-        <div className="kpi-title">Sharpe (Ann.)</div>
-        <V v={sharpe} />
-        <div className="kpi-title" style={{ marginTop: 8 }}>Sortino (Ann.)</div>
-        <V v={sortino} />
-      </div>
+        <div className="card halo-neutral tinted">
+          <div className="kpi-title">Sharpe (Ann.)</div>
+          <V v={sharpe} />
+          <div className="kpi-title" style={{ marginTop: 8 }}>Sortino (Ann.)</div>
+          <V v={sortino} />
+        </div>
 
-      <div className="card halo-neutral tinted">
-        <div className="kpi-title">Risk / Reward</div>
-        <V v={RR} />
-        <div className="kpi-title" style={{ marginTop: 8 }}>Kelly (Indicatif)</div>
-        <V v={kelly} />
-        <div className="kpi-title" style={{ marginTop: 8 }}>Risque de Ruine (≈)</div>
-        <V v={ror * 100} suffix="%" />
+        <div className="card halo-neutral tinted">
+          <div className="kpi-title">Risk / Reward</div>
+          <V v={RR} />
+          <div className="kpi-title" style={{ marginTop: 8 }}>Kelly (Indicatif)</div>
+          <V v={kelly} />
+          <div className="kpi-title" style={{ marginTop: 8 }}>Risque de Ruine (≈)</div>
+          <V v={ror * 100} suffix="%" />
+        </div>
       </div>
     </div>
-  </div>
-)
+  )
 }
+
 /* ===== Corrélation des stratégies ===== */
 function CorrelationBlock({ rows, convert, ccy }) {
-  // 1. Liste des stratégies uniques
   const strats = React.useMemo(() => {
     return Array.from(new Set(rows.map(r => r.strategy))).sort();
   }, [rows]);
 
-  // 2. Agrégation PnL par date et par stratégie
   const byDateStrat = React.useMemo(() => {
     const m = new Map();
     rows.forEach(t => {
@@ -463,12 +467,10 @@ function CorrelationBlock({ rows, convert, ccy }) {
     return m;
   }, [rows, ccy, convert]);
 
-  // 3. Toutes les dates triées
   const dates = React.useMemo(() => {
     return Array.from(byDateStrat.keys()).sort();
   }, [byDateStrat]);
 
-  // 4. Série par stratégie (tableau des PnL jour par jour)
   const series = React.useMemo(() => {
     const s = {};
     strats.forEach(st => {
@@ -480,7 +482,6 @@ function CorrelationBlock({ rows, convert, ccy }) {
     return s;
   }, [strats, dates, byDateStrat]);
 
-  // 5. Helpers pour corrélation
   const meanArr = a => (a.length ? a.reduce((sum, x) => sum + x, 0) / a.length : 0);
 
   const corr = (a, b) => {
@@ -509,16 +510,13 @@ function CorrelationBlock({ rows, convert, ccy }) {
     return 'halo-bad';
   };
 
-  // 6. Matrice de corrélation
   const matrix = React.useMemo(() => {
     return strats.map((s1, i) =>
       strats.map((s2, j) => (i === j ? 1 : corr(series[s1] || [], series[s2] || [])))
     );
   }, [strats, series]);
 
-  // 7. *** Maintenant SEULEMENT on décide d'afficher ou pas ***
   if (strats.length < 2) {
-    // pas assez de stratégies -> rien à afficher
     return (
       <div className="kpi-sub" style={{opacity:0.8, fontSize:12, padding:'8px 0'}}>
         Pas assez de stratégies pour calculer une corrélation.
@@ -526,7 +524,6 @@ function CorrelationBlock({ rows, convert, ccy }) {
     );
   }
 
-  // 8. Rendu normal
   return (
     <div style={{overflowX:'auto', marginTop:8}}>
       <table className="table">
@@ -593,34 +590,32 @@ function MappingTable({ rows, convert, ccy }){
   )
 
   return (
-    <>
-      <table className="table" style={{marginTop:6}}>
-        <thead>
-          <tr>
-            <th>Stratégie</th>
-            <th>Broker</th>
-            <th style={{textAlign:'right'}}>Pnl</th>
-            <th style={{textAlign:'right'}}>Trades</th>
-            <th style={{textAlign:'right'}}>Expectancy</th>
+    <table className="table" style={{marginTop:6}}>
+      <thead>
+        <tr>
+          <th>Stratégie</th>
+          <th>Broker</th>
+          <th style={{textAlign:'right'}}>Pnl</th>
+          <th style={{textAlign:'right'}}>Trades</th>
+          <th style={{textAlign:'right'}}>Expectancy</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((r,i)=>(
+          <tr key={i}>
+            <td>{r.strategy}</td>
+            <td>{r.broker}</td>
+            <td style={{textAlign:'right'}}>
+              <span className="val" style={styleNum(r.pnl)}>{r.pnl.toFixed(2)}</span>
+            </td>
+            <td style={{textAlign:'right'}}>{r.n}</td>
+            <td style={{textAlign:'right'}}>
+              <span className="val" style={styleNum(r.expectancy)}>{r.expectancy.toFixed(2)}</span>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {items.map((r,i)=>(
-            <tr key={i}>
-              <td>{r.strategy}</td>
-              <td>{r.broker}</td>
-              <td style={{textAlign:'right'}}>
-                <span className="val" style={styleNum(r.pnl)}>{r.pnl.toFixed(2)}</span>
-              </td>
-              <td style={{textAlign:'right'}}>{r.n}</td>
-              <td style={{textAlign:'right'}}>
-                <span className="val" style={styleNum(r.expectancy)}>{r.expectancy.toFixed(2)}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
@@ -630,7 +625,7 @@ function ActivityBlocks({ rows }){
   const dow=new Array(7).fill(0).map((_,d)=>({d, win:0, loss:0}))
   const mon=new Array(12).fill(0).map((_,m)=>({m, win:0, loss:0}))
   rows.forEach(t=>{
-    const rndH=(Math.random()*24)|0  // si pas d’heure précise dans CSV
+    const rndH=(Math.random()*24)|0
     const dt=new Date(t.date+'T12:00:00Z')
     const d=(dt.getUTCDay()+6)%7
     const m=dt.getUTCMonth()
@@ -669,9 +664,8 @@ function ActivityBlocks({ rows }){
   )
 }
 
-/* ===== Calendrier mensuel (V5.1.1) ===== */
+/* ===== Calendrier mensuel ===== */
 function CalendarMonthly({ rows, convert, ccy, startEquity }) {
-  // agrégation par date
   const map = new Map();
   rows.forEach(t => {
     const v = convert(t.pnl, t.ccy || 'USD', ccy);
@@ -680,33 +674,29 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
     map.set(t.date, o);
   });
 
-  // cible = mois du dernier trade filtré, sinon mois courant
   const lastDateStr = rows.length ? rows[rows.length - 1].date : new Date().toISOString().slice(0,10);
   const base = new Date(lastDateStr + 'T12:00:00Z');
   const year = base.getUTCFullYear();
-  const month = base.getUTCMonth(); // 0..11
+  const month = base.getUTCMonth();
 
-  // bornes du mois (UTC)
   const firstOfMonth = new Date(Date.UTC(year, month, 1));
   const lastOfMonth  = new Date(Date.UTC(year, month + 1, 0));
 
-  // construire les jours affichés de Lundi à Dimanche
   const start = new Date(firstOfMonth);
-  const startDow = (start.getUTCDay() + 6) % 7; // lundi=0
+  const startDow = (start.getUTCDay() + 6) % 7;
   start.setUTCDate(start.getUTCDate() - startDow);
 
   const end = new Date(lastOfMonth);
   const endDow = (end.getUTCDay() + 6) % 7;
   end.setUTCDate(end.getUTCDate() + (6 - endDow));
 
-  // générer la grille
   const days = [];
   let eq = startEquity, peak = eq;
   for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
     const date = d.toISOString().slice(0,10);
     const isInMonth = d.getUTCMonth() === month;
     const dayData = map.get(date) || { pnl: 0, n: 0 };
-    // on calcule l’équité uniquement pour afficher un DD local indicatif
+
     const prev = eq;
     eq += isInMonth ? dayData.pnl : 0;
     peak = Math.max(peak, eq);
@@ -714,7 +704,9 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
     const retPct = prev > 0 ? (dayData.pnl / prev) * 100 : 0;
 
     days.push({
-      date, inMonth: isInMonth, pnl: isInMonth ? dayData.pnl : null,
+      date,
+      inMonth: isInMonth,
+      pnl: isInMonth ? dayData.pnl : null,
       n: isInMonth ? dayData.n : 0,
       retPct: isInMonth ? retPct : null,
       ddAbs: isInMonth ? ddAbs : null
@@ -722,7 +714,6 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
   }
 
   const verdict = v => v == null ? 'halo-neutral' : v >= 0 ? 'halo-good' : (v > -300 ? 'halo-warn' : 'halo-bad');
-
   const weekDays = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
   return (
@@ -735,20 +726,21 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
       </div>
 
       <div className="month-grid">
-        {/* En-têtes des jours */}
         <div className="month-head">
           {weekDays.map(d => (
             <div key={d} className="cap">{d}</div>
           ))}
         </div>
 
-        {/* Jours */}
         {days.map(d => (
           <div key={d.date} className={`day-cell ${verdict(d.pnl)}`}>
             <div className="day-top">
-              <span className={d.inMonth ? '' : 'day-muted'}>{d.date.slice(8,10)}/{d.date.slice(5,7)}</span>
+              <span className={d.inMonth ? '' : 'day-muted'}>
+                {d.date.slice(8,10)}/{d.date.slice(5,7)}
+              </span>
               <span className="day-muted">{d.n ? `${d.n} t.` : ''}</span>
             </div>
+
             {d.inMonth ? (
               <>
                 <div className="day-metric">
@@ -757,7 +749,9 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
                 </div>
                 <div className="day-metric">
                   <span className="cap">Rentabilité</span>
-                  <span className="val" style={styleNum(d.retPct)}>{Number(d.retPct ?? 0).toFixed(2)}%</span>
+                  <span className="val" style={styleNum(d.retPct)}>
+                    {Number(d.retPct ?? 0).toFixed(2)}%
+                  </span>
                 </div>
                 <div className="day-metric">
                   <span className="cap">DD Abs</span>
@@ -774,11 +768,10 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
   );
 }
 
-/* ===== Courbe d’équité (V5.1.1) ===== */
+/* ===== Courbe d’équité ===== */
 function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
   const [mode, setMode] = React.useState('global'); // 'global' | 'strat'
 
-  // Série agrégée par date
   const byDate = React.useMemo(() => {
     const m = new Map();
     rows.forEach(r => {
@@ -790,7 +783,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [rows, ccy, convert]);
 
-  // Equity globale + Peak + DD (abs)
   let eq = convert(initial, 'USD', ccy);
   let peak = eq;
   const globalSeries = byDate.map(d => {
@@ -814,7 +806,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
     .filter(x => x.pnl < 0)
     .map(x => ({ date: x.date, equity: x.equity }));
 
-  // Série cumulée par stratégie
   const strats = React.useMemo(
     () => Array.from(new Set(rows.map(r => r.strategy))).sort(),
     [rows]
@@ -829,10 +820,12 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
     });
     return m;
   }, [rows, ccy, convert]);
+
   const dates = React.useMemo(
     () => Array.from(new Set(globalSeries.map(d => d.date))).sort(),
     [globalSeries]
   );
+
   const stratSeries = React.useMemo(() => {
     const acc = {};
     strats.forEach(s => (acc[s] = 0));
@@ -882,7 +875,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
             <Tooltip />
             <Legend />
 
-            {/* Équité principale */}
             <Line
               type="monotone"
               dataKey="equity"
@@ -892,7 +884,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
               strokeWidth={1.8}
             />
 
-            {/* Peak (plus haut atteint) – pointillé */}
             <Line
               type="monotone"
               dataKey="peakEquity"
@@ -903,7 +894,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
               strokeDasharray="4 4"
             />
 
-            {/* Drawdown absolu – pointillé (on l’affiche sur l’axe principal pour lisibilité) */}
             <Line
               type="monotone"
               dataKey="drawdownAbs"
@@ -914,7 +904,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
               strokeDasharray="3 3"
             />
 
-            {/* Points info */}
             <Scatter data={scatterLoss} dataKey="equity" name="Perte" fill="var(--pink)" />
             <Scatter data={scatterFlux} dataKey="equity" name="Flux"  fill="var(--accent)" />
           </ComposedChart>
@@ -950,6 +939,7 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
           </LineChart>
         )}
       </ResponsiveContainer>
+
       <div style={{marginTop:8, fontSize:12, color:'var(--text)'}}>
         <span style={{opacity:.9}}>Pointillés :</span> Peak (gris), DD (rose). •
         <span style={{opacity:.85}}>  points bleus = flux, points roses = jours perdants</span>
@@ -1056,7 +1046,6 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
           gap: 6
         }}
       >
-        {/* Titre en blanc */}
         <span style={{ color: 'var(--white)', fontWeight: 500 }}>
           {title}
         </span>
@@ -1064,7 +1053,6 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
         <HelpTooltip text={tooltip} />
       </div>
 
-      {/* Sous-texte reste gris / normal */}
       <div
         style={{
           marginTop: 6,
@@ -1080,6 +1068,80 @@ function HubCard({ title, subtitle, tooltip, onClick }) {
 }
 
 function HomeHub({ setView, t, subtitle }) {
+  return (
+    <div
+      className="home-hero"
+      style={{
+        maxWidth: 1200,
+        margin: '0 auto',
+        padding: '24px 16px',
+      }}
+    >
+      <h1
+        className="brand"
+        style={{
+          fontSize: 32,
+          fontWeight: 600,
+          color: 'var(--white)',
+          margin: 0,
+          lineHeight: 1.2,
+          textAlign: 'center',
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        {t.brand || 'ZooProjectVision'}
+      </h1>
+
+      <p
+        className="subtitle home-subtitle"
+        style={{
+          marginTop: 8,
+          color: 'var(--text)',
+          opacity: .85,
+          fontSize: 14,
+          lineHeight: 1.5,
+          textAlign: 'center',
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        {subtitle || 'Le tableau de bord de performance trading Edouard & Michel Jimenez'}
+      </p>
+
+      <div
+        className="home-grid"
+        style={{
+          marginTop: 32,
+          display: 'grid',
+          gap: 16,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        }}
+      >
+        <HubCard
+          title="Centre de Contrôle"
+          subtitle="Vue complète: filtres, equity, corrélation, calendrier, activité."
+          tooltip="Tableau de bord principal. Toutes les métriques en un coup d'œil."
+          onClick={() => setView('control')}
+        />
+
+        <HubCard
+          title="Comptabilité Entreprise"
+          subtitle="Suivi des flux (payouts, frais, dépôts), catégories et exports."
+          tooltip="Regroupe et catégorise les flux pour une vision 'entreprise'."
+          onClick={() => setView('compta')}
+        />
+
+        <HubCard
+          title="Gestion du Risque"
+          subtitle="Seuils, verdicts, et recommandations d’ajustement."
+          tooltip="Analyse des risques et propositions (taille de lot, horaires, TP/SL)."
+          onClick={() => setView('risk')}
+        />
+      </div>
+    </div>
+  );
+}
 
 /* ===== Footer global ===== */
 function AppFooter() {
@@ -1100,6 +1162,11 @@ function AppFooter() {
 }
 
 /* ===== APP (main) ===== */
+export default function App(){
+  // le contenu d'App reste comme dans ta version précédente
+  // (state view/lang/etc, puis return ...)
+}
+
 
 export default function App(){
 
