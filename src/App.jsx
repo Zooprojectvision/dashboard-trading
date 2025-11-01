@@ -9,6 +9,7 @@ import CapitalTiersModal from "./components/common/CapitalTiersModal.jsx";
 import CashflowsModal from "./components/common/CashflowsModal.jsx";
 import DarwinWidget from "./components/home/DarwinWidget.jsx";
 import HubCard from "./components/home/HubCard.jsx";
+import ControlPage from "./components/control/ControlPage.jsx"
 import {
   ResponsiveContainer,
   LineChart,
