@@ -1,5 +1,6 @@
-import React from "react"
-import { APP_VERSION } from "../../version"
+// src/components/common/Footer.jsx
+import React from "react";
+import { APP_VERSION } from "../../version";
 
 export default function Footer() {
   return (
@@ -16,7 +17,8 @@ export default function Footer() {
       Designed &amp; Built by ZooProjectVision V{APP_VERSION} @{" "}
       {new Date().getFullYear()}
     </div>
-  )
+  );
 }
+
 
 
