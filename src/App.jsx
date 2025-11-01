@@ -1691,20 +1691,233 @@ export default function App(){
           )}
 
           {view === 'compta' && (
-            <div className="page-outer">
-              <div className="page-content">
-                <div className="card" style={{ padding: 16 }}>
-                  <div
-                    className="kpi-title"
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <span>Vue Comptable</span>
-                  </div>
-                  <p style={{ marginTop: 8, opacity: .8 }}>À venir…</p>
-                </div>
-              </div>
+  <div className="page-outer" style={{ width: '100%' }}>
+    <div
+      className="page-content"
+      style={{
+        maxWidth: 1200,
+        margin: '0 auto',
+        width: '100%',
+      }}
+    >
+      <div className="card" style={{ padding: 16 }}>
+        <div
+          className="kpi-title"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            flexWrap: 'wrap',
+            rowGap: 8,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                color: 'var(--white)',
+                fontWeight: 600,
+                fontSize: 18,
+              }}
+            >
+              Comptabilité d’Entreprise
             </div>
-          )}
+
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--text)',
+                opacity: 0.8,
+                marginTop: 4,
+              }}
+            >
+              Historique des flux financiers (payouts prop, dépôts, frais challenge, etc.).
+            </div>
+          </div>
+
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--text)',
+              opacity: 0.8,
+            }}
+          >
+            Total lignes : {flows.length}
+          </div>
+        </div>
+
+        {/* Tableau des flux */}
+        <div style={{ marginTop: 16, overflowX: 'auto' }}>
+          <table
+            className="table"
+            style={{
+              width: '100%',
+              minWidth: 700,
+              borderCollapse: 'collapse',
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  textAlign: 'left',
+                  fontSize: 12,
+                  color: 'var(--text)',
+                  opacity: 0.8,
+                  borderBottom: '1px solid var(--border)',
+                }}
+              >
+                <th style={{ padding: '8px 6px' }}>Date</th>
+                <th style={{ padding: '8px 6px' }}>Type</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right' }}>
+                  Montant
+                </th>
+                <th style={{ padding: '8px 6px' }}>Devise</th>
+                <th style={{ padding: '8px 6px' }}>Note</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {flows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    style={{
+                      padding: '20px 6px',
+                      textAlign: 'center',
+                      fontSize: 13,
+                      color: 'var(--text)',
+                      opacity: 0.6,
+                    }}
+                  >
+                    Aucun flux enregistré pour le moment.
+                    <br />
+                    Va dans "Centre de Contrôle" → "Ajouter un Flux".
+                  </td>
+                </tr>
+              ) : (
+                flows.map((r, i) => (
+                  <tr
+                    key={i}
+                    style={{
+                      borderBottom: '1px solid var(--border)',
+                    }}
+                  >
+                    <td style={{ padding: '8px 6px', fontSize: 13 }}>
+                      {r.date}
+                    </td>
+                    <td style={{ padding: '8px 6px', fontSize: 13 }}>
+                      {r.type}
+                    </td>
+                    <td
+                      style={{
+                        padding: '8px 6px',
+                        fontSize: 13,
+                        textAlign: 'right',
+                        color:
+                          Number(r.amount) < 0
+                            ? 'var(--pink)'
+                            : 'var(--text)',
+                      }}
+                    >
+                      {Number(r.amount).toFixed(2)}
+                    </td>
+                    <td style={{ padding: '8px 6px', fontSize: 13 }}>
+                      {r.ccy || 'USD'}
+                    </td>
+                    <td
+                      style={{
+                        padding: '8px 6px',
+                        fontSize: 13,
+                        color: 'var(--text)',
+                        opacity: 0.8,
+                      }}
+                    >
+                      {r.note || ''}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Petit récap basique */}
+        <div
+          style={{
+            marginTop: 20,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 16,
+            fontSize: 13,
+            color: 'var(--text)',
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--panel)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              padding: 12,
+              minWidth: 200,
+            }}
+          >
+            <div style={{ fontSize: 12, opacity: 0.8 }}>
+              Total dépôts (deposit)
+            </div>
+            <div style={{ fontWeight: 500, color: 'var(--white)', marginTop: 4 }}>
+              {flows
+                .filter(f => f.type === 'deposit')
+                .reduce((sum, f) => sum + Number(f.amount || 0), 0)
+                .toFixed(2)}{' '}
+              (mix devises)
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'var(--panel)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              padding: 12,
+              minWidth: 200,
+            }}
+          >
+            <div style={{ fontSize: 12, opacity: 0.8 }}>
+              Total payouts prop (prop_payout)
+            </div>
+            <div style={{ fontWeight: 500, color: 'var(--white)', marginTop: 4 }}>
+              {flows
+                .filter(f => f.type === 'prop_payout')
+                .reduce((sum, f) => sum + Number(f.amount || 0), 0)
+                .toFixed(2)}{' '}
+              (mix devises)
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'var(--panel)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              padding: 12,
+              minWidth: 200,
+            }}
+          >
+            <div style={{ fontSize: 12, opacity: 0.8 }}>
+              Total frais challenge (prop_fee)
+            </div>
+            <div style={{ fontWeight: 500, color: 'var(--white)', marginTop: 4 }}>
+              {flows
+                .filter(f => f.type === 'prop_fee')
+                .reduce((sum, f) => sum + Number(f.amount || 0), 0)
+                .toFixed(2)}{' '}
+              (mix devises)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
           {view === 'risk' && (
             <div className="page-outer">
