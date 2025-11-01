@@ -2,10 +2,12 @@
    BLOC A - Imports & Utils
    ========================================= */
 
-import React from "react"
-import DarwinWidget from "./components/home/DarwinWidget.jsx"
-import HubCard from "./components/home/HubCard.jsx"
-import Footer from "./components/common/Footer.jsx"
+import Footer from "./components/common/Footer.jsx";
+import FlowModal from "./components/common/FlowModal.jsx";
+import CapitalTiersModal from "./components/common/CapitalTiersModal.jsx";
+import CashflowsModal from "./components/common/CashflowsModal.jsx";
+import DarwinWidget from "./components/home/DarwinWidget.jsx";
+import HubCard from "./components/home/HubCard.jsx";
 import {
   ResponsiveContainer,
   LineChart,
