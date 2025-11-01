@@ -1092,36 +1092,42 @@ function HomeHub({ setView, t, subtitle }) {
           'Le tableau de bord de performance trading Edouard & Michel Jimenez'}
       </p>
 
-      {/* Les 3 cartes */}
+      {/* Grille cartes + widget Darwin */}
       <div
         className="grid-3 home-grid"
         style={{
           marginTop: 24,
-          textAlign: 'left',
           width: '100%',
           maxWidth: 1200,
           display: 'grid',
           gap: 16,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          // 4 colonnes max : 3 cartes + widget
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
         }}
       >
+        {/* Carte 1 */}
         <HubCard
           title="Centre de Contrôle"
           subtitle="Vue complète: filtres, equity, corrélation, calendrier, activité."
           onClick={() => setView('control')}
         />
 
+        {/* Carte 2 */}
         <HubCard
           title="Comptabilité d’Entreprise"
           subtitle="Suivi des flux (payouts, frais, dépôts), catégories et exports."
           onClick={() => setView('compta')}
         />
 
+        {/* Carte 3 */}
         <HubCard
           title="Gestion du Risque"
           subtitle="Seuils, limites et recommandations d’ajustement."
           onClick={() => setView('risk')}
         />
+
+        {/* Widget Darwinex */}
+        <DarwinWidget />
       </div>
     </div>
   )
