@@ -1,5 +1,5 @@
 import React from "react"
-import { APP_VERSION } from "../../version" // ⚠ adapte le chemin si version.js n'est pas encore déplacé
+import { APP_VERSION } from "../../version"
 
 export default function Footer() {
   return (
@@ -18,4 +18,5 @@ export default function Footer() {
     </div>
   )
 }
+
 
