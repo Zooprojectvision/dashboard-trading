@@ -1,3 +1,4 @@
+import DarwinWidget from "./DarwinWidget";
 import React from 'react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid,
