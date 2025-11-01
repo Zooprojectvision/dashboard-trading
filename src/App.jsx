@@ -2312,13 +2312,18 @@ function HubCard({
 }
 
 /* Page d'accueil */
-function HomeHub({
-  setView,
-  t,
-  subtitle,
-}) {
+function HomeHub({ setView, t, subtitle }) {
   return (
-    <div className="home-hero">
+    <div
+      className="home-hero"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',   // <-- centre horizontalement
+        textAlign: 'center',    // <-- évite d'avoir à le répéter sur chaque enfant
+        width: '100%',
+      }}
+    >
       {/* Titre centré grand */}
       <h1
         className="brand"
@@ -2326,7 +2331,6 @@ function HomeHub({
           fontSize: 28,
           fontWeight: 600,
           color: 'var(--white)',
-          textAlign: 'center',
           margin: 0,
         }}
       >
@@ -2338,10 +2342,10 @@ function HomeHub({
         className="subtitle home-subtitle"
         style={{
           marginTop: 8,
-          textAlign: 'center',
           color: 'var(--text)',
           opacity: 0.9,
           fontSize: 14,
+          maxWidth: 600,
         }}
       >
         {subtitle ||
@@ -2354,34 +2358,33 @@ function HomeHub({
         style={{
           marginTop: 24,
           textAlign: 'left',
+          width: '100%',
+          maxWidth: 1200,
+          display: 'grid',
+          gap: 16,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         }}
       >
         <HubCard
           title="Centre de Contrôle"
           subtitle="Vue complète: filtres, equity, corrélation, calendrier, activité."
-          onClick={() =>
-            setView('control')
-          }
+          onClick={() => setView('control')}
         />
 
         <HubCard
           title="Comptabilité Entreprise"
           subtitle="Suivi des flux (payouts, frais, dépôts), catégories et exports."
-          onClick={() =>
-            setView('compta')
-          }
+          onClick={() => setView('compta')}
         />
 
         <HubCard
           title="Gestion du Risque"
           subtitle="Seuils, limites et recommandations d’ajustement."
-          onClick={() =>
-            setView('risk')
-          }
+          onClick={() => setView('risk')}
         />
       </div>
     </div>
-  );
+  )
 }
 
 /* ===== Footer global ===== */
