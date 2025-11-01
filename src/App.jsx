@@ -999,85 +999,55 @@ function CashflowsModal({ openHook, rows, inline=false }){
 
 /* ===== Hub (Accueil) ===== */
 /* Carte cliquable sur la page d'accueil */
-function HubCard({ title, subtitle, onClick
-
-/* Page d'accueil */
-function HomeHub({ setView, t, subtitle }) {
+function HubCard({ title, subtitle, onClick }) {
   return (
-    <div
-      className="home-hero"
+    <button
+      className="card"
+      onClick={onClick}
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
+        textAlign: 'left',
+        padding: 18,
+        border: '1px solid var(--border)',
+        borderRadius: 16,
         width: '100%',
+        cursor: 'pointer',
+        background: 'var(--panel, #111318)',
       }}
     >
-      {/* Titre principal centré */}
-      <h1
-        className="brand"
-        style={{
-          fontSize: 28,
-          fontWeight: 600,
-          color: 'var(--white)',
-          margin: 0,
-          textAlign: 'center',
-        }}
-      >
-        {t.brand}
-      </h1>
-
-      {/* Sous-titre centré */}
-      <p
-        className="subtitle home-subtitle"
-        style={{
-          marginTop: 8,
-          color: 'var(--text)',
-          opacity: 0.9,
-          fontSize: 14,
-          maxWidth: 600,
-          textAlign: 'center',
-        }}
-      >
-        {subtitle ||
-          'Le tableau de bord de performance trading Edouard & Michel Jimenez'}
-      </p>
-
-      {/* Les 3 cartes */}
+      {/* Titre (forcé bleu) */}
       <div
-        className="grid-3 home-grid"
+        className="kpi-title"
         style={{
-          marginTop: 24,
-          textAlign: 'left',
-          width: '100%',
-          maxWidth: 1200,
-          display: 'grid',
-          gap: 16,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          fontWeight: 600,
+          fontSize: 15,
+          lineHeight: 1.4,
+          // on laisse pas de color ici, on le met dans le span juste en dessous
         }}
       >
-        <HubCard
-          title="Centre de Contrôle"
-          subtitle="Vue complète: filtres, equity, corrélation, calendrier, activité."
-          onClick={() => setView('control')}
-        />
-
-        <HubCard
-          title="Comptabilité d’Entreprise"
-          subtitle="Suivi des flux (payouts, frais, dépôts), catégories et exports."
-          onClick={() => setView('compta')}
-        />
-
-        <HubCard
-          title="Gestion du Risque"
-          subtitle="Seuils, limites et recommandations d’ajustement."
-          onClick={() => setView('risk')}
-        />
+        <span style={{ color: '#4da3ff' }}>
+          {title}
+        </span>
       </div>
-    </div>
+
+      {/* Sous-texte gris */}
+      <div
+        style={{
+          marginTop: 6,
+          color: 'var(--text)',
+          opacity: 0.85,
+          fontSize: 13,
+          lineHeight: 1.4,
+        }}
+      >
+        {subtitle}
+      </div>
+    </button>
   )
 }
+
 
 /* ===== Footer global ===== */
 function AppFooter() {
