@@ -2263,11 +2263,7 @@ function CashflowsModal({
 /* ===== Hub (Accueil) ===== */
 
 /* Carte cliquable sur la Home */
-function HubCard({
-  title,
-  subtitle,
-  onClick,
-}) {
+function HubCard({ title, subtitle, onClick }) {
   return (
     <button
       className="card"
@@ -2275,40 +2271,42 @@ function HubCard({
       style={{
         textAlign: 'left',
         padding: 18,
-        border:
-          '1px solid var(--border)',
+        border: '1px solid var(--border)',
         borderRadius: 16,
         width: '100%',
         cursor: 'pointer',
+        background: 'var(--panel, #111318)',
       }}
     >
-      {/* Titre */}
+      {/* Titre en bleu */}
       <div
         className="kpi-title"
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          color: 'var(--white)',
-          fontWeight: 500,
+          fontWeight: 600,
+          fontSize: 15,
+          color: 'var(--accent, #4da3ff)', // <-- BLEU ICI
         }}
       >
         {title}
       </div>
 
-      {/* Sous-texte */}
+      {/* Sous-texte gris */}
       <div
         style={{
           marginTop: 6,
           color: 'var(--text)',
           opacity: 0.85,
           fontSize: 13,
+          lineHeight: 1.4,
         }}
       >
         {subtitle}
       </div>
     </button>
-  );
+  )
 }
 
 /* Page d'accueil */
