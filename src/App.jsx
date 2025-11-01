@@ -999,51 +999,7 @@ function CashflowsModal({ openHook, rows, inline=false }){
 
 /* ===== Hub (Accueil) ===== */
 /* Carte cliquable sur la page d'accueil */
-function HubCard({ title, subtitle, onClick }) {
-  return (
-    <button
-      className="card"
-      onClick={onClick}
-      style={{
-        textAlign: 'left',
-        padding: 18,
-        border: '1px solid var(--border)',
-        borderRadius: 16,
-        width: '100%',
-        cursor: 'pointer',
-        background: 'var(--panel, #111318)',
-      }}
-    >
-      {/* Titre en bleu */}
-      <div
-        className="kpi-title"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          fontWeight: 600,
-          fontSize: 15,
-          color: 'var(--accent, #4da3ff)', // bleu
-        }}
-      >
-        {title}
-      </div>
-
-      {/* Sous-texte gris */}
-      <div
-        style={{
-          marginTop: 6,
-          color: 'var(--text)',
-          opacity: 0.85,
-          fontSize: 13,
-          lineHeight: 1.4,
-        }}
-      >
-        {subtitle}
-      </div>
-    </button>
-  )
-}
+function HubCard({ title, subtitle, onClick
 
 /* Page d'accueil */
 function HomeHub({ setView, t, subtitle }) {
