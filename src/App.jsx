@@ -2,9 +2,10 @@
    BLOC A - Imports & Utils
    ========================================= */
 
-import React from "react";
-import DarwinWidget from "./DarwinWidget";
-
+import React from "react"
+import DarwinWidget from "./components/home/DarwinWidget.jsx"
+import HubCard from "./components/home/HubCard.jsx"
+import Footer from "./components/common/Footer.jsx"
 import {
   ResponsiveContainer,
   LineChart,
@@ -178,8 +179,8 @@ function genDemoTrades() {
   const ASSETS = ["XAUUSD", "DAX", "US500", "USTEC", "US30"];
   const BROKERS = ["Darwinex", "Axi Select"];
   const STRATS = ["Breakout", "MeanRevert", "Momentum"];
-  const rows = [],
-    today = new Date();
+ const rows = [];
+const today = new Date();
   for (let i = 90; i >= 1; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
