@@ -1,60 +1,38 @@
 import React from "react";
 
-/**
- * Widget Darwinex (VYU)
- *
- * - Affichage en carte sombre, arrondie, pro.
- * - Le widget est cliquable : il envoie vers ton Darwin.
- * - L'image vient directement de Darwinex (pas hébergée chez toi).
- *
- * Props:
- *   title (string) -> petit titre au-dessus, ex: "Stratégie Live (Darwinex)"
- *   note  (string) -> texte sous l'image, optionnel
- */
-export default function DarwinWidget({
-  title = "Stratégie Live (Darwinex)",
-  note = "Performance live du DARWIN VYU. Données fournies par Darwinex."
-}) {
+export default function DarwinWidget() {
   return (
-    <section
-      className="card"
+    <div
       style={{
         backgroundColor: "var(--panel, #111318)",
-        border: "1px solid var(--border, #1f2a37)",
-        borderRadius: 16,
-        padding: 16,
-        maxWidth: 360,
+        border: "1px solid var(--border, #1f2937)",
+        borderRadius: "16px",
+        padding: "16px",
+        maxWidth: "360px",
         width: "100%",
+        color: "var(--text, #c5ccd3)",
+        fontFamily: "inherit",
         textAlign: "center",
-        margin: "0 auto",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.6)"
       }}
     >
-      {/* Titre au-dessus du widget */}
+      {/* Titre du bloc */}
       <div
         style={{
-          color: "var(--text, #c5ccd3)",
-          fontSize: 13,
+          fontSize: "14px",
           fontWeight: 500,
-          marginBottom: 12,
-          lineHeight: 1.4,
+          color: "var(--white, #ffffff)",
+          marginBottom: "12px",
         }}
       >
-        {title}
+        Notre Darwin en Gestion
       </div>
 
-      {/* Le widget Darwinex lui-même */}
+      {/* Le widget Darwinex que tu m'as donné */}
       <a
         href="https://www.darwinex.com/invest/VYU?utm_source=WidgetDarwin&utm_medium=Referral&utm_campaign=WidgetChart&utm_content=fxzooinvest"
         target="_blank"
         rel="noopener noreferrer"
-        style={{
-          display: "block",
-          borderRadius: 12,
-          overflow: "hidden",
-          border: "1px solid rgba(255,255,255,0.07)",
-          background: "#000",
-        }}
+        style={{ display: "block" }}
       >
         <img
           src="https://prodx-widgets.s3-eu-west-1.amazonaws.com/VYU.5.3-widgets-darwin-chart-darwin-all-bg-darkest-l-fr.png"
@@ -62,27 +40,23 @@ export default function DarwinWidget({
           style={{
             width: "100%",
             height: "auto",
+            borderRadius: "12px",
             display: "block",
           }}
         />
       </a>
 
-      {/* Texte sous le widget */}
-      {note && (
-        <p
-          style={{
-            marginTop: 12,
-            marginBottom: 0,
-            color: "var(--text, #c5ccd3)",
-            fontSize: 11,
-            lineHeight: 1.5,
-            opacity: 0.7,
-          }}
-        >
-          {note}
-        </p>
-      )}
-    </section>
+      {/* Légende / CTA */}
+      <div
+        style={{
+          fontSize: "12px",
+          lineHeight: 1.4,
+          opacity: 0.8,
+          marginTop: "10px",
+        }}
+      >
+        Accès investisseur Darwinex (VYU)
+      </div>
+    </div>
   );
 }
-
