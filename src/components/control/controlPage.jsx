@@ -897,19 +897,19 @@ export default function ControlPage({
 </div>
 
       {/* Calendrier mensuel */}
-      <div className="control-section">
-        <CalendarMonthly
-          rows={filtered}
-          convert={convert}
-          ccy={displayCcy}
-          startEquity={convert(CAPITAL_INITIAL_USD, "USD", displayCcy)}
-        />
-      </div>
+<div className="control-section">
+  <CalendarMonthly
+    rows={filteredTrades}
+    convert={convert}
+    ccy={displayCcyForBlocks}
+    startEquity={convert(initialCapitalUSD, "USD", displayCcyForBlocks)}
+  />
+</div>
 
       {/* Activité */}
-      <div className="control-section">
-        <ActivityBlocks rows={filtered} />
-      </div>
+<div className="control-section">
+  <ActivityBlocks rows={filteredTrades} />
+</div>
 
       {/* Message si pas de données */}
       {noData && (
