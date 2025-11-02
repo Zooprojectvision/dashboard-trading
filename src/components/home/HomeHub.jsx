@@ -1,7 +1,8 @@
 import React from "react";
 
 export default function HomeHub({ setView, t, subtitle }) {
-  // Petit composant carte interne, stylé à fond
+  console.log(">>> RENDER HomeHub VERSION TEST 9 <<<"); // DOIT apparaître dans la console du navigateur
+
   function CardBlock({ title, subtitle, goto }) {
     const [hover, setHover] = React.useState(false);
 
@@ -34,7 +35,7 @@ export default function HomeHub({ setView, t, subtitle }) {
             "all 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s",
         }}
       >
-        {/* TITRE */}
+        {/* Titre: en majuscules forcées ici */}
         <div
           style={{
             fontSize: 14,
@@ -51,7 +52,7 @@ export default function HomeHub({ setView, t, subtitle }) {
           {title}
         </div>
 
-        {/* DESCRIPTION */}
+        {/* Sous-texte */}
         <div
           style={{
             fontSize: 13,
@@ -76,7 +77,7 @@ export default function HomeHub({ setView, t, subtitle }) {
         color: "var(--text, #c5ccd3)",
       }}
     >
-      {/* HEADER TOP */}
+      {/* HEADER */}
       <div
         style={{
           marginBottom: 24,
@@ -128,7 +129,7 @@ export default function HomeHub({ setView, t, subtitle }) {
         </div>
       </div>
 
-      {/* GRID 2x2 DES BLOCS */}
+      {/* GRID des 4 blocs */}
       <div
         style={{
           display: "grid",
@@ -162,7 +163,7 @@ export default function HomeHub({ setView, t, subtitle }) {
         />
       </div>
 
-      {/* FOOTER BOTTOM LOCAL */}
+      {/* FOOTER LOCAL */}
       <div
         style={{
           textAlign: "center",
