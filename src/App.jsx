@@ -1,16 +1,10 @@
 import React from "react";
 
-/* ===== Imports composants séparés ===== */
-import TradingPage from "./components/trading/TradingPage.jsx";
+/* ===== Composants internes ===== */
 import HomeHub from "./components/home/HomeHub.jsx";
-import TradingPage from "./pages/TradingPage.jsx";
-import DarwinexPage from "./pages/DarwinexPage.jsx";
-import PropFirmsPage from "./pages/PropFirmsPage.jsx";
-import DarwinWidget from "./components/home/DarwinWidget.jsx";
-import HubCard from "./components/home/HubCard.jsx";
 import Footer from "./components/common/Footer.jsx";
 
-/* ===== Imports externes existants ===== */
+/* ===== Imports externes utilisés dans les sous-blocs ===== */
 import {
   ResponsiveContainer,
   LineChart,
@@ -70,7 +64,7 @@ const I18N_DEFAULTS = {
   },
 };
 
-/** Fusion profonde simple */
+/** Fusion profonde : b écrase a pour les valeurs simples, objets fusionnés */
 function deepMerge(a, b) {
   if (b == null) return a;
   if (
@@ -78,8 +72,9 @@ function deepMerge(a, b) {
     Array.isArray(b) ||
     typeof a !== "object" ||
     typeof b !== "object"
-  )
+  ) {
     return b ?? a;
+  }
   const out = { ...a };
   for (const k of Object.keys(b)) out[k] = deepMerge(a[k], b[k]);
   return out;
@@ -99,11 +94,13 @@ const C = {
 };
 
 const mean = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0);
+
 const std = (a) => {
   if (!a.length) return 0;
   const m = mean(a);
   return Math.sqrt(mean(a.map((x) => (x - m) * (x - m))));
 };
+
 const downsideStd = (a) => {
   if (!a.length) return 0;
   const m = mean(a);
@@ -111,21 +108,12 @@ const downsideStd = (a) => {
   if (!n.length) return 0;
   return Math.sqrt(mean(n.map((x) => (x - m) * (x - m))));
 };
+
 const sum = (a) => a.reduce((s, x) => s + x, 0);
 
 const styleNum = (v) => ({
   color: Number(v) < 0 ? "var(--pink)" : "var(--text)",
 });
-
-/* Petit composant d'aide (utilisé encore dans la page contrôle) */
-function HelpTooltip({ text }) {
-  return (
-    <span className="help-wrap">
-      <span className="help-icon">?</span>
-      <span className="help-bubble">{text}</span>
-    </span>
-  );
-}
 
 /* =========================================================
    CSV utils (MQL4/MQL5 exports)
@@ -162,13 +150,16 @@ function mapMT5Rows(rows) {
         r["Date"] ||
         ""
       ).slice(0, 10);
+
       const asset =
         r["Symbol"] ||
         r["Instrument"] ||
         r["Symbol name"] ||
         "UNKNOWN";
+
       const broker = r["Broker"] || "Unknown";
       const strategy = r["Strategy"] || "Unknown";
+
       const pnl = Number(
         r["Profit"] || r["PnL"] || r["PL"] || r["Net P/L"] || 0
       );
@@ -207,25 +198,31 @@ function genDemoTrades() {
   const ASSETS = ["XAUUSD", "DAX", "US500", "USTEC", "US30"];
   const BROKERS = ["Darwinex", "Axi Select"];
   const STRATS = ["Breakout", "MeanRevert", "Momentum"];
+
   const rows = [];
   const today = new Date();
+
   for (let i = 90; i >= 1; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const date = d.toISOString().slice(0, 10);
+
     for (let k = 0; k < 5; k++) {
       const asset = ASSETS[(i + k) % ASSETS.length];
       const broker = BROKERS[(i + k * 2) % BROKERS.length];
       const strategy = STRATS[(i + k * 3) % STRATS.length];
+
       let pnl =
         (Math.random() - 0.5) * (Math.random() < 0.15 ? 2600 : 900);
       pnl = Number(pnl.toFixed(2));
+
       const mfe = Number(
         (Math.abs(pnl) * (0.8 + Math.random() * 0.8)).toFixed(2)
       );
       const mae = Number(
         (Math.abs(pnl) * (0.6 + Math.random() * 0.8)).toFixed(2)
       );
+
       rows.push({
         date,
         asset,
@@ -238,15 +235,17 @@ function genDemoTrades() {
       });
     }
   }
+
   return rows;
 }
 
 /* =========================================================
-   Modales génériques / formulaires flux & capital
+   Modale générique & sous-modales
    ========================================================= */
 
 function Modal({ open, onClose, title, actions, children, inline = false }) {
   if (!open) return null;
+
   if (inline) {
     return (
       <div className="modal-card" style={{ marginTop: 8 }}>
@@ -272,12 +271,10 @@ function Modal({ open, onClose, title, actions, children, inline = false }) {
       </div>
     );
   }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-card"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div
           style={{
             display: "flex",
@@ -306,21 +303,14 @@ function AboutModal({ openHook }) {
   const [open, setOpen] = openHook || [false, () => {}];
   return (
     <Modal open={open} onClose={() => setOpen(false)} title="À Propos">
-      <div
-        style={{
-          fontSize: 14,
-          color: "var(--text)",
-          lineHeight: 1.6,
-        }}
-      >
+      <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.6 }}>
         <div className="kpi-title">ZooProjectVision</div>
         <div style={{ marginTop: 6 }}>
           <div>
             Version : <b>V{APP_VERSION}</b>
           </div>
           <div style={{ opacity: 0.85, marginTop: 6 }}>
-            Consulte le changelog pour les nouveautés et
-            correctifs.
+            Consulte le changelog pour les nouveautés et correctifs.
           </div>
           <div style={{ marginTop: 10 }}>
             <a
@@ -361,11 +351,7 @@ function FlowModal({ openHook, onSave, ccy, inline = false }) {
   const submit = (e) => {
     e.preventDefault();
     const amt = Number(flow.amount);
-    if (
-      !flow.date ||
-      !flow.type ||
-      !Number.isFinite(amt)
-    ) {
+    if (!flow.date || !flow.type || !Number.isFinite(amt)) {
       alert("date/type/montant requis");
       return;
     }
@@ -381,12 +367,7 @@ function FlowModal({ openHook, onSave, ccy, inline = false }) {
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={() => setOpen(false)}
-      title="Ajouter un flux"
-      inline={inline}
-    >
+    <Modal open={open} onClose={() => setOpen(false)} title="Ajouter un flux" inline={inline}>
       <form
         onSubmit={submit}
         style={{
@@ -400,15 +381,10 @@ function FlowModal({ openHook, onSave, ccy, inline = false }) {
           <select
             className="sel"
             value={flow.type}
-            onChange={(e) =>
-              setFlow((f) => ({ ...f, type: e.target.value }))
-            }
+            onChange={(e) => setFlow((f) => ({ ...f, type: e.target.value }))}
           >
             {types.map((t) => (
-              <option
-                key={t.value}
-                value={t.value}
-              >
+              <option key={t.value} value={t.value}>
                 {t.label}
               </option>
             ))}
@@ -421,9 +397,7 @@ function FlowModal({ openHook, onSave, ccy, inline = false }) {
             className="sel"
             type="date"
             value={flow.date}
-            onChange={(e) =>
-              setFlow((f) => ({ ...f, date: e.target.value }))
-            }
+            onChange={(e) => setFlow((f) => ({ ...f, date: e.target.value }))}
           />
         </label>
 
@@ -432,9 +406,7 @@ function FlowModal({ openHook, onSave, ccy, inline = false }) {
           <select
             className="sel"
             value={flow.ccy}
-            onChange={(e) =>
-              setFlow((f) => ({ ...f, ccy: e.target.value }))
-            }
+            onChange={(e) => setFlow((f) => ({ ...f, ccy: e.target.value }))}
           >
             {["USD", "EUR", "CHF"].map((c) => (
               <option key={c}>{c}</option>
@@ -449,24 +421,17 @@ function FlowModal({ openHook, onSave, ccy, inline = false }) {
             type="number"
             step="0.01"
             value={flow.amount}
-            onChange={(e) =>
-              setFlow((f) => ({ ...f, amount: e.target.value }))
-            }
+            onChange={(e) => setFlow((f) => ({ ...f, amount: e.target.value }))}
           />
         </label>
 
-        <label
-          className="form-label"
-          style={{ gridColumn: "1 / -1" }}
-        >
+        <label className="form-label" style={{ gridColumn: "1 / -1" }}>
           <span>note</span>
           <input
             className="sel"
             placeholder="optionnel"
             value={flow.note}
-            onChange={(e) =>
-              setFlow((f) => ({ ...f, note: e.target.value }))
-            }
+            onChange={(e) => setFlow((f) => ({ ...f, note: e.target.value }))}
           />
         </label>
 
@@ -478,17 +443,10 @@ function FlowModal({ openHook, onSave, ccy, inline = false }) {
             gap: 8,
           }}
         >
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => setOpen(false)}
-          >
+          <button type="button" className="btn ghost" onClick={() => setOpen(false)}>
             annuler
           </button>
-          <button
-            type="submit"
-            className="btn"
-          >
+          <button type="submit" className="btn">
             enregistrer
           </button>
         </div>
@@ -497,12 +455,7 @@ function FlowModal({ openHook, onSave, ccy, inline = false }) {
   );
 }
 
-function CapitalTiersModal({
-  openHook,
-  onAdd,
-  displayCcy,
-  inline = false,
-}) {
+function CapitalTiersModal({ openHook, onAdd, displayCcy, inline = false }) {
   const [open, setOpen] = openHook || [false, () => {}];
   const [form, setForm] = React.useState({
     date: new Date().toISOString().slice(0, 10),
@@ -523,11 +476,7 @@ function CapitalTiersModal({
   const submit = (e) => {
     e.preventDefault();
     const amt = Number(form.amount);
-    if (
-      !form.date ||
-      !form.source ||
-      !Number.isFinite(amt)
-    ) {
+    if (!form.date || !form.source || !Number.isFinite(amt)) {
       alert("date/source/montant requis");
       return;
     }
@@ -536,12 +485,7 @@ function CapitalTiersModal({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={() => setOpen(false)}
-      title="Capital tiers"
-      inline={inline}
-    >
+    <Modal open={open} onClose={() => setOpen(false)} title="Capital tiers" inline={inline}>
       <form
         onSubmit={submit}
         style={{
@@ -555,12 +499,7 @@ function CapitalTiersModal({
           <select
             className="sel"
             value={form.source}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                source: e.target.value,
-              }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}
           >
             {sources.map((s) => (
               <option key={s}>{s}</option>
@@ -574,12 +513,7 @@ function CapitalTiersModal({
             className="sel"
             type="date"
             value={form.date}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                date: e.target.value,
-              }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
           />
         </label>
 
@@ -588,12 +522,7 @@ function CapitalTiersModal({
           <select
             className="sel"
             value={form.ccy}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                ccy: e.target.value,
-              }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, ccy: e.target.value }))}
           >
             {["USD", "EUR", "CHF"].map((c) => (
               <option key={c}>{c}</option>
@@ -608,30 +537,17 @@ function CapitalTiersModal({
             type="number"
             step="0.01"
             value={form.amount}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                amount: e.target.value,
-              }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
           />
         </label>
 
-        <label
-          className="form-label"
-          style={{ gridColumn: "1 / -1" }}
-        >
+        <label className="form-label" style={{ gridColumn: "1 / -1" }}>
           <span>note</span>
           <input
             className="sel"
             placeholder="optionnel"
             value={form.note}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                note: e.target.value,
-              }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
           />
         </label>
 
@@ -643,17 +559,10 @@ function CapitalTiersModal({
             gap: 8,
           }}
         >
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => setOpen(false)}
-          >
+          <button type="button" className="btn ghost" onClick={() => setOpen(false)}>
             annuler
           </button>
-          <button
-            type="submit"
-            className="btn"
-          >
+          <button type="submit" className="btn">
             enregistrer
           </button>
         </div>
@@ -666,13 +575,7 @@ function CashflowsModal({ openHook, rows, inline = false }) {
   const [open, setOpen] = openHook || [false, () => {}];
 
   const exportCSV = () => {
-    const headers = [
-      "Date",
-      "Type",
-      "Montant",
-      "Devise",
-      "Note",
-    ];
+    const headers = ["Date", "Type", "Montant", "Devise", "Note"];
     const lines = rows.map((c) => [
       c.date,
       c.type,
@@ -680,14 +583,13 @@ function CashflowsModal({ openHook, rows, inline = false }) {
       c.ccy || "USD",
       c.note || "",
     ]);
+
     const csv = [headers, ...lines]
       .map((r) =>
         r
           .map((x) => {
             const s = String(x ?? "");
-            return /[",;\n]/.test(s)
-              ? `"${s.replace(/"/g, '""')}"`
-              : s;
+            return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
           })
           .join(",")
       )
@@ -699,10 +601,7 @@ function CashflowsModal({ openHook, rows, inline = false }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download =
-      "cashflows_" +
-      new Date().toISOString().slice(0, 10) +
-      ".csv";
+    a.download = "cashflows_" + new Date().toISOString().slice(0, 10) + ".csv";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -715,10 +614,7 @@ function CashflowsModal({ openHook, rows, inline = false }) {
       onClose={() => setOpen(false)}
       title="Cashflows (récapitulatif)"
       actions={
-        <button
-          className="btn ghost sm"
-          onClick={exportCSV}
-        >
+        <button className="btn ghost sm" onClick={exportCSV}>
           exporter
         </button>
       }
@@ -729,9 +625,7 @@ function CashflowsModal({ openHook, rows, inline = false }) {
           <tr>
             <th>date</th>
             <th>type</th>
-            <th style={{ textAlign: "right" }}>
-              montant
-            </th>
+            <th style={{ textAlign: "right" }}>montant</th>
             <th>devise</th>
             <th>note</th>
           </tr>
@@ -742,10 +636,7 @@ function CashflowsModal({ openHook, rows, inline = false }) {
               <td>{r.date}</td>
               <td>{r.type}</td>
               <td style={{ textAlign: "right" }}>
-                <span
-                  className="val"
-                  style={styleNum(r.amount)}
-                >
+                <span className="val" style={styleNum(r.amount)}>
                   {Number(r.amount).toFixed(2)}
                 </span>
               </td>
@@ -753,15 +644,10 @@ function CashflowsModal({ openHook, rows, inline = false }) {
               <td>{r.note || ""}</td>
             </tr>
           ))}
+
           {!rows.length && (
             <tr>
-              <td
-                colSpan="5"
-                style={{
-                  textAlign: "center",
-                  opacity: 0.8,
-                }}
-              >
+              <td colSpan="5" style={{ textAlign: "center", opacity: 0.8 }}>
                 aucun flux
               </td>
             </tr>
@@ -773,13 +659,13 @@ function CashflowsModal({ openHook, rows, inline = false }) {
 }
 
 /* =========================================================
-   Blocs d'analyse (WinRate, Ratios, Corrélation, etc.)
+   Blocs d'analyse visuelle (WinRate, Ratios, Corrélation, etc.)
    ========================================================= */
 
 function WinRateBlock({ rows }) {
   const counts = React.useMemo(() => {
-    let w = 0,
-      l = 0;
+    let w = 0;
+    let l = 0;
     rows.forEach((t) => {
       if (t.pnl > 0) w++;
       else if (t.pnl < 0) l++;
@@ -795,14 +681,8 @@ function WinRateBlock({ rows }) {
   ];
 
   return (
-    <div
-      className="wr-donut"
-      style={{ height: 220 }}
-    >
-      <ResponsiveContainer
-        width="100%"
-        height="100%"
-      >
+    <div className="wr-donut" style={{ height: 220 }}>
+      <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
             data={donut}
@@ -822,12 +702,8 @@ function WinRateBlock({ rows }) {
       </ResponsiveContainer>
 
       <div className="wr-center">
-        <div className="wr-pct">
-          {counts.wr.toFixed(1)}%
-        </div>
-        <div className="wr-sub">
-          sur {counts.total} trades
-        </div>
+        <div className="wr-pct">{counts.wr.toFixed(1)}%</div>
+        <div className="wr-sub">sur {counts.total} trades</div>
       </div>
     </div>
   );
@@ -837,20 +713,10 @@ function RatiosBlock({ rows, convert, ccy }) {
   const byDate = React.useMemo(() => {
     const m = new Map();
     rows.forEach((t) => {
-      const v = convert(
-        t.pnl,
-        t.ccy || "USD",
-        ccy
-      );
-      m.set(
-        t.date,
-        (m.get(t.date) || 0) + v
-      );
+      const v = convert(t.pnl, t.ccy || "USD", ccy);
+      m.set(t.date, (m.get(t.date) || 0) + v);
     });
-    return Array.from(
-      m,
-      ([date, pnl]) => ({ date, pnl })
-    ).sort((a, b) =>
+    return Array.from(m, ([date, pnl]) => ({ date, pnl })).sort((a, b) =>
       a.date.localeCompare(b.date)
     );
   }, [rows, ccy, convert]);
@@ -863,129 +729,62 @@ function RatiosBlock({ rows, convert, ccy }) {
 
   const wins = rows
     .filter((t) => t.pnl > 0)
-    .map((t) =>
-      convert(
-        t.pnl,
-        t.ccy || "USD",
-        ccy
-      )
-    );
+    .map((t) => convert(t.pnl, t.ccy || "USD", ccy));
   const loss = rows
     .filter((t) => t.pnl < 0)
-    .map((t) =>
-      Math.abs(
-        convert(
-          t.pnl,
-          t.ccy || "USD",
-          ccy
-        )
-      )
-    );
+    .map((t) => Math.abs(convert(t.pnl, t.ccy || "USD", ccy)));
 
-  const p = rows.length
-    ? wins.length / rows.length
-    : 0;
+  const p = rows.length ? wins.length / rows.length : 0;
   const q = 1 - p;
 
-  const avgW = wins.length
-    ? mean(wins)
-    : 0;
-  const avgL = loss.length
-    ? mean(loss)
-    : 0;
+  const avgW = wins.length ? mean(wins) : 0;
+  const avgL = loss.length ? mean(loss) : 0;
 
   const RR = avgL > 0 ? avgW / avgL : 0;
-  const expectancy = rows.length
-    ? sum(daily) / rows.length
-    : 0;
-  const sharpe =
-    sd > 0 ? (avg / sd) * Math.sqrt(252) : 0;
-  const sortino =
-    dsd > 0
-      ? (avg / dsd) * Math.sqrt(252)
-      : 0;
-  const kelly =
-    avgL > 0
-      ? p - q / (RR || 1)
-      : 0;
-  const edge =
-    p * avgW - q * avgL;
+  const expectancy = rows.length ? sum(daily) / rows.length : 0;
+  const sharpe = sd > 0 ? (avg / sd) * Math.sqrt(252) : 0;
+  const sortino = dsd > 0 ? (avg / dsd) * Math.sqrt(252) : 0;
+  const kelly = avgL > 0 ? p - q / (RR || 1) : 0;
+  const edge = p * avgW - q * avgL;
   const ror =
     edge <= 0
       ? 1
-      : Math.max(
-          0,
-          Math.pow(
-            q / Math.max(p, 1e-6),
-            5
-          )
-        ); // approx
+      : Math.max(0, Math.pow(q / Math.max(p, 1e-6), 5)); // approx
 
   const verdict = (s) =>
-    s >= 1
-      ? "halo-good"
-      : s >= 0.4
-      ? "halo-warn"
-      : "halo-bad";
+    s >= 1 ? "halo-good" : s >= 0.4 ? "halo-warn" : "halo-bad";
 
   const V = ({ v, suffix = "" }) => (
-    <span
-      className="val"
-      style={styleNum(v)}
-    >
-      {Number.isFinite(v)
-        ? v.toFixed(2) + suffix
-        : "—"}
+    <span className="val" style={styleNum(v)}>
+      {Number.isFinite(v) ? v.toFixed(2) + suffix : "—"}
     </span>
   );
 
   return (
-    <div
-      className={`card ${verdict(
-        sharpe
-      )}`}
-    >
+    <div className={`card ${verdict(sharpe)}`}>
       <div className="grid-3">
         <div className="card halo-neutral tinted">
-          <div className="kpi-title">
-            Expectancy par Trade
-          </div>
+          <div className="kpi-title">Expectancy par Trade</div>
           <V v={expectancy} />
         </div>
 
         <div className="card halo-neutral tinted">
-          <div className="kpi-title">
-            Sharpe (Ann.)
-          </div>
+          <div className="kpi-title">Sharpe (Ann.)</div>
           <V v={sharpe} />
-
-          <div
-            className="kpi-title"
-            style={{ marginTop: 8 }}
-          >
+          <div className="kpi-title" style={{ marginTop: 8 }}>
             Sortino (Ann.)
           </div>
           <V v={sortino} />
         </div>
 
         <div className="card halo-neutral tinted">
-          <div className="kpi-title">
-            Risk / Reward
-          </div>
+          <div className="kpi-title">Risk / Reward</div>
           <V v={RR} />
-
-          <div
-            className="kpi-title"
-            style={{ marginTop: 8 }}
-          >
+          <div className="kpi-title" style={{ marginTop: 8 }}>
             Kelly (Indicatif)
           </div>
           <V v={kelly} />
-
-          <div
-            className="kpi-title"
-            style={{ marginTop: 8 }}
-          >
+          <div className="kpi-title" style={{ marginTop: 8 }}>
             Risque de Ruine (≈)
           </div>
           <V v={ror * 100} suffix="%" />
@@ -997,9 +796,7 @@ function RatiosBlock({ rows, convert, ccy }) {
 
 function CorrelationBlock({ rows, convert, ccy }) {
   const strats = React.useMemo(() => {
-    return Array.from(
-      new Set(rows.map((r) => r.strategy))
-    ).sort();
+    return Array.from(new Set(rows.map((r) => r.strategy))).sort();
   }, [rows]);
 
   const byDateStrat = React.useMemo(() => {
@@ -1007,11 +804,7 @@ function CorrelationBlock({ rows, convert, ccy }) {
     rows.forEach((t) => {
       const d = t.date;
       const s = t.strategy;
-      const v = convert(
-        t.pnl,
-        t.ccy || "USD",
-        ccy
-      );
+      const v = convert(t.pnl, t.ccy || "USD", ccy);
       if (!m.has(d)) m.set(d, new Map());
       const mm = m.get(d);
       mm.set(s, (mm.get(s) || 0) + v);
@@ -1027,28 +820,17 @@ function CorrelationBlock({ rows, convert, ccy }) {
     const s = {};
     strats.forEach((st) => {
       s[st] = dates.map((d) => {
-        const mm =
-          byDateStrat.get(d) ||
-          new Map();
+        const mm = byDateStrat.get(d) || new Map();
         return mm.get(st) || 0;
       });
     });
     return s;
   }, [strats, dates, byDateStrat]);
 
-  const meanArr = (a) =>
-    a.length
-      ? a.reduce(
-          (sum, x) => sum + x,
-          0
-        ) / a.length
-      : 0;
+  const meanArr = (a) => (a.length ? a.reduce((sum, x) => sum + x, 0) / a.length : 0);
 
   const corr = (a, b) => {
-    const n = Math.min(
-      a.length,
-      b.length
-    );
+    const n = Math.min(a.length, b.length);
     if (!n) return 0;
     const ax = a.slice(0, n);
     const bx = b.slice(0, n);
@@ -1064,9 +846,7 @@ function CorrelationBlock({ rows, convert, ccy }) {
       da += x * x;
       db += y * y;
     }
-    const den = Math.sqrt(
-      da * db
-    );
+    const den = Math.sqrt(da * db);
     return den > 0 ? num / den : 0;
   };
 
@@ -1079,14 +859,7 @@ function CorrelationBlock({ rows, convert, ccy }) {
 
   const matrix = React.useMemo(() => {
     return strats.map((s1, i) =>
-      strats.map((s2, j) =>
-        i === j
-          ? 1
-          : corr(
-              series[s1] || [],
-              series[s2] || []
-            )
-      )
+      strats.map((s2, j) => (i === j ? 1 : corr(series[s1] || [], series[s2] || [])))
     );
   }, [strats, series]);
 
@@ -1100,20 +873,13 @@ function CorrelationBlock({ rows, convert, ccy }) {
           padding: "8px 0",
         }}
       >
-        Pas assez de stratégies
-        pour calculer une
-        corrélation.
+        Pas assez de stratégies pour calculer une corrélation.
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        overflowX: "auto",
-        marginTop: 8,
-      }}
-    >
+    <div style={{ overflowX: "auto", marginTop: 8 }}>
       <table className="table">
         <thead>
           <tr>
@@ -1132,22 +898,15 @@ function CorrelationBlock({ rows, convert, ccy }) {
                   <div
                     className="card halo-neutral"
                     style={{
-                      padding:
-                        "8px 10px",
-                      textAlign:
-                        "center",
+                      padding: "8px 10px",
+                      textAlign: "center",
                       borderRadius: 12,
-                      border:
-                        "1px solid var(--border)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <div
-                      className={`val ${verdict(
-                        c
-                      )}`}
-                      style={{
-                        border: "none",
-                      }}
+                      className={`val ${verdict(c)}`}
+                      style={{ border: "none" }}
                     >
                       {c.toFixed(2)}
                     </div>
@@ -1166,81 +925,39 @@ function MappingTable({ rows, convert, ccy }) {
   const map = new Map();
   rows.forEach((r) => {
     const k = `${r.strategy}||${r.broker}`;
-    const v = convert(
-      r.pnl,
-      r.ccy || "USD",
-      ccy
-    );
-    const o =
-      map.get(k) || {
-        pnl: 0,
-        n: 0,
-      };
+    const v = convert(r.pnl, r.ccy || "USD", ccy);
+    const o = map.get(k) || { pnl: 0, n: 0 };
     o.pnl += v;
     o.n += 1;
     map.set(k, o);
   });
 
-  const items = Array.from(
-    map.entries()
-  )
+  const items = Array.from(map.entries())
     .map(([k, v]) => {
-      const [strategy, broker] = k.split(
-        "||"
-      );
+      const [strategy, broker] = k.split("||");
       return {
         strategy,
         broker,
         pnl: v.pnl,
         n: v.n,
-        expectancy: v.n
-          ? v.pnl / v.n
-          : 0,
+        expectancy: v.n ? v.pnl / v.n : 0,
       };
     })
     .sort(
       (a, b) =>
-        a.strategy.localeCompare(
-          b.strategy
-        ) ||
-        a.broker.localeCompare(
-          b.broker
-        )
+        a.strategy.localeCompare(b.strategy) ||
+        a.broker.localeCompare(b.broker)
     );
 
   return (
-    <table
-      className="table"
-      style={{ marginTop: 6 }}
-    >
+    <table className="table" style={{ marginTop: 6 }}>
       <thead>
         <tr>
           <th>Stratégie</th>
           <th>Broker</th>
-          <th
-            style={{
-              textAlign:
-                "right",
-            }}
-          >
-            Pnl
-          </th>
-          <th
-            style={{
-              textAlign:
-                "right",
-            }}
-          >
-            Trades
-          </th>
-          <th
-            style={{
-              textAlign:
-                "right",
-            }}
-          >
-            Expectancy
-          </th>
+          <th style={{ textAlign: "right" }}>Pnl</th>
+          <th style={{ textAlign: "right" }}>Trades</th>
+          <th style={{ textAlign: "right" }}>Expectancy</th>
         </tr>
       </thead>
       <tbody>
@@ -1248,44 +965,15 @@ function MappingTable({ rows, convert, ccy }) {
           <tr key={i}>
             <td>{r.strategy}</td>
             <td>{r.broker}</td>
-            <td
-              style={{
-                textAlign:
-                  "right",
-              }}
-            >
-              <span
-                className="val"
-                style={styleNum(
-                  r.pnl
-                )}
-              >
+            <td style={{ textAlign: "right" }}>
+              <span className="val" style={styleNum(r.pnl)}>
                 {r.pnl.toFixed(2)}
               </span>
             </td>
-            <td
-              style={{
-                textAlign:
-                  "right",
-              }}
-            >
-              {r.n}
-            </td>
-            <td
-              style={{
-                textAlign:
-                  "right",
-              }}
-            >
-              <span
-                className="val"
-                style={styleNum(
-                  r.expectancy
-                )}
-              >
-                {r.expectancy.toFixed(
-                  2
-                )}
+            <td style={{ textAlign: "right" }}>{r.n}</td>
+            <td style={{ textAlign: "right" }}>
+              <span className="val" style={styleNum(r.expectancy)}>
+                {r.expectancy.toFixed(2)}
               </span>
             </td>
           </tr>
@@ -1296,36 +984,17 @@ function MappingTable({ rows, convert, ccy }) {
 }
 
 function ActivityBlocks({ rows }) {
-  const hour = new Array(24)
-    .fill(0)
-    .map((_, h) => ({
-      h,
-      win: 0,
-      loss: 0,
-    }));
-  const dow = new Array(7)
-    .fill(0)
-    .map((_, d) => ({
-      d,
-      win: 0,
-      loss: 0,
-    }));
-  const mon = new Array(12)
-    .fill(0)
-    .map((_, m) => ({
-      m,
-      win: 0,
-      loss: 0,
-    }));
+  // distributions
+  const hour = new Array(24).fill(0).map((_, h) => ({ h, win: 0, loss: 0 }));
+  const dow = new Array(7).fill(0).map((_, d) => ({ d, win: 0, loss: 0 }));
+  const mon = new Array(12).fill(0).map((_, m) => ({ m, win: 0, loss: 0 }));
 
   rows.forEach((t) => {
-    const rndH = (Math.random() * 24) | 0;
-    const dt = new Date(
-      t.date + "T12:00:00Z"
-    );
-    const d =
-      (dt.getUTCDay() + 6) % 7;
+    const rndH = (Math.random() * 24) | 0; // pas d'heure précise dispo
+    const dt = new Date(t.date + "T12:00:00Z");
+    const d = (dt.getUTCDay() + 6) % 7; // lundi=0
     const m = dt.getUTCMonth();
+
     if (t.pnl > 0) {
       hour[rndH].win++;
       dow[d].win++;
@@ -1338,53 +1007,30 @@ function ActivityBlocks({ rows }) {
   });
 
   const bar = (data, xKey) => (
-    <ResponsiveContainer
-      width="100%"
-      height={260}
-    >
+    <ResponsiveContainer width="100%" height={260}>
       <BarChart data={data}>
         <CartesianGrid stroke="#2b2b2b" />
         <XAxis
           dataKey={xKey}
           stroke={C.axis}
           tickLine={false}
-          axisLine={{
-            stroke: C.axis,
-          }}
+          axisLine={{ stroke: C.axis }}
         />
         <YAxis
           allowDecimals={false}
           stroke={C.axis}
           tickLine={false}
-          axisLine={{
-            stroke: C.axis,
-          }}
+          axisLine={{ stroke: C.axis }}
         />
         <Tooltip />
         <Legend />
-        <Bar
-          dataKey="win"
-          name="Gagnants"
-          fill="var(--green)"
-        />
-        <Bar
-          dataKey="loss"
-          name="Perdants"
-          fill="var(--pink)"
-        />
+        <Bar dataKey="win" name="Gagnants" fill="var(--green)" />
+        <Bar dataKey="loss" name="Perdants" fill="var(--pink)" />
       </BarChart>
     </ResponsiveContainer>
   );
 
-  const dowLabel = [
-    "Lun",
-    "Mar",
-    "Mer",
-    "Jeu",
-    "Ven",
-    "Sam",
-    "Dim",
-  ];
+  const dowLabel = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
   const monLabel = [
     "Jan",
     "Fév",
@@ -1403,36 +1049,22 @@ function ActivityBlocks({ rows }) {
   return (
     <div className="grid-3">
       <div className="card">
-        <div className="kpi-title">
-          Activité par Heure
-        </div>
+        <div className="kpi-title">Activité par Heure</div>
         {bar(hour, "h")}
       </div>
 
       <div className="card">
-        <div className="kpi-title">
-          Activité par Jour
-          (Lundi…Dimanche)
-        </div>
+        <div className="kpi-title">Activité par Jour (Lundi…Dimanche)</div>
         {bar(
-          dow.map((x, i) => ({
-            ...x,
-            d: dowLabel[i],
-          })),
+          dow.map((x, i) => ({ ...x, d: dowLabel[i] })),
           "d"
         )}
       </div>
 
       <div className="card">
-        <div className="kpi-title">
-          Activité par Mois
-          (Janvier…Décembre)
-        </div>
+        <div className="kpi-title">Activité par Mois (Janvier…Décembre)</div>
         {bar(
-          mon.map((x, i) => ({
-            ...x,
-            m: monLabel[i],
-          })),
+          mon.map((x, i) => ({ ...x, m: monLabel[i] })),
           "m"
         )}
       </div>
@@ -1444,25 +1076,11 @@ function ActivityBlocks({ rows }) {
    Calendrier Mensuel
    ========================================================= */
 
-function CalendarMonthly({
-  rows,
-  convert,
-  ccy,
-  startEquity,
-}) {
-  // agrégation par date
+function CalendarMonthly({ rows, convert, ccy, startEquity }) {
   const map = new Map();
   rows.forEach((t) => {
-    const v = convert(
-      t.pnl,
-      t.ccy || "USD",
-      ccy
-    );
-    const o =
-      map.get(t.date) || {
-        pnl: 0,
-        n: 0,
-      };
+    const v = convert(t.pnl, t.ccy || "USD", ccy);
+    const o = map.get(t.date) || { pnl: 0, n: 0 };
     o.pnl += v;
     o.n++;
     map.set(t.date, o);
@@ -1471,88 +1089,45 @@ function CalendarMonthly({
   // mois cible = dernier trade filtré sinon aujourd'hui
   const lastDateStr = rows.length
     ? rows[rows.length - 1].date
-    : new Date()
-        .toISOString()
-        .slice(0, 10);
+    : new Date().toISOString().slice(0, 10);
 
-  const base = new Date(
-    lastDateStr + "T12:00:00Z"
-  );
+  const base = new Date(lastDateStr + "T12:00:00Z");
   const year = base.getUTCFullYear();
   const month = base.getUTCMonth(); // 0..11
 
-  const firstOfMonth = new Date(
-    Date.UTC(year, month, 1)
-  );
-  const lastOfMonth = new Date(
-    Date.UTC(year, month + 1, 0)
-  );
+  const firstOfMonth = new Date(Date.UTC(year, month, 1));
+  const lastOfMonth = new Date(Date.UTC(year, month + 1, 0));
 
   // grille Lundi -> Dimanche
   const start = new Date(firstOfMonth);
-  const startDow =
-    (start.getUTCDay() + 6) % 7;
-  start.setUTCDate(
-    start.getUTCDate() - startDow
-  );
+  const startDow = (start.getUTCDay() + 6) % 7; // lundi = 0
+  start.setUTCDate(start.getUTCDate() - startDow);
 
   const end = new Date(lastOfMonth);
-  const endDow =
-    (end.getUTCDay() + 6) % 7;
-  end.setUTCDate(
-    end.getUTCDate() + (6 - endDow)
-  );
+  const endDow = (end.getUTCDay() + 6) % 7;
+  end.setUTCDate(end.getUTCDate() + (6 - endDow));
 
   const days = [];
-  let eq = startEquity,
-    peak = eq;
-  for (
-    let d = new Date(start);
-    d <= end;
-    d.setUTCDate(
-      d.getUTCDate() + 1
-    )
-  ) {
-    const date = d
-      .toISOString()
-      .slice(0, 10);
-    const isInMonth =
-      d.getUTCMonth() === month;
-    const dayData =
-      map.get(date) || {
-        pnl: 0,
-        n: 0,
-      };
+  let eq = startEquity;
+  let peak = eq;
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    const date = d.toISOString().slice(0, 10);
+    const isInMonth = d.getUTCMonth() === month;
+    const dayData = map.get(date) || { pnl: 0, n: 0 };
 
     const prev = eq;
     eq += isInMonth ? dayData.pnl : 0;
     peak = Math.max(peak, eq);
-
-    const ddAbs = Math.max(
-      0,
-      peak - eq
-    );
-    const retPct =
-      prev > 0
-        ? (dayData.pnl / prev) *
-          100
-        : 0;
+    const ddAbs = Math.max(0, peak - eq);
+    const retPct = prev > 0 ? (dayData.pnl / prev) * 100 : 0;
 
     days.push({
       date,
       inMonth: isInMonth,
-      pnl: isInMonth
-        ? dayData.pnl
-        : null,
-      n: isInMonth
-        ? dayData.n
-        : 0,
-      retPct: isInMonth
-        ? retPct
-        : null,
-      ddAbs: isInMonth
-        ? ddAbs
-        : null,
+      pnl: isInMonth ? dayData.pnl : null,
+      n: isInMonth ? dayData.n : 0,
+      retPct: isInMonth ? retPct : null,
+      ddAbs: isInMonth ? ddAbs : null,
     });
   }
 
@@ -1565,15 +1140,7 @@ function CalendarMonthly({
       ? "halo-warn"
       : "halo-bad";
 
-  const weekDays = [
-    "Lun",
-    "Mar",
-    "Mer",
-    "Jeu",
-    "Ven",
-    "Sam",
-    "Dim",
-  ];
+  const weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
   return (
     <div className="card">
@@ -1581,10 +1148,7 @@ function CalendarMonthly({
         {/* En-têtes des jours */}
         <div className="month-head">
           {weekDays.map((d) => (
-            <div
-              key={d}
-              className="cap"
-            >
+            <div key={d} className="cap">
               {d}
             </div>
           ))}
@@ -1592,96 +1156,39 @@ function CalendarMonthly({
 
         {/* Jours */}
         {days.map((d) => (
-          <div
-            key={d.date}
-            className={`day-cell ${verdict(
-              d.pnl
-            )}`}
-          >
+          <div key={d.date} className={`day-cell ${verdict(d.pnl)}`}>
             <div className="day-top">
-              <span
-                className={
-                  d.inMonth
-                    ? ""
-                    : "day-muted"
-                }
-              >
-                {d.date.slice(
-                  8,
-                  10
-                )}
-                /
-                {d.date.slice(
-                  5,
-                  7
-                )}
+              <span className={d.inMonth ? "" : "day-muted"}>
+                {d.date.slice(8, 10)}/{d.date.slice(5, 7)}
               </span>
-              <span className="day-muted">
-                {d.n
-                  ? `${d.n} t.`
-                  : ""}
-              </span>
+              <span className="day-muted">{d.n ? `${d.n} t.` : ""}</span>
             </div>
 
             {d.inMonth ? (
               <>
                 <div className="day-metric">
-                  <span className="cap">
-                    PnL
-                  </span>
-                  <span
-                    className="val"
-                    style={styleNum(
-                      d.pnl
-                    )}
-                  >
-                    {(d.pnl ??
-                      0
-                    ).toFixed(2)}
+                  <span className="cap">PnL</span>
+                  <span className="val" style={styleNum(d.pnl)}>
+                    {(d.pnl ?? 0).toFixed(2)}
                   </span>
                 </div>
 
                 <div className="day-metric">
-                  <span className="cap">
-                    Rentabilité
-                  </span>
-                  <span
-                    className="val"
-                    style={styleNum(
-                      d.retPct
-                    )}
-                  >
-                    {Number(
-                      d.retPct ??
-                        0
-                    ).toFixed(
-                      2
-                    )}
-                    %
+                  <span className="cap">Rentabilité</span>
+                  <span className="val" style={styleNum(d.retPct)}>
+                    {Number(d.retPct ?? 0).toFixed(2)}%
                   </span>
                 </div>
 
                 <div className="day-metric">
-                  <span className="cap">
-                    DD Abs
-                  </span>
+                  <span className="cap">DD Abs</span>
                   <span className="val">
-                    {Number(
-                      d.ddAbs ??
-                        0
-                    ).toFixed(
-                      2
-                    )}
+                    {Number(d.ddAbs ?? 0).toFixed(2)}
                   </span>
                 </div>
               </>
             ) : (
-              <div
-                className="day-muted"
-                style={{
-                  fontSize: 12,
-                }}
-              >
+              <div className="day-muted" style={{ fontSize: 12 }}>
                 —
               </div>
             )}
@@ -1696,254 +1203,121 @@ function CalendarMonthly({
    Courbe d’Équité
    ========================================================= */
 
-function EquityBlock({
-  rows,
-  cashflows,
-  initial,
-  convert,
-  ccy,
-}) {
-  const [mode, setMode] =
-    React.useState("global"); // 'global' | 'strat'
+function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
+  const [mode, setMode] = React.useState("global"); // 'global' | 'strat'
 
   // agrégation PnL par date
   const byDate = React.useMemo(() => {
     const m = new Map();
     rows.forEach((r) => {
-      const v = convert(
-        r.pnl,
-        r.ccy || "USD",
-        ccy
-      );
-      m.set(
-        r.date,
-        (m.get(r.date) || 0) + v
-      );
+      const v = convert(r.pnl, r.ccy || "USD", ccy);
+      m.set(r.date, (m.get(r.date) || 0) + v);
     });
     return [...m.entries()]
-      .map(([date, pnl]) => ({
-        date,
-        pnl,
-      }))
-      .sort((a, b) =>
-        a.date.localeCompare(
-          b.date
-        )
-      );
+      .map(([date, pnl]) => ({ date, pnl }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [rows, ccy, convert]);
 
   // equity cumulée + peak + drawdown abs
-  let eq = convert(
-    initial,
-    "USD",
-    ccy
-  );
+  let eq = convert(initial, "USD", ccy);
   let peak = eq;
-  const globalSeries = byDate.map(
-    (d) => {
-      eq += d.pnl;
-      peak = Math.max(
-        peak,
-        eq
-      );
-      const drawdownAbs =
-        Math.max(
-          0,
-          peak - eq
-        );
-      return {
-        date: d.date,
-        equity: eq,
-        pnl: d.pnl,
-        peakEquity: peak,
-        drawdownAbs,
-      };
-    }
-  );
+  const globalSeries = byDate.map((d) => {
+    eq += d.pnl;
+    peak = Math.max(peak, eq);
+    const drawdownAbs = Math.max(0, peak - eq);
+    return {
+      date: d.date,
+      equity: eq,
+      pnl: d.pnl,
+      peakEquity: peak,
+      drawdownAbs,
+    };
+  });
 
   // scatter points (flux et pertes)
-  const fluxDates = new Set(
-    cashflows.map((c) => c.date)
-  );
-  const scatterFlux =
-    globalSeries
-      .filter((x) =>
-        fluxDates.has(x.date)
-      )
-      .map((x) => ({
-        date: x.date,
-        equity: x.equity,
-      }));
-  const scatterLoss =
-    globalSeries
-      .filter((x) => x.pnl < 0)
-      .map((x) => ({
-        date: x.date,
-        equity: x.equity,
-      }));
+  const fluxDates = new Set(cashflows.map((c) => c.date));
+  const scatterFlux = globalSeries
+    .filter((x) => fluxDates.has(x.date))
+    .map((x) => ({ date: x.date, equity: x.equity }));
+  const scatterLoss = globalSeries
+    .filter((x) => x.pnl < 0)
+    .map((x) => ({ date: x.date, equity: x.equity }));
 
   // equity cumulée par stratégie
   const strats = React.useMemo(
-    () =>
-      Array.from(
-        new Set(
-          rows.map(
-            (r) =>
-              r.strategy
-          )
-        )
-      ).sort(),
+    () => Array.from(new Set(rows.map((r) => r.strategy))).sort(),
     [rows]
   );
 
-  const byDateStrat =
-    React.useMemo(() => {
-      const m = new Map();
-      rows.forEach((r) => {
-        const v = convert(
-          r.pnl,
-          r.ccy || "USD",
-          ccy
-        );
-        if (!m.has(r.date))
-          m.set(
-            r.date,
-            new Map()
-          );
-        const mm = m.get(
-          r.date
-        );
-        mm.set(
-          r.strategy,
-          (mm.get(
-            r.strategy
-          ) || 0) + v
-        );
-      });
-      return m;
-    }, [rows, ccy, convert]);
+  const byDateStrat = React.useMemo(() => {
+    const m = new Map();
+    rows.forEach((r) => {
+      const v = convert(r.pnl, r.ccy || "USD", ccy);
+      if (!m.has(r.date)) m.set(r.date, new Map());
+      const mm = m.get(r.date);
+      mm.set(r.strategy, (mm.get(r.strategy) || 0) + v);
+    });
+    return m;
+  }, [rows, ccy, convert]);
 
   const dates = React.useMemo(
-    () =>
-      Array.from(
-        new Set(
-          globalSeries.map(
-            (d) =>
-              d.date
-          )
-        )
-      ).sort(),
+    () => Array.from(new Set(globalSeries.map((d) => d.date))).sort(),
     [globalSeries]
   );
 
-  const stratSeries =
-    React.useMemo(() => {
-      const acc = {};
-      strats.forEach(
-        (s) => (acc[s] = 0)
-      );
-      const out = dates.map(
-        (date) => {
-          const mm =
-            byDateStrat.get(
-              date
-            ) || new Map();
-          const row = {
-            date,
-          };
-          strats.forEach(
-            (s) => {
-              acc[s] +=
-                mm.get(s) ||
-                0;
-              row[s] = acc[s];
-            }
-          );
-          return row;
-        }
-      );
-      return out;
-    }, [
-      strats,
-      dates,
-      byDateStrat,
-    ]);
+  const stratSeries = React.useMemo(() => {
+    const acc = {};
+    strats.forEach((s) => (acc[s] = 0));
+    const out = dates.map((date) => {
+      const mm = byDateStrat.get(date) || new Map();
+      const row = { date };
+      strats.forEach((s) => {
+        acc[s] += mm.get(s) || 0;
+        row[s] = acc[s];
+      });
+      return row;
+    });
+    return out;
+  }, [strats, dates, byDateStrat]);
 
   return (
     <div className="card">
       <div className="block-head">
-        <div className="block-title cap">
-          Courbe d’Équité
-        </div>
+        <div className="block-title cap">Courbe d’Équité</div>
         <div className="block-tools">
-          <span
-            className="kpi-sub"
-            style={{
-              opacity: 0.85,
-            }}
-          >
+          <span className="kpi-sub" style={{ opacity: 0.85 }}>
             Vue
           </span>
           <select
             className="sel"
             value={mode}
-            onChange={(e) =>
-              setMode(
-                e.target.value
-              )
-            }
+            onChange={(e) => setMode(e.target.value)}
           >
-            <option value="global">
-              Global (PnL
-              cumulé)
-            </option>
-            <option value="strat">
-              Par Stratégie
-              (PnL cumulé)
-            </option>
+            <option value="global">Global (PnL cumulé)</option>
+            <option value="strat">Par Stratégie (PnL cumulé)</option>
           </select>
         </div>
       </div>
 
-      <ResponsiveContainer
-        width="100%"
-        height={420}
-      >
+      <ResponsiveContainer width="100%" height={420}>
         {mode === "global" ? (
           <ComposedChart
             data={globalSeries}
-            margin={{
-              left: 8,
-              right: 8,
-              top: 8,
-              bottom: 8,
-            }}
+            margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
           >
             <CartesianGrid stroke="#2b2b2b" />
             <XAxis
               dataKey="date"
               stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{
-                stroke:
-                  "var(--axis-text)",
-              }}
-              tick={{
-                fontSize: 11,
-                fill: "var(--axis-text)",
-              }}
+              axisLine={{ stroke: "var(--axis-text)" }}
+              tick={{ fontSize: 11, fill: "var(--axis-text)" }}
             />
             <YAxis
               stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{
-                stroke:
-                  "var(--axis-text)",
-              }}
-              tick={{
-                fontSize: 11,
-                fill: "var(--axis-text)",
-              }}
+              axisLine={{ stroke: "var(--axis-text)" }}
+              tick={{ fontSize: 11, fill: "var(--axis-text)" }}
             />
             <Tooltip />
             <Legend />
@@ -1999,82 +1373,55 @@ function EquityBlock({
         ) : (
           <LineChart
             data={stratSeries}
-            margin={{
-              left: 8,
-              right: 8,
-              top: 8,
-              bottom: 8,
-            }}
+            margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
           >
             <CartesianGrid stroke="#2b2b2b" />
             <XAxis
               dataKey="date"
               stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{
-                stroke:
-                  "var(--axis-text)",
-              }}
-              tick={{
-                fontSize: 11,
-                fill: "var(--axis-text)",
-              }}
+              axisLine={{ stroke: "var(--axis-text)" }}
+              tick={{ fontSize: 11, fill: "var(--axis-text)" }}
             />
             <YAxis
               stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{
-                stroke:
-                  "var(--axis-text)",
-              }}
-              tick={{
-                fontSize: 11,
-                fill: "var(--axis-text)",
-              }}
+              axisLine={{ stroke: "var(--axis-text)" }}
+              tick={{ fontSize: 11, fill: "var(--axis-text)" }}
             />
             <Tooltip />
             <Legend />
-            {strats.map(
-              (s, i) => (
-                <Line
-                  key={s}
-                  type="monotone"
-                  dataKey={s}
-                  name={s}
-                  dot={false}
-                  stroke={[
-                    "var(--white)",
-                    "var(--green)",
-                    "var(--pink)",
-                    "var(--orange)",
-                  ][i % 4]}
-                  strokeWidth={1.6}
-                />
-              )
-            )}
+            {strats.map((s, i) => (
+              <Line
+                key={s}
+                type="monotone"
+                dataKey={s}
+                name={s}
+                dot={false}
+                stroke={[
+                  "var(--white)",
+                  "var(--green)",
+                  "var(--pink)",
+                  "var(--orange)",
+                ][i % 4]}
+                strokeWidth={1.6}
+              />
+            ))}
           </LineChart>
         )}
       </ResponsiveContainer>
 
-      <div
-        style={{
-          marginTop: 8,
-          fontSize: 12,
-          color: "var(--text)",
-        }}
-      >
-        <span style={{ opacity: 0.9 }}>
-          Pointillés :
-        </span>{" "}
-        Peak (gris), DD (rose). •{" "}
+      <div style={{ marginTop: 8, fontSize: 12, color: "var(--text)" }}>
+        <span style={{ opacity: 0.9 }}>Pointillés :</span> Peak (gris), DD
+        (rose). •{" "}
         <span style={{ opacity: 0.85 }}>
-          points bleus = flux, points
-          roses = jours perdants
+          points bleus = flux, points roses = jours perdants
         </span>
       </div>
     </div>
-  )
+  );
 }
+
 /* =========================================================
    APP (main)
    ========================================================= */
@@ -2083,71 +1430,39 @@ export default function App() {
   /* ------------------------------
      Navigation simple
      ------------------------------ */
-  const [view, setView] = React.useState(
-    "home"
-  ); // 'home' | 'control' | 'compta' | 'risk'
+  const [view, setView] = React.useState("home"); // 'home' | 'control' | 'compta' | 'risk'
 
   /* ------------------------------
      Langue + i18n
      ------------------------------ */
-  const [lang, setLang] =
-    React.useState("fr");
+  const [lang, setLang] = React.useState("fr");
   const t = React.useMemo(
-    () =>
-      deepMerge(
-        I18N_DEFAULTS,
-        dict[lang] || {}
-      ),
+    () => deepMerge(I18N_DEFAULTS, dict[lang] || {}),
     [lang]
   );
 
   /* ------------------------------
      Devise d’affichage
      ------------------------------ */
-  const [displayCcy, setDisplayCcy] =
-    React.useState("USD");
+  const [displayCcy, setDisplayCcy] = React.useState("USD");
 
   // fallback si pas d'API FX
   const fallback = {
-    USD: {
-      USD: 1,
-      EUR: 0.93,
-      CHF: 0.88,
-    },
-    EUR: {
-      USD: 1 / 0.93,
-      EUR: 1,
-      CHF: 0.88 / 0.93,
-    },
-    CHF: {
-      USD: 1 / 0.88,
-      EUR: 0.93 / 0.88,
-      CHF: 1,
-    },
+    USD: { USD: 1, EUR: 0.93, CHF: 0.88 },
+    EUR: { USD: 1 / 0.93, EUR: 1, CHF: 0.88 / 0.93 },
+    CHF: { USD: 1 / 0.88, EUR: 0.93 / 0.88, CHF: 1 },
   };
 
-  const [rates, setRates] =
-    React.useState(null);
+  const [rates, setRates] = React.useState(null);
 
   React.useEffect(() => {
     const key = "fx_cache_v1";
     const now = Date.now();
     try {
-      const cached =
-        localStorage.getItem(
-          key
-        );
+      const cached = localStorage.getItem(key);
       if (cached) {
-        const { at, data } =
-          JSON.parse(
-            cached
-          );
-        if (
-          now - at <
-          24 *
-            3600 *
-            1000
-        ) {
+        const { at, data } = JSON.parse(cached);
+        if (now - at < 24 * 3600 * 1000) {
           setRates(data);
           return;
         }
@@ -2160,108 +1475,53 @@ export default function App() {
       .then((r) => r.json())
       .then((j) => {
         const data = {
-          USD: {
-            USD: 1,
-            EUR: j.rates.EUR,
-            CHF: j.rates.CHF,
-          },
+          USD: { USD: 1, EUR: j.rates.EUR, CHF: j.rates.CHF },
           EUR: {
-            USD:
-              1 /
-              j.rates
-                .EUR,
+            USD: 1 / j.rates.EUR,
             EUR: 1,
-            CHF:
-              j.rates.CHF /
-              j.rates.EUR,
+            CHF: j.rates.CHF / j.rates.EUR,
           },
           CHF: {
-            USD:
-              1 /
-              j.rates
-                .CHF,
-            EUR:
-              j.rates.EUR /
-              j.rates.CHF,
+            USD: 1 / j.rates.CHF,
+            EUR: j.rates.EUR / j.rates.CHF,
             CHF: 1,
           },
         };
         setRates(data);
-        localStorage.setItem(
-          key,
-          JSON.stringify({
-            at: now,
-            data,
-          })
-        );
+        localStorage.setItem(key, JSON.stringify({ at: now, data }));
       })
       .catch(() => {});
   }, []);
 
-  const convert = (
-    val,
-    from = "USD",
-    to = displayCcy
-  ) => {
-    if (val == null)
-      return 0;
-    if (from === to)
-      return Number(
-        Number(val).toFixed(2)
-      );
-    const tab =
-      rates || fallback;
-    const r =
-      tab[from] &&
-      tab[from][to]
-        ? tab[from][to]
-        : 1;
-    return Number(
-      (
-        Number(val) * r
-      ).toFixed(2)
-    );
+  const convert = (val, from = "USD", to = displayCcy) => {
+    if (val == null) return 0;
+    if (from === to) return Number(Number(val).toFixed(2));
+    const tab = rates || fallback;
+    const r = tab[from] && tab[from][to] ? tab[from][to] : 1;
+    return Number((Number(val) * r).toFixed(2));
   };
 
-  const fmt = (
-    v,
-    ccy = displayCcy
-  ) => {
+  const fmt = (v, ccy = displayCcy) => {
     try {
-      return new Intl.NumberFormat(
-        undefined,
-        {
-          style: "currency",
-          currency: ccy,
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }
-      ).format(v ?? 0);
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: ccy,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(v ?? 0);
     } catch {
-      return `${(
-        v ?? 0
-      ).toFixed(
-        2
-      )} ${ccy}`;
+      return `${(v ?? 0).toFixed(2)} ${ccy}`;
     }
   };
 
   /* ------------------------------
      Données trades (démo + import user)
      ------------------------------ */
-  const demo = React.useMemo(
-    () => genDemoTrades(),
-    []
-  );
-
-  const [userTrades, setUserTrades] =
-    React.useState([]);
+  const demo = React.useMemo(() => genDemoTrades(), []);
+  const [userTrades, setUserTrades] = React.useState([]);
 
   const tradesAll = React.useMemo(
-    () =>
-      demo.concat(
-        userTrades
-      ),
+    () => demo.concat(userTrades),
     [demo, userTrades]
   );
 
@@ -2270,73 +1530,42 @@ export default function App() {
      ------------------------------ */
   const CAPITAL_INITIAL_USD = 100000;
 
-  const [flows, setFlows] =
-    React.useState(() => {
-      try {
-        const raw =
-          localStorage.getItem(
-            "zpv_flows"
-          );
-        return raw
-          ? JSON.parse(
-              raw
-            )
-          : [];
-      } catch {
-        return [];
-      }
-    });
+  const [flows, setFlows] = React.useState(() => {
+    try {
+      const raw = localStorage.getItem("zpv_flows");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   React.useEffect(() => {
     try {
-      localStorage.setItem(
-        "zpv_flows",
-        JSON.stringify(flows)
-      );
+      localStorage.setItem("zpv_flows", JSON.stringify(flows));
     } catch {}
   }, [flows]);
 
-  const [tiers, setTiers] =
-    React.useState(() => {
-      try {
-        const raw =
-          localStorage.getItem(
-            "zpv_tiers"
-          );
-        return raw
-          ? JSON.parse(
-              raw
-            )
-          : [];
-      } catch {
-        return [];
-      }
-    });
+  const [tiers, setTiers] = React.useState(() => {
+    try {
+      const raw = localStorage.getItem("zpv_tiers");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   React.useEffect(() => {
     try {
-      localStorage.setItem(
-        "zpv_tiers",
-        JSON.stringify(tiers)
-      );
+      localStorage.setItem("zpv_tiers", JSON.stringify(tiers));
     } catch {}
   }, [tiers]);
 
   /* ------------------------------
      Filtres
      ------------------------------ */
-  const [asset, setAsset] =
-    React.useState("All");
-  const [broker, setBroker] =
-    React.useState("All");
-  const [strategy, setStrategy] =
-    React.useState("All");
-  const [
-    dateFrom,
-    setDateFrom,
-  ] = React.useState("");
-  const [
-    dateTo,
-    setDateTo,
-  ] = React.useState("");
+  const [asset, setAsset] = React.useState("All");
+  const [broker, setBroker] = React.useState("All");
+  const [strategy, setStrategy] = React.useState("All");
+  const [dateFrom, setDateFrom] = React.useState("");
+  const [dateTo, setDateTo] = React.useState("");
 
   const reset = () => {
     setAsset("All");
@@ -2347,392 +1576,208 @@ export default function App() {
   };
 
   const assets = React.useMemo(
-    () =>
-      Array.from(
-        new Set(
-          tradesAll.map(
-            (t) => t.asset
-          )
-        )
-      ),
+    () => Array.from(new Set(tradesAll.map((t) => t.asset))),
     [tradesAll]
   );
-  const brokers =
-    React.useMemo(
-      () =>
-        Array.from(
-          new Set(
-            tradesAll.map(
-              (t) => t.broker
-            )
-          )
-        ),
-      [tradesAll]
-    );
-  const strategies =
-    React.useMemo(
-      () =>
-        Array.from(
-          new Set(
-            tradesAll.map(
-              (t) =>
-                t.strategy
-            )
-          )
-        ),
-      [tradesAll]
-    );
+  const brokers = React.useMemo(
+    () => Array.from(new Set(tradesAll.map((t) => t.broker))),
+    [tradesAll]
+  );
+  const strategies = React.useMemo(
+    () => Array.from(new Set(tradesAll.map((t) => t.strategy))),
+    [tradesAll]
+  );
 
-  const filtered =
-    React.useMemo(
-      () =>
-        tradesAll.filter(
-          (t) => {
-            if (
-              asset !==
-                "All" &&
-              t.asset !==
-                asset
-            )
-              return false;
-            if (
-              broker !==
-                "All" &&
-              t.broker !==
-                broker
-            )
-              return false;
-            if (
-              strategy !==
-                "All" &&
-              t.strategy !==
-                strategy
-            )
-              return false;
-            if (
-              dateFrom &&
-              t.date <
-                dateFrom
-            )
-              return false;
-            if (
-              dateTo &&
-              t.date >
-                dateTo
-            )
-              return false;
-            return true;
-          }
-        ),
-      [
-        tradesAll,
-        asset,
-        broker,
-        strategy,
-        dateFrom,
-        dateTo,
-      ]
-    );
+  const filtered = React.useMemo(
+    () =>
+      tradesAll.filter((t) => {
+        if (asset !== "All" && t.asset !== asset) return false;
+        if (broker !== "All" && t.broker !== broker) return false;
+        if (strategy !== "All" && t.strategy !== strategy) return false;
+        if (dateFrom && t.date < dateFrom) return false;
+        if (dateTo && t.date > dateTo) return false;
+        return true;
+      }),
+    [tradesAll, asset, broker, strategy, dateFrom, dateTo]
+  );
 
   /* ------------------------------
      Cashflows filtrés par période
      ------------------------------ */
-  const cashflowsAll =
-    flows;
+  const cashflowsAll = flows;
 
-  const cashflowsInRange =
-    React.useMemo(
-      () =>
-        cashflowsAll.filter(
-          (c) =>
-            (!dateFrom ||
-              c.date >=
-                dateFrom) &&
-            (!dateTo ||
-              c.date <=
-                dateTo)
-        ),
-      [
-        cashflowsAll,
-        dateFrom,
-        dateTo,
-      ]
-    );
+  const cashflowsInRange = React.useMemo(
+    () =>
+      cashflowsAll.filter(
+        (c) =>
+          (!dateFrom || c.date >= dateFrom) &&
+          (!dateTo || c.date <= dateTo)
+      ),
+    [cashflowsAll, dateFrom, dateTo]
+  );
 
   /* ------------------------------
      KPI Capital / PnL / DD
      ------------------------------ */
-  const capitalInitialDisp =
-    React.useMemo(
-      () =>
-        convert(
-          CAPITAL_INITIAL_USD,
-          "USD",
-          displayCcy
-        ),
-      [displayCcy, rates]
-    );
+  const capitalInitialDisp = React.useMemo(
+    () => convert(CAPITAL_INITIAL_USD, "USD", displayCcy),
+    [displayCcy, rates]
+  );
 
-  const cashFlowTotal =
-    React.useMemo(
-      () =>
-        cashflowsInRange.reduce(
-          (acc, c) =>
-            acc +
-            convert(
-              c.amount,
-              c.ccy ||
-                "USD",
-              displayCcy
-            ),
-          0
-        ),
-      [
-        cashflowsInRange,
-        displayCcy,
-        rates,
-      ]
-    );
+  // NOTE: ici cashFlowTotal inclut TOUS les flux (payouts, fee, etc.)
+  // → tu m'as dit plus tard qu'on va séparer "business income" vs "capital actif"
+  //   ça on le fera dans la future refactor Comptabilité Entreprise.
+  const cashFlowTotal = React.useMemo(
+    () =>
+      cashflowsInRange.reduce(
+        (acc, c) =>
+          acc + convert(c.amount, c.ccy || "USD", displayCcy),
+        0
+      ),
+    [cashflowsInRange, displayCcy, rates]
+  );
 
-  const pnlFiltered =
-    React.useMemo(
-      () =>
-        filtered.reduce(
-          (acc, t) =>
-            acc +
-            convert(
-              t.pnl,
-              t.ccy ||
-                "USD",
-              displayCcy
-            ),
-          0
-        ),
-      [filtered, displayCcy, rates]
-    );
-
-  const capitalBase =
-    capitalInitialDisp +
-    cashFlowTotal;
-  const capitalGlobal =
-    capitalBase +
-    pnlFiltered;
-
-  const returnPct =
-    React.useMemo(
-      () =>
-        capitalBase > 0
-          ? (pnlFiltered /
-              capitalBase) *
-            100
-          : 0,
-      [
-        capitalBase,
-        pnlFiltered,
-      ]
-    );
-
-  // Drawdown
-  const byDate = React.useMemo(
-    () => {
-      const m =
-        new Map();
-      filtered.forEach(
-        (t) => {
-          const v =
-            convert(
-              t.pnl,
-              t.ccy ||
-                "USD",
-              displayCcy
-            );
-          m.set(
-            t.date,
-            (m.get(
-              t.date
-            ) || 0) + v
-          );
-        }
-      );
-      return [...m.entries()]
-        .map(
-          ([
-            date,
-            pnl,
-          ]) => ({
-            date,
-            pnl,
-          })
-        )
-        .sort((a, b) =>
-          a.date.localeCompare(
-            b.date
-          )
-        );
-    },
+  const pnlFiltered = React.useMemo(
+    () =>
+      filtered.reduce(
+        (acc, t) =>
+          acc + convert(t.pnl, t.ccy || "USD", displayCcy),
+        0
+      ),
     [filtered, displayCcy, rates]
   );
+
+  const capitalBase = capitalInitialDisp + cashFlowTotal;
+  const capitalGlobal = capitalBase + pnlFiltered;
+
+  const returnPct = React.useMemo(
+    () => (capitalBase > 0 ? (pnlFiltered / capitalBase) * 100 : 0),
+    [capitalBase, pnlFiltered]
+  );
+
+  // courbe eq -> drawdown max
+  const byDate = React.useMemo(() => {
+    const m = new Map();
+    filtered.forEach((t) => {
+      const v = convert(t.pnl, t.ccy || "USD", displayCcy);
+      m.set(t.date, (m.get(t.date) || 0) + v);
+    });
+    return [...m.entries()]
+      .map(([date, pnl]) => ({ date, pnl }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [filtered, displayCcy, rates]);
 
   let eq = capitalInitialDisp;
   let peak = eq;
   let maxDrop = 0;
   byDate.forEach((p) => {
     eq += p.pnl;
-    peak =
-      Math.max(
-        peak,
-        eq
-      );
-    maxDrop = Math.max(
-      maxDrop,
-      peak - eq
-    );
+    peak = Math.max(peak, eq);
+    maxDrop = Math.max(maxDrop, peak - eq);
   });
   const maxDDAbs = maxDrop;
-  const maxDDPct =
-    peak > 0
-      ? (maxDrop / peak) *
-        100
-      : 0;
+  const maxDDPct = peak > 0 ? (maxDrop / peak) * 100 : 0;
 
-  // Capital Tiers
-  const tiersTotal =
-    React.useMemo(
-      () =>
-        tiers.reduce(
-          (s, r) =>
-            s +
-            convert(
-              Number(
-                r.amount
-              ) || 0,
-              r.ccy ||
-                "USD",
-              displayCcy
-            ),
-          0
-        ),
-      [tiers, displayCcy, rates]
-    );
+  // Capital Tiers total
+  const tiersTotal = React.useMemo(
+    () =>
+      tiers.reduce(
+        (s, r) =>
+          s +
+          convert(
+            Number(r.amount) || 0,
+            r.ccy || "USD",
+            displayCcy
+          ),
+        0
+      ),
+    [tiers, displayCcy, rates]
+  );
 
   /* ------------------------------
      États modales (flux, tiers, recap, about)
      ------------------------------ */
-  const [openFlow, setOpenFlow] =
-    React.useState(false);
-  const [
-    openTiers,
-    setOpenTiers,
-  ] = React.useState(false);
-  const [
-    openRecap,
-    setOpenRecap,
-  ] = React.useState(false);
-  const [
-    openAbout,
-    setOpenAbout,
-  ] = React.useState(false);
+  const [openFlow, setOpenFlow] = React.useState(false);
+  const [openTiers, setOpenTiers] = React.useState(false);
+  const [openRecap, setOpenRecap] = React.useState(false);
+  const [openAbout, setOpenAbout] = React.useState(false);
 
   /* ------------------------------
-     Sous-titre éditable (texte sous le brand)
+     Sous-titre éditable
      ------------------------------ */
-  const [
-    subtitle,
-    setSubtitle,
-  ] = React.useState(() => {
+  const [subtitle, setSubtitle] = React.useState(() => {
     try {
       return (
-        localStorage.getItem(
-          "zpv_subtitle"
-        ) ||
+        localStorage.getItem("zpv_subtitle") ||
         t.subtitle_default
       );
     } catch {
       return t.subtitle_default;
     }
   });
-  const [editSub, setEditSub] =
-    React.useState(false);
+  const [editSub, setEditSub] = React.useState(false);
 
   React.useEffect(() => {
     try {
       if (!editSub) {
-        localStorage.setItem(
-          "zpv_subtitle",
-          subtitle
-        );
+        localStorage.setItem("zpv_subtitle", subtitle);
       }
     } catch {}
-  }, [
-    subtitle,
-    editSub,
-    t,
-  ]);
+  }, [subtitle, editSub, t]);
 
   /* ------------------------------
-     noData (si pas de trades filtrés)
+     noData
      ------------------------------ */
-  const noData =
-    filtered.length === 0;
+  const noData = filtered.length === 0;
 
   /* =====================================================
      RENDER
      ===================================================== */
+
   return (
     <div className="wrap">
       {view === "home" ? (
         <HomeHub
           setView={setView}
           t={t}
-          subtitle={
-            subtitle
-          }
+          subtitle={subtitle}
         />
       ) : (
         <>
-          {/* Barre de navigation haute interne */}
+          {/* nav interne (back ← Accueil) */}
           <div
             className="header"
             style={{
-              display:
-                "flex",
-              justifyContent:
-                "space-between",
-              alignItems:
-                "center",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
             <button
               className="btn ghost"
-              onClick={() =>
-                setView(
-                  "home"
-                )
-              }
+              onClick={() => setView("home")}
             >
               ← Accueil
             </button>
+
             <div
               style={{
                 opacity: 0.8,
                 fontSize: 12,
               }}
             >
-              {view ===
-              "control"
+              {view === "control"
                 ? "Centre de contrôle"
-                : view ===
-                  "compta"
+                : view === "compta"
                 ? "Comptabilité entreprise"
                 : "Gestion du risque"}
             </div>
           </div>
 
-          {/* ================== PAGE CONTROL ================== */}
-          {view ===
-            "control" && (
+          {/* ===== PAGE CONTROL ===== */}
+          {view === "control" && (
             <div className="control-page">
-              {/* Bandeau haut : titre + sous-titre + actions */}
+              {/* Bandeau haut */}
               <div className="card">
                 <div className="block-head">
                   <div>
@@ -2743,28 +1788,18 @@ export default function App() {
                         margin: 0,
                       }}
                     >
-                      {
-                        t.brand
-                      }
+                      {t.brand}
                     </h1>
 
                     {!editSub ? (
                       <p
                         className="subtitle cap"
-                        style={{
-                          marginTop: 6,
-                        }}
+                        style={{ marginTop: 6 }}
                       >
-                        {
-                          subtitle
-                        }
+                        {subtitle}
                         <button
                           className="edit-pencil"
-                          onClick={() =>
-                            setEditSub(
-                              true
-                            )
-                          }
+                          onClick={() => setEditSub(true)}
                         >
                           ✏️
                         </button>
@@ -2772,36 +1807,20 @@ export default function App() {
                     ) : (
                       <div
                         style={{
-                          display:
-                            "flex",
+                          display: "flex",
                           gap: 8,
-                          alignItems:
-                            "center",
+                          alignItems: "center",
                           marginTop: 6,
                         }}
                       >
                         <input
                           className="sel"
-                          value={
-                            subtitle
-                          }
-                          onChange={(
-                            e
-                          ) =>
-                            setSubtitle(
-                              e
-                                .target
-                                .value
-                            )
-                          }
+                          value={subtitle}
+                          onChange={(e) => setSubtitle(e.target.value)}
                         />
                         <button
                           className="btn sm"
-                          onClick={() =>
-                            setEditSub(
-                              false
-                            )
-                          }
+                          onClick={() => setEditSub(false)}
                         >
                           OK
                         </button>
@@ -2813,73 +1832,39 @@ export default function App() {
                   <div
                     className="block-tools"
                     style={{
-                      flexWrap:
-                        "wrap",
-                      justifyContent:
-                        "flex-end",
+                      flexWrap: "wrap",
+                      justifyContent: "flex-end",
                     }}
                   >
                     {/* Import CSV trades */}
                     <label className="btn">
-                      {t.actions
-                        ?.Import_csv ||
-                        I18N_DEFAULTS
-                          .actions
-                          .Import_csv}
+                      {t.actions?.Import_csv ||
+                        I18N_DEFAULTS.actions.Import_csv}
                       <input
                         type="file"
                         accept=".csv"
                         style={{
-                          position:
-                            "absolute",
+                          position: "absolute",
                           inset: 0,
                           opacity: 0,
-                          cursor:
-                            "pointer",
+                          cursor: "pointer",
                         }}
-                        onChange={(
-                          e
-                        ) => {
-                          const f =
-                            e
-                              .target
-                              .files?.[0];
-                          if (!f)
-                            return;
-                          const fr =
-                            new FileReader();
-                          fr.onload =
-                            () => {
-                              const rows =
-                                parseCSV(
-                                  String(
-                                    fr.result
-                                  )
-                                );
-                              const mapped =
-                                mapMT5Rows(
-                                  rows
-                                );
-                              if (
-                                !mapped.length
-                              ) {
-                                alert(
-                                  "CSV non reconnu. (Time/Symbol/Profit requis)"
-                                );
-                                return;
-                              }
-                              setUserTrades(
-                                (
-                                  prev
-                                ) =>
-                                  prev.concat(
-                                    mapped
-                                  )
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          const fr = new FileReader();
+                          fr.onload = () => {
+                            const rows = parseCSV(String(fr.result));
+                            const mapped = mapMT5Rows(rows);
+                            if (!mapped.length) {
+                              alert(
+                                "CSV non reconnu. (Time/Symbol/Profit requis)"
                               );
-                            };
-                          fr.readAsText(
-                            f
-                          );
+                              return;
+                            }
+                            setUserTrades((prev) => prev.concat(mapped));
+                          };
+                          fr.readAsText(f);
                         }}
                       />
                     </label>
@@ -2887,230 +1872,110 @@ export default function App() {
                     {/* Ajouter Flux */}
                     <button
                       className="btn"
-                      onClick={() =>
-                        setOpenFlow(
-                          true
-                        )
-                      }
+                      onClick={() => setOpenFlow(true)}
                     >
-                      {t.actions
-                        ?.Add_Flow ||
-                        I18N_DEFAULTS
-                          .actions
-                          .Add_Flow}
+                      {t.actions?.Add_Flow ||
+                        I18N_DEFAULTS.actions.Add_Flow}
                     </button>
 
                     {/* Capital Tiers */}
                     <button
                       className="btn"
-                      onClick={() =>
-                        setOpenTiers(
-                          true
-                        )
-                      }
+                      onClick={() => setOpenTiers(true)}
                     >
-                      {t.actions
-                        ?.Third_Capital ||
-                        I18N_DEFAULTS
-                          .actions
-                          .Third_Capital}
+                      {t.actions?.Third_Capital ||
+                        I18N_DEFAULTS.actions.Third_Capital}
                     </button>
 
                     {/* Récap flux */}
                     <button
                       className="btn ghost"
-                      onClick={() =>
-                        setOpenRecap(
-                          true
-                        )
-                      }
+                      onClick={() => setOpenRecap(true)}
                     >
-                      {t.actions
-                        ?.Recap ||
-                        I18N_DEFAULTS
-                          .actions
-                          .Recap}
+                      {t.actions?.Recap ||
+                        I18N_DEFAULTS.actions.Recap}
                     </button>
 
                     {/* Reset filtres */}
                     <button
                       className="btn ghost"
-                      onClick={
-                        reset
-                      }
+                      onClick={reset}
                     >
-                      {t.actions
-                        ?.Reset ||
-                        I18N_DEFAULTS
-                          .actions
-                          .Reset}
+                      {t.actions?.Reset ||
+                        I18N_DEFAULTS.actions.Reset}
                     </button>
 
                     {/* À propos */}
                     <button
                       className="btn ghost"
-                      onClick={() =>
-                        setOpenAbout(
-                          true
-                        )
-                      }
+                      onClick={() => setOpenAbout(true)}
                     >
-                      {t.actions
-                        ?.About ||
-                        I18N_DEFAULTS
-                          .actions
-                          .About}
+                      {t.actions?.About ||
+                        I18N_DEFAULTS.actions.About}
                     </button>
 
                     {/* Devise */}
                     <div
                       className="kpi-title cap"
-                      style={{
-                        marginLeft: 10,
-                      }}
+                      style={{ marginLeft: 10 }}
                     >
                       Devise
                     </div>
                     <select
                       className="sel"
-                      style={{
-                        width: 110,
-                      }}
-                      value={
-                        displayCcy
-                      }
-                      onChange={(
-                        e
-                      ) =>
-                        setDisplayCcy(
-                          e
-                            .target
-                            .value
-                        )
-                      }
+                      style={{ width: 110 }}
+                      value={displayCcy}
+                      onChange={(e) => setDisplayCcy(e.target.value)}
                     >
-                      {[
-                        "USD",
-                        "EUR",
-                        "CHF",
-                      ].map(
-                        (
-                          c
-                        ) => (
-                          <option key={c}>
-                            {
-                              c
-                            }
-                          </option>
-                        )
-                      )}
+                      {["USD", "EUR", "CHF"].map((c) => (
+                        <option key={c}>{c}</option>
+                      ))}
                     </select>
 
                     {/* Langue */}
                     <div
                       className="kpi-title cap"
-                      style={{
-                        marginLeft: 10,
-                      }}
+                      style={{ marginLeft: 10 }}
                     >
                       Langue
                     </div>
                     <select
                       className="sel"
-                      style={{
-                        width: 150,
-                      }}
-                      value={
-                        lang
-                      }
-                      onChange={(
-                        e
-                      ) =>
-                        setLang(
-                          e
-                            .target
-                            .value
-                        )
-                      }
+                      style={{ width: 150 }}
+                      value={lang}
+                      onChange={(e) => setLang(e.target.value)}
                     >
-                      {LOCALES.map(
-                        (
-                          l
-                        ) => (
-                          <option
-                            key={
-                              l
-                            }
-                            value={
-                              l
-                            }
-                          >
-                            {
-                              l
-                            }
-                          </option>
-                        )
-                      )}
+                      {LOCALES.map((l) => (
+                        <option key={l} value={l}>
+                          {l}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
 
                 {/* Modales inline */}
                 <FlowModal
-                  openHook={[
-                    openFlow,
-                    setOpenFlow,
-                  ]}
-                  onSave={(row) =>
-                    setFlows(
-                      (p) =>
-                        p.concat(
-                          [row]
-                        )
-                    )
-                  }
-                  ccy={
-                    displayCcy
-                  }
+                  openHook={[openFlow, setOpenFlow]}
+                  onSave={(row) => setFlows((p) => p.concat([row]))}
+                  ccy={displayCcy}
                   inline
                 />
 
                 <CapitalTiersModal
-                  openHook={[
-                    openTiers,
-                    setOpenTiers,
-                  ]}
-                  onAdd={(row) =>
-                    setTiers(
-                      (p) =>
-                        p.concat(
-                          [row]
-                        )
-                    )
-                  }
-                  displayCcy={
-                    displayCcy
-                  }
+                  openHook={[openTiers, setOpenTiers]}
+                  onAdd={(row) => setTiers((p) => p.concat([row]))}
+                  displayCcy={displayCcy}
                   inline
                 />
 
                 <CashflowsModal
-                  openHook={[
-                    openRecap,
-                    setOpenRecap,
-                  ]}
-                  rows={
-                    cashflowsAll
-                  }
+                  openHook={[openRecap, setOpenRecap]}
+                  rows={cashflowsAll}
                   inline
                 />
 
-                <AboutModal
-                  openHook={[
-                    openAbout,
-                    setOpenAbout,
-                  ]}
-                />
+                <AboutModal openHook={[openAbout, setOpenAbout]} />
               </div>
 
               {/* Filtres */}
@@ -3118,182 +1983,76 @@ export default function App() {
                 <div className="card">
                   <div
                     style={{
-                      display:
-                        "grid",
-                      gridTemplateColumns:
-                        "repeat(7,1fr)",
+                      display: "grid",
+                      gridTemplateColumns: "repeat(7,1fr)",
                       gap: 10,
                     }}
                   >
                     <div>
-                      <div className="kpi-title cap">
-                        Actif
-                      </div>
+                      <div className="kpi-title cap">Actif</div>
                       <select
                         className="sel"
-                        value={
-                          asset
-                        }
-                        onChange={(
-                          e
-                        ) =>
-                          setAsset(
-                            e
-                              .target
-                              .value
-                          )
-                        }
+                        value={asset}
+                        onChange={(e) => setAsset(e.target.value)}
                       >
-                        <option>
-                          All
-                        </option>
-                        {assets.map(
-                          (
-                            a
-                          ) => (
-                            <option
-                              key={
-                                a
-                              }
-                            >
-                              {
-                                a
-                              }
-                            </option>
-                          )
-                        )}
+                        <option>All</option>
+                        {assets.map((a) => (
+                          <option key={a}>{a}</option>
+                        ))}
                       </select>
                     </div>
 
                     <div>
-                      <div className="kpi-title cap">
-                        Broker
-                      </div>
+                      <div className="kpi-title cap">Broker</div>
                       <select
                         className="sel"
-                        value={
-                          broker
-                        }
-                        onChange={(
-                          e
-                        ) =>
-                          setBroker(
-                            e
-                              .target
-                              .value
-                          )
-                        }
+                        value={broker}
+                        onChange={(e) => setBroker(e.target.value)}
                       >
-                        <option>
-                          All
-                        </option>
-                        {brokers.map(
-                          (
-                            a
-                          ) => (
-                            <option
-                              key={
-                                a
-                              }
-                            >
-                              {
-                                a
-                              }
-                            </option>
-                          )
-                        )}
+                        <option>All</option>
+                        {brokers.map((b) => (
+                          <option key={b}>{b}</option>
+                        ))}
                       </select>
                     </div>
 
                     <div>
-                      <div className="kpi-title cap">
-                        Stratégie
-                      </div>
+                      <div className="kpi-title cap">Stratégie</div>
                       <select
                         className="sel"
-                        value={
-                          strategy
-                        }
-                        onChange={(
-                          e
-                        ) =>
-                          setStrategy(
-                            e
-                              .target
-                              .value
-                          )
-                        }
+                        value={strategy}
+                        onChange={(e) => setStrategy(e.target.value)}
                       >
-                        <option>
-                          All
-                        </option>
-                        {strategies.map(
-                          (
-                            a
-                          ) => (
-                            <option
-                              key={
-                                a
-                              }
-                            >
-                              {
-                                a
-                              }
-                            </option>
-                          )
-                        )}
+                        <option>All</option>
+                        {strategies.map((s) => (
+                          <option key={s}>{s}</option>
+                        ))}
                       </select>
                     </div>
 
                     <div>
-                      <div className="kpi-title cap">
-                        Du
-                      </div>
+                      <div className="kpi-title cap">Du</div>
                       <input
                         className="sel"
                         type="date"
-                        value={
-                          dateFrom
-                        }
-                        onChange={(
-                          e
-                        ) =>
-                          setDateFrom(
-                            e
-                              .target
-                              .value
-                          )
-                        }
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
                         style={{
-                          fontFamily:
-                            "inherit",
+                          fontFamily: "inherit",
                           fontSize: 14,
                         }}
                       />
                     </div>
 
                     <div>
-                      <div className="kpi-title cap">
-                        Au
-                      </div>
+                      <div className="kpi-title cap">Au</div>
                       <input
                         className="sel"
                         type="date"
-                        value={
-                          dateTo
-                        }
-                        onChange={(
-                          e
-                        ) =>
-                          setDateTo(
-                            e
-                              .target
-                              .value
-                          )
-                        }
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
                         style={{
-                          fontFamily:
-                            "inherit",
+                          fontFamily: "inherit",
                           fontSize: 14,
                         }}
                       />
@@ -3307,187 +2066,103 @@ export default function App() {
 
               {/* KPIs principaux */}
               <div className="control-section">
-                <div
-                  className="block-head"
-                  style={{
-                    marginBottom: 6,
-                  }}
-                >
-                  <div className="block-title cap">
-                    Indicateurs Principaux
-                  </div>
+                <div className="block-head" style={{ marginBottom: 6 }}>
+                  <div className="block-title cap">Indicateurs Principaux</div>
                 </div>
 
                 <div className="kpi-grid">
                   <div className="card halo-neutral">
-                    <div className="kpi-title cap">
-                      Capital Initial
-                    </div>
+                    <div className="kpi-title cap">Capital Initial</div>
                     <div className="val val-main">
-                      {fmt(
-                        capitalInitialDisp
-                      )}
+                      {fmt(capitalInitialDisp)}
                     </div>
                   </div>
 
                   <div className="card">
-                    <div className="kpi-title cap">
-                      Cashflow
-                    </div>
+                    <div className="kpi-title cap">Cashflow</div>
                     <div
                       className={`val ${
-                        cashFlowTotal <
-                        0
-                          ? "neg"
-                          : "pos"
+                        cashFlowTotal < 0 ? "neg" : "pos"
                       }`}
                     >
-                      {fmt(
-                        cashFlowTotal
-                      )}
+                      {fmt(cashFlowTotal)}
                     </div>
                   </div>
 
                   <div className="card">
-                    <div className="kpi-title cap">
-                      PnL (Filtré)
-                    </div>
+                    <div className="kpi-title cap">PnL (Filtré)</div>
                     <div
                       className={`val ${
-                        pnlFiltered <
-                        0
-                          ? "neg"
-                          : "pos"
+                        pnlFiltered < 0 ? "neg" : "pos"
                       }`}
                     >
-                      {fmt(
-                        pnlFiltered
-                      )}
+                      {fmt(pnlFiltered)}
                     </div>
                   </div>
 
                   <div className="card">
-                    <div className="kpi-title cap">
-                      Capital Total
-                    </div>
+                    <div className="kpi-title cap">Capital Total</div>
                     <div
                       className={`val ${
-                        pnlFiltered <
-                        0
-                          ? "neg"
-                          : "pos"
+                        pnlFiltered < 0 ? "neg" : "pos"
                       }`}
                     >
-                      {fmt(
-                        capitalGlobal
-                      )}
+                      {fmt(capitalGlobal)}
                     </div>
                   </div>
 
                   <div className="card">
-                    <div className="kpi-title cap">
-                      Rentabilité
-                    </div>
+                    <div className="kpi-title cap">Rentabilité</div>
                     <div
                       className={`val ${
-                        returnPct <
-                        0
-                          ? "neg"
-                          : "pos"
+                        returnPct < 0 ? "neg" : "pos"
                       }`}
                     >
-                      {returnPct.toFixed(
-                        2
-                      )}
-                      %
+                      {returnPct.toFixed(2)}%
                     </div>
                   </div>
 
                   <div className="card">
-                    <div className="kpi-title cap">
-                      Max DD %
-                    </div>
+                    <div className="kpi-title cap">Max DD %</div>
                     <div className="val val-main">
-                      {maxDDPct.toFixed(
-                        2
-                      )}
-                      %
+                      {maxDDPct.toFixed(2)}%
                     </div>
                   </div>
 
                   <div className="card">
-                    <div className="kpi-title cap">
-                      Max DD (Abs.)
-                    </div>
+                    <div className="kpi-title cap">Max DD (Abs.)</div>
+                    <div className="val val-main">{fmt(maxDDAbs)}</div>
+                  </div>
+
+                  <div className="card">
+                    <div className="kpi-title cap">Jours Actifs</div>
                     <div className="val val-main">
-                      {fmt(
-                        maxDDAbs
-                      )}
+                      {new Set(filtered.map((t) => t.date)).size}
                     </div>
                   </div>
 
                   <div className="card">
-                    <div className="kpi-title cap">
-                      Jours Actifs
-                    </div>
-                    <div className="val val-main">
-                      {
-                        new Set(
-                          filtered.map(
-                            (
-                              t
-                            ) =>
-                              t.date
-                          )
-                        ).size
-                      }
-                    </div>
+                    <div className="kpi-title cap">Capital Tiers</div>
+                    <div className="val val-main">{fmt(tiersTotal)}</div>
                   </div>
 
                   <div className="card">
-                    <div className="kpi-title cap">
-                      Capital Tiers
-                    </div>
-                    <div className="val val-main">
-                      {fmt(
-                        tiersTotal
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="card">
-                    <div className="kpi-title cap">
-                      Trades Total
-                    </div>
-                    <div className="val val-main">
-                      {
-                        filtered.length
-                      }
-                    </div>
+                    <div className="kpi-title cap">Trades Total</div>
+                    <div className="val val-main">{filtered.length}</div>
                   </div>
                 </div>
               </div>
 
               {/* Grille principale */}
               <div className="control-section control-grid">
-                {/* Equité (col-8) */}
+                {/* Courbe d’équité (col-8) */}
                 <div className="col-8">
                   <EquityBlock
-                    rows={
-                      filtered
-                    }
-                    cashflows={
-                      cashflowsAll
-                    }
-                    initial={
-                      CAPITAL_INITIAL_USD
-                    }
-                    convert={
-                      convert
-                    }
-                    ccy={
-                      displayCcy
-                    }
+                    rows={filtered}
+                    cashflows={cashflowsAll}
+                    initial={CAPITAL_INITIAL_USD}
+                    convert={convert}
+                    ccy={displayCcy}
                   />
                 </div>
 
@@ -3500,29 +2175,17 @@ export default function App() {
                           Taux de Réussite
                         </div>
                       </div>
-                      <WinRateBlock
-                        rows={
-                          filtered
-                        }
-                      />
+                      <WinRateBlock rows={filtered} />
                     </div>
 
                     <div className="card">
                       <div className="block-head">
-                        <div className="block-title cap">
-                          Ratios (Pro)
-                        </div>
+                        <div className="block-title cap">Ratios (Pro)</div>
                       </div>
                       <RatiosBlock
-                        rows={
-                          filtered
-                        }
-                        convert={
-                          convert
-                        }
-                        ccy={
-                          displayCcy
-                        }
+                        rows={filtered}
+                        convert={convert}
+                        ccy={displayCcy}
                       />
                     </div>
                   </div>
@@ -3540,15 +2203,9 @@ export default function App() {
                     </div>
 
                     <CorrelationBlock
-                      rows={
-                        filtered
-                      }
-                      convert={
-                        convert
-                      }
-                      ccy={
-                        displayCcy
-                      }
+                      rows={filtered}
+                      convert={convert}
+                      ccy={displayCcy}
                     />
                   </div>
                 </div>
@@ -3562,15 +2219,9 @@ export default function App() {
                     </div>
 
                     <MappingTable
-                      rows={
-                        filtered
-                      }
-                      convert={
-                        convert
-                      }
-                      ccy={
-                        displayCcy
-                      }
+                      rows={filtered}
+                      convert={convert}
+                      ccy={displayCcy}
                     />
                   </div>
                 </div>
@@ -3579,15 +2230,9 @@ export default function App() {
               {/* Calendrier mensuel */}
               <div className="control-section">
                 <CalendarMonthly
-                  rows={
-                    filtered
-                  }
-                  convert={
-                    convert
-                  }
-                  ccy={
-                    displayCcy
-                  }
+                  rows={filtered}
+                  convert={convert}
+                  ccy={displayCcy}
                   startEquity={convert(
                     CAPITAL_INITIAL_USD,
                     "USD",
@@ -3600,32 +2245,20 @@ export default function App() {
               <div className="control-section">
                 <div className="card">
                   <div className="block-head">
-                    <div className="block-title cap">
-                      Activité
-                    </div>
+                    <div className="block-title cap">Activité</div>
                   </div>
 
-                  <ActivityBlocks
-                    rows={
-                      filtered
-                    }
-                  />
+                  <ActivityBlocks rows={filtered} />
                 </div>
               </div>
 
-              {/* Message si pas de données */}
+              {/* Alerte si aucune donnée */}
               {noData && (
                 <div
                   className="card halo-warn"
-                  style={{
-                    marginTop: 20,
-                    textAlign:
-                      "center",
-                  }}
+                  style={{ marginTop: 20, textAlign: "center" }}
                 >
-                  <div className="kpi-title cap">
-                    Aucune Donnée
-                  </div>
+                  <div className="kpi-title cap">Aucune Donnée</div>
                   <div
                     style={{
                       fontSize: 13,
@@ -3633,89 +2266,50 @@ export default function App() {
                       marginTop: 6,
                     }}
                   >
-                    Ajuste les
-                    filtres ou
-                    importe un
-                    CSV pour voir
-                    les stats.
+                    Ajuste les filtres ou importe un CSV pour voir les stats.
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* ================== PAGE COMPTA ================== */}
-          {view ===
-            "compta" && (
+          {/* ===== PAGE COMPTA ===== */}
+          {view === "compta" && (
             <div className="page-outer">
               <div className="page-content">
-                <div
-                  className="card"
-                  style={{
-                    padding: 16,
-                  }}
-                >
+                <div className="card" style={{ padding: 16 }}>
                   <div
                     className="kpi-title"
                     style={{
-                      display:
-                        "flex",
-                      alignItems:
-                        "center",
+                      display: "flex",
+                      alignItems: "center",
                       gap: 6,
                     }}
                   >
-                    <span>
-                      Vue Comptable
-                    </span>
+                    <span>Vue Comptable</span>
                   </div>
-                  <p
-                    style={{
-                      marginTop: 8,
-                      opacity: 0.8,
-                    }}
-                  >
-                    À venir…
-                  </p>
+                  <p style={{ marginTop: 8, opacity: 0.8 }}>À venir…</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ================== PAGE RISK ================== */}
-          {view ===
-            "risk" && (
+          {/* ===== PAGE RISK ===== */}
+          {view === "risk" && (
             <div className="page-outer">
               <div className="page-content">
-                <div
-                  className="card"
-                  style={{
-                    padding: 16,
-                  }}
-                >
+                <div className="card" style={{ padding: 16 }}>
                   <div
                     className="kpi-title"
                     style={{
-                      display:
-                        "flex",
-                      alignItems:
-                        "center",
+                      display: "flex",
+                      alignItems: "center",
                       gap: 6,
                     }}
                   >
-                    <span>
-                      Analyse de
-                      Risque
-                    </span>
+                    <span>Analyse de Risque</span>
                   </div>
-                  <p
-                    style={{
-                      marginTop: 8,
-                      opacity: 0.8,
-                    }}
-                  >
-                    À venir…
-                  </p>
+                  <p style={{ marginTop: 8, opacity: 0.8 }}>À venir…</p>
                 </div>
               </div>
             </div>
@@ -3728,3 +2322,4 @@ export default function App() {
     </div>
   );
 }
+
