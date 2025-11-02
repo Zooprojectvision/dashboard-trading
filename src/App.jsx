@@ -1,5 +1,21 @@
 import React from "react";
 
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  Line,
+  Scatter,
+} from "recharts";
+
+const styleNum = (v) => ({
+  color: Number(v) < 0 ? "var(--pink)" : "var(--text)",
+});
+
 /* ===========================
    Utils math / couleurs
    =========================== */
