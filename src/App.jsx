@@ -3,6 +3,7 @@ import React from "react";
 /* ===== Composants internes ===== */
 import HomeHub from "./components/home/HomeHub.jsx";
 import Footer from "./components/common/Footer.jsx";
+import ControlPage from "./pages/ControlPage.jsx";
 
 /* ===== Imports externes utilisés dans les sous-blocs ===== */
 import {
@@ -1766,13 +1767,24 @@ export default function App() {
                 fontSize: 12,
               }}
             >
-              {view === "control"
-                ? "Centre de contrôle"
-                : view === "compta"
-                ? "Comptabilité entreprise"
-                : "Gestion du risque"}
-            </div>
-          </div>
+             {view === "control" && (
+  <ControlPage
+    t={t}
+    lang={lang}
+    setLang={setLang}
+    LOCALES={LOCALES}
+    displayCcy={displayCcy}
+    setDisplayCcy={setDisplayCcy}
+    convert={convert}
+    fmt={fmt}
+    initialCapitalUSD={CAPITAL_INITIAL_USD}
+    tradesAll={tradesAll}
+    flows={flows}
+    setFlows={setFlows}
+    tiers={tiers}
+    setTiers={setTiers}
+  />
+)}
 
           {/* ===== PAGE CONTROL ===== */}
           {view === "control" && (
