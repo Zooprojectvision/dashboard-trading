@@ -1,11 +1,36 @@
-import CorrelationBlock from "../components/control/CorrelationBlock.jsx";
-import MappingTable from "../components/control/MappingTable.jsx";
-import CalendarMonthly from "../components/control/CalendarMonthly.jsx";
-import ActivityBlocks from "../components/control/ActivityBlocks.jsx";
-import EquityBlock from "../components/control/EquityBlock.jsx";
-import WinRateBlock from "../components/control/WinRateBlock.jsx";
-import RatiosBlock from "../components/control/RatiosBlock.jsx";
 import React from "react";
+function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
+  // version simplifiée temporaire pour pas planter l'app
+  const totalPnl = rows.reduce(
+    (acc, t) => acc + convert(t.pnl, t.ccy || "USD", ccy),
+    0
+  );
+
+  const equityNow = convert(initial, "USD", ccy) + totalPnl;
+
+  return (
+    <div className="card">
+      <div className="block-title cap">Courbe d’Équité</div>
+      <div
+        style={{
+          fontSize: 14,
+          color: "var(--text)",
+          lineHeight: 1.5,
+        }}
+      >
+        <div>
+          Équité actuelle&nbsp;:{" "}
+          <span className="val val-main">
+            {equityNow.toFixed(2)} {ccy}
+          </span>
+        </div>
+        <div style={{ opacity: 0.8, fontSize: 12, marginTop: 6 }}>
+          (version light sans graphique Recharts, juste pour que ça tourne)
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // On a besoin de ces sous-composants/utilitaires qui existent déjà dans App.jsx.
 // On les importe depuis App PLUS TARD, on va les déplacer proprement ensuite.
@@ -14,7 +39,7 @@ import React from "react";
 // ================= Helpers visuels simples =================
 
 const styleNum = (v) => ({
-  color: Number(v) < 0 ? "var(--pink)" : "var(--text)",
+  color: Number(v) < 0 ? "var(--pink, #ff5fa2)" : "var(--text, #c5ccd3)",
 });
 
 // ================= Composants KPI / Stats =================
@@ -851,66 +876,63 @@ export default function ControlPage({
         </div>
       </div>
 
-     {/* Grille principale */}
+    {/* Grille principale */}
 <div className="control-section control-grid">
-  {/* Colonne gauche : Equity */}
   <div className="col-8">
     <EquityBlock
-      rows={filteredTrades}
-      cashflows={cashflowsAllForBlocks}
-      initial={initialCapitalUSD}
+      rows={filtered}
+      cashflows={cashflowsAll}
+      initial={CAPITAL_INITIAL_USD}
       convert={convert}
-      ccy={displayCcyForBlocks}
+      ccy={displayCcy}
     />
   </div>
 
-  {/* Colonne droite : WinRate + Ratios */}
   <div className="col-4">
     <div className="grid-2">
-      <WinRateBlock rows={filteredTrades} />
+      <WinRateBlock rows={filtered} />
       <RatiosBlock
-        rows={filteredTrades}
+        rows={filtered}
         convert={convert}
-        ccy={displayCcyForBlocks}
+        ccy={displayCcy}
       />
     </div>
   </div>
 </div>
 
-      {/* Corrélation & Mapping */}
+{/* Corrélation & Mapping */}
 <div className="control-section control-grid">
   <div className="col-6">
     <CorrelationBlock
-      rows={filteredTrades}
+      rows={filtered}
       convert={convert}
-      ccy={displayCcyForBlocks}
+      ccy={displayCcy}
     />
   </div>
 
   <div className="col-6">
     <MappingTable
-      rows={filteredTrades}
+      rows={filtered}
       convert={convert}
-      ccy={displayCcyForBlocks}
+      ccy={displayCcy}
     />
   </div>
 </div>
 
-      {/* Calendrier mensuel */}
+{/* Calendrier mensuel */}
 <div className="control-section">
   <CalendarMonthly
-    rows={filteredTrades}
+    rows={filtered}
     convert={convert}
-    ccy={displayCcyForBlocks}
-    startEquity={convert(initialCapitalUSD, "USD", displayCcyForBlocks)}
+    ccy={displayCcy}
+    startEquity={convert(CAPITAL_INITIAL_USD, "USD", displayCcy)}
   />
 </div>
 
-      {/* Activité */}
+{/* Activité */}
 <div className="control-section">
-  <ActivityBlocks rows={filteredTrades} />
+  <ActivityBlocks rows={filtered} />
 </div>
-
       {/* Message si pas de données */}
       {noData && (
         <div
