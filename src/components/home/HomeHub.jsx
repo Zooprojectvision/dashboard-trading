@@ -1,7 +1,9 @@
 import React from "react";
 
 export default function HomeHub({ setView, t, subtitle }) {
-  console.log(">>> RENDER HomeHub VERSION TEST 9 <<<"); // DOIT apparaître dans la console du navigateur
+  // 🚨 TEST VISUEL DIRECT 🚨
+  // si tu vois le bandeau ROUGE en haut de la page d'accueil,
+  // alors c'est bien ce composant qui s'affiche.
 
   function CardBlock({ title, subtitle, goto }) {
     const [hover, setHover] = React.useState(false);
@@ -35,7 +37,7 @@ export default function HomeHub({ setView, t, subtitle }) {
             "all 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s",
         }}
       >
-        {/* Titre: en majuscules forcées ici */}
+        {/* Titre en MAJUSCULE */}
         <div
           style={{
             fontSize: 14,
@@ -77,6 +79,22 @@ export default function HomeHub({ setView, t, subtitle }) {
         color: "var(--text, #c5ccd3)",
       }}
     >
+      {/* 🚨 BANDEAU TEST ROUGE 🚨 */}
+      <div
+        style={{
+          background: "red",
+          color: "black",
+          fontWeight: "bold",
+          padding: "12px 16px",
+          borderRadius: 12,
+          marginBottom: 16,
+          textAlign: "center",
+          fontSize: 16,
+        }}
+      >
+        VERSION TEST HOMEHUB ACTIVE
+      </div>
+
       {/* HEADER */}
       <div
         style={{
