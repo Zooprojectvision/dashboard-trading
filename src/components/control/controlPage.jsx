@@ -847,43 +847,31 @@ export default function ControlPage({
         </div>
       </div>
 
-      {/* Grille principale */}
-      <div className="control-section control-grid">
-        {/* Colonne gauche : on pourrait mettre EquityBlock ici plus tard */}
-        <div className="col-8">
-          <div className="card">
-            <div className="block-title cap">Équité (à venir)</div>
-            <div
-              style={{
-                fontSize: 12,
-                opacity: 0.8,
-                color: "var(--text)",
-              }}
-            >
-              Graphique equity, peak, DD, flux.
-            </div>
-          </div>
-        </div>
+     {/* Grille principale */}
+<div className="control-section control-grid">
+  {/* Colonne gauche : Equity */}
+  <div className="col-8">
+    <EquityBlock
+      rows={filteredTrades}
+      cashflows={cashflowsAllForBlocks}
+      initial={initialCapitalUSD}
+      convert={convert}
+      ccy={displayCcyForBlocks}
+    />
+  </div>
 
-        {/* Colonne droite : WinRate + Ratios */}
-        <div className="col-4">
-          <div
-            className="grid-2"
-            style={{
-              display: "grid",
-              gap: 16,
-              gridTemplateColumns: "1fr",
-            }}
-          >
-            <WinRateBlock rows={filtered} />
-            <RatiosBlock
-              rows={filtered}
-              convert={convert}
-              ccy={displayCcy}
-            />
-          </div>
-        </div>
-      </div>
+  {/* Colonne droite : WinRate + Ratios */}
+  <div className="col-4">
+    <div className="grid-2">
+      <WinRateBlock rows={filteredTrades} />
+      <RatiosBlock
+        rows={filteredTrades}
+        convert={convert}
+        ccy={displayCcyForBlocks}
+      />
+    </div>
+  </div>
+</div>
 
       {/* Corrélation & Mapping */}
       <div className="control-section control-grid">
