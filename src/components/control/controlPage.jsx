@@ -1,4 +1,9 @@
 import React from "react";
+
+const styleNum = (v) => ({
+  color: Number(v) < 0 ? "var(--pink, #ff5fa2)" : "var(--text, #c5ccd3)",
+});
+
 function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
   // version simplifiée temporaire pour pas planter l'app
   const totalPnl = rows.reduce(
@@ -51,11 +56,6 @@ function WinRateBlock({ rows }) {
     const wr = total ? (w / total) * 100 : 0;
     return { w, l, total, wr };
   }, [rows]);
-
-  const donut = [
-    { name: "Gagnants", value: counts.w },
-    { name: "Perdants", value: counts.l },
-  ];
 
   // version simplifiée (sans donut Recharts pour le moment, purement text)
   return (
