@@ -1,40 +1,45 @@
 import React from "react";
 
 export default function HubCard({ title, subtitle, goto, onNav }) {
+  // on garde un ref local pour pouvoir remettre les styles au mouseleave
+  const baseShadow =
+    "0 0 20px rgba(106,169,255,0.25), 0 30px 60px rgba(0,0,0,0.8)";
+  const hoverShadow =
+    "0 0 28px rgba(32,227,214,0.4), 0 40px 80px rgba(0,0,0,0.9)";
+
   return (
     <button
       onClick={() => onNav(goto)}
-      className="hub-card"
       style={{
-        // bloc visuel de base
         width: "100%",
         textAlign: "left",
+
+        /* --- nouveau look bloc --- */
         borderRadius: 20,
         padding: 16,
-        cursor: "pointer",
-        border: "1px solid rgba(106,169,255,0.4)", // halo bleu
+        border: "1px solid rgba(106,169,255,0.4)",
         background:
           "radial-gradient(circle at 0% 0%, rgba(20,30,50,0.6) 0%, rgba(10,11,15,0.6) 60%)",
-        boxShadow:
-          "0 0 20px rgba(106,169,255,0.25), 0 30px 60px rgba(0,0,0,0.8)",
+        boxShadow: baseShadow,
+
+        cursor: "pointer",
         display: "block",
 
-        // animation hover (on prépare ici, le hover sera en CSS inline JS avec onMouseEnter/onMouseLeave)
+        /* animations douces */
         transition:
           "transform 0.18s ease-out, box-shadow 0.18s ease-out, border 0.18s ease-out",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "scale(1.03)";
-        e.currentTarget.style.boxShadow =
-          "0 0 28px rgba(32,227,214,0.4), 0 40px 80px rgba(0,0,0,0.9)";
-        e.currentTarget.style.border = "1px solid rgba(32,227,214,0.6)"; // turquoise
+        e.currentTarget.style.boxShadow = hoverShadow;
+        e.currentTarget.style.border =
+          "1px solid rgba(32,227,214,0.6)"; // turquoise
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "scale(1)";
-        e.currentTarget.style.boxShadow =
-          "0 0 20px rgba(106,169,255,0.25), 0 30px 60px rgba(0,0,0,0.8)";
+        e.currentTarget.style.boxShadow = baseShadow;
         e.currentTarget.style.border =
-          "1px solid rgba(106,169,255,0.4)"; // back to bleu
+          "1px solid rgba(106,169,255,0.4)"; // bleu back normal
       }}
     >
       {/* Titre */}
@@ -44,9 +49,13 @@ export default function HubCard({ title, subtitle, goto, onNav }) {
           fontWeight: 600,
           color: "#6aa9ff",
           marginBottom: 6,
+
+          /* panneau pro */
+          textTransform: "uppercase",
           letterSpacing: "0.05em",
-          textTransform: "uppercase", // ← maintenant toujours uppercase
-          fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Inter', 'Roboto', 'Segoe UI'",
+          lineHeight: 1.2,
+          fontFamily:
+            "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Inter','Roboto','Segoe UI'",
         }}
       >
         {title}
@@ -61,7 +70,7 @@ export default function HubCard({ title, subtitle, goto, onNav }) {
           opacity: 0.9,
           fontWeight: 400,
           fontFamily:
-            "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Inter', 'Roboto', 'Segoe UI'",
+            "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Inter','Roboto','Segoe UI'",
         }}
       >
         {subtitle}
