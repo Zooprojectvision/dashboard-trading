@@ -1,6 +1,9 @@
 import React from "react";
 
 /* ===== Imports composants séparés ===== */
+import TradingPage from "./pages/TradingPage.jsx";
+import DarwinexPage from "./pages/DarwinexPage.jsx";
+import PropFirmsPage from "./pages/PropFirmsPage.jsx";
 import DarwinWidget from "./components/home/DarwinWidget.jsx";
 import HubCard from "./components/home/HubCard.jsx";
 import Footer from "./components/common/Footer.jsx";
