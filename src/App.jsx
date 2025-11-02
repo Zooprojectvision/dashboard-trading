@@ -1,6 +1,7 @@
 import React from "react";
 
 /* ===== Imports composants séparés ===== */
+import HomeHub from "./components/home/HomeHub.jsx";
 import TradingPage from "./pages/TradingPage.jsx";
 import DarwinexPage from "./pages/DarwinexPage.jsx";
 import PropFirmsPage from "./pages/PropFirmsPage.jsx";
