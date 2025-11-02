@@ -878,23 +878,23 @@ export default function ControlPage({
 </div>
 
       {/* Corrélation & Mapping */}
-      <div className="control-section control-grid">
-        <div className="col-6">
-          <CorrelationBlock
-            rows={filtered}
-            convert={convert}
-            ccy={displayCcy}
-          />
-        </div>
+<div className="control-section control-grid">
+  <div className="col-6">
+    <CorrelationBlock
+      rows={filteredTrades}
+      convert={convert}
+      ccy={displayCcyForBlocks}
+    />
+  </div>
 
-        <div className="col-6">
-          <MappingTable
-            rows={filtered}
-            convert={convert}
-            ccy={displayCcy}
-          />
-        </div>
-      </div>
+  <div className="col-6">
+    <MappingTable
+      rows={filteredTrades}
+      convert={convert}
+      ccy={displayCcyForBlocks}
+    />
+  </div>
+</div>
 
       {/* Calendrier mensuel */}
       <div className="control-section">
