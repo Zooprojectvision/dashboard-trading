@@ -1,17 +1,65 @@
 import React from "react";
-import HubCard from "./HubCard.jsx";
-import DarwinWidget from "./DarwinWidget.jsx"; // si tu veux afficher le widget Darwin en bas (optionnel)
+import DarwinWidget from "./DarwinWidget.jsx";
 
-/**
- * Page d'accueil / Hub
- * - Montre les 4 pôles de revenus de l'entreprise
- * - Redirige vers les vues correspondantes via setView(...)
- *
- * Props attendues :
- *  - setView(viewName: string) vient de App.jsx
- *  - t = traductions / i18n (t.brand par ex)
- *  - subtitle = sous-titre éditable stocké dans App.jsx
- */
+function HubCard({ title, subtitle, onClick, accent }) {
+  return (
+    <button
+      className="card hub-card"
+      onClick={onClick}
+      style={{
+        textAlign: "left",
+        width: "100%",
+        background:
+          "linear-gradient(145deg, var(--panel) 0%, rgba(20,25,40,0.4) 100%)",
+        border: "1px solid var(--border)",
+        borderRadius: 16,
+        padding: 16,
+        cursor: "pointer",
+        minHeight: 140,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+      }}
+    >
+      <div>
+        <div
+          className="hub-title"
+          style={{
+            fontSize: 16,
+            fontWeight: 600,
+            color: accent || "var(--accent)",
+            marginBottom: 6,
+          }}
+        >
+          {title}
+        </div>
+        <div
+          className="hub-sub"
+          style={{
+            fontSize: 13,
+            lineHeight: 1.4,
+            color: "var(--text)",
+            opacity: 0.9,
+          }}
+        >
+          {subtitle}
+        </div>
+      </div>
+
+      <div
+        style={{
+          fontSize: 12,
+          color: "var(--text)",
+          opacity: 0.6,
+          marginTop: 12,
+        }}
+      >
+        Ouvrir →
+      </div>
+    </button>
+  );
+}
+
 export default function HomeHub({ setView, t, subtitle }) {
   return (
     <div
@@ -24,7 +72,7 @@ export default function HomeHub({ setView, t, subtitle }) {
         width: "100%",
       }}
     >
-      {/* ===== Titre principal centré ===== */}
+      {/* Titre principal centré */}
       <h1
         className="brand"
         style={{
@@ -38,7 +86,7 @@ export default function HomeHub({ setView, t, subtitle }) {
         {t.brand}
       </h1>
 
-      {/* ===== Sous-titre centré ===== */}
+      {/* Sous-titre centré */}
       <p
         className="subtitle home-subtitle"
         style={{
@@ -48,14 +96,13 @@ export default function HomeHub({ setView, t, subtitle }) {
           fontSize: 14,
           maxWidth: 600,
           textAlign: "center",
-          lineHeight: 1.4,
         }}
       >
         {subtitle ||
           "Le tableau de bord de performance trading Edouard & Michel Jimenez"}
       </p>
 
-      {/* ===== Grille principale : les 4 pôles business ===== */}
+      {/* Grille : 3 cartes + widget Darwin */}
       <div
         className="home-grid"
         style={{
@@ -65,71 +112,111 @@ export default function HomeHub({ setView, t, subtitle }) {
           display: "grid",
           gap: 16,
           gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          alignItems: "stretch",
         }}
       >
-        {/* 1. Trading Interne */}
+        {/* 1. Centre de Contrôle */}
         <HubCard
-          title="Trading Interne"
-          subtitle="Capital propre, drawdown, performance quotidienne, contrôle du risque."
-          onClick={() => setView("trading")}
+          title="Centre de Contrôle"
+          subtitle="Vue complète: filtres, equity, corrélation, calendrier, activité."
+          accent="var(--accent)"
+          onClick={() => {
+            // IMPORTANT : aucune espace, exactement "control"
+            setView("control");
+          }}
         />
 
-        {/* 2. Gestion pour Tiers (Darwinex / Axi) */}
-        <HubCard
-          title="Gestion pour Tiers (Darwinex / Axi)"
-          subtitle="Capital alloué par des tiers, fees management, crédibilité investisseur."
-          onClick={() => setView("darwinex")}
-        />
-
-        {/* 3. Prop Firms */}
-        <HubCard
-          title="Prop Firms"
-          subtitle="Payouts, frais de challenge, règles de risque, comptes actifs."
-          onClick={() => setView("propfirms")}
-        />
-
-        {/* 4. Comptabilité d’Entreprise */}
+        {/* 2. Comptabilité d’Entreprise */}
         <HubCard
           title="Comptabilité d’Entreprise"
-          subtitle="Revenus, charges, marge nette consolidée."
-          onClick={() => setView("compta")}
+          subtitle="Suivi des flux (payouts, frais, dépôts), catégories et exports."
+          accent="var(--green)"
+          onClick={() => {
+            // IMPORTANT : aucune espace, exactement "compta"
+            setView("compta");
+          }}
         />
-      </div>
 
-      {/* ===== Widget Darwinex (optionnel, sous les cartes) ===== */}
-      <div
-        style={{
-          marginTop: 24,
-          width: "100%",
-          maxWidth: 1200,
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-          gap: 16,
-        }}
-      >
+        {/* 3. Gestion du Risque */}
+        <HubCard
+          title="Gestion du Risque"
+          subtitle="Seuils, limites et recommandations d’ajustement."
+          accent="var(--pink)"
+          onClick={() => {
+            // IMPORTANT : aucune espace, exactement "risk"
+            setView("risk");
+          }}
+        />
+
+        {/* 4. Widget Darwinex (aperçu perf / marketing) */}
         <div
           className="card"
           style={{
+            background:
+              "linear-gradient(145deg, var(--panel) 0%, rgba(20,25,40,0.4) 100%)",
             border: "1px solid var(--border)",
             borderRadius: 16,
-            backgroundColor: "var(--panel)",
             padding: 16,
+            minHeight: 140,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
           }}
         >
           <div
-            className="kpi-title"
             style={{
-              fontSize: 14,
-              fontWeight: 500,
-              color: "var(--white)",
-              marginBottom: 12,
+              fontSize: 16,
+              fontWeight: 600,
+              color: "var(--blue, #4da3ff)",
+              marginBottom: 8,
+              textAlign: "left",
             }}
           >
-            Performance publique investissable
+            Darwinex - Allocation Externe
           </div>
 
-          <DarwinWidget />
+          <div
+            style={{
+              flex: 1,
+              borderRadius: 12,
+              overflow: "hidden",
+              backgroundColor: "rgba(0,0,0,0.2)",
+              border: "1px solid var(--border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 8,
+            }}
+          >
+            {/* Le widget réel */}
+            <DarwinWidget />
+          </div>
+
+          <div
+            style={{
+              fontSize: 11,
+              lineHeight: 1.4,
+              color: "var(--text)",
+              opacity: 0.6,
+              marginTop: 8,
+              textAlign: "left",
+            }}
+          >
+            Rendement du portefeuille investi sur Darwinex.
+          </div>
         </div>
+      </div>
+
+      {/* Bas de page accueil (branding simple) */}
+      <div
+        style={{
+          marginTop: 32,
+          fontSize: 12,
+          opacity: 0.5,
+          color: "var(--text)",
+        }}
+      >
+        ZooProjectVision • v{APP_VERSION} • 2025
       </div>
     </div>
   );
