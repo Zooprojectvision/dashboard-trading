@@ -44,10 +44,6 @@ const downsideStd = (a) => {
 };
 const sum = (a) => a.reduce((s, x) => s + x, 0);
 
-const styleNum = (v) => ({
-  color: Number(v) < 0 ? "var(--pink, #ff5fa2)" : "var(--text, #c5ccd3)",
-});
-
 /* ===========================
    Demo trades (90 jours)
    =========================== */
