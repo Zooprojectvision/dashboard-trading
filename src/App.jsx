@@ -1,10 +1,16 @@
 import React from "react";
 
-/* ===== Imports composants séparés ===== */
+/* ===== Composants Home / Footer ===== */
 import HomeHub from "./components/home/HomeHub.jsx";
 import Footer from "./components/common/Footer.jsx";
 
-/* ===== Imports externes ===== */
+/* ===== Modales (fichiers séparés que tu as créés) ===== */
+import FlowModal from "./components/control/FlowModal.jsx";
+import CapitalTiersModal from "./components/control/CapitalTiersModal.jsx";
+import CashflowsModal from "./components/control/CashflowsModal.jsx";
+import AboutModal from "./components/control/AboutModal.jsx";
+
+/* ===== Recharts / charts ===== */
 import {
   ResponsiveContainer,
   LineChart,
@@ -23,11 +29,12 @@ import {
   ComposedChart,
 } from "recharts";
 
+/* ===== i18n / version ===== */
 import { dict, LOCALES } from "./i18n";
 import { APP_VERSION } from "./version";
 
 /* =========================================================
-   i18n & helpers
+   i18n defaults + merge
    ========================================================= */
 
 const I18N_DEFAULTS = {
@@ -64,7 +71,6 @@ const I18N_DEFAULTS = {
   },
 };
 
-/** Fusion profonde simple */
 function deepMerge(a, b) {
   if (b == null) return a;
   if (
@@ -80,17 +86,8 @@ function deepMerge(a, b) {
 }
 
 /* =========================================================
-   maths & style helpers
+   maths helpers
    ========================================================= */
-
-const C = {
-  axis: "#c9cdd1",
-  white: "#ffffff",
-  green: "#20e3d6",
-  pink: "#ff5fa2",
-  orange: "#ffb347",
-  blue: "#4da3ff",
-};
 
 const mean = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0);
 const std = (a) => {
@@ -112,7 +109,7 @@ const styleNum = (v) => ({
 });
 
 /* =========================================================
-   CSV utils (MQL4/MQL5 exports)
+   CSV utils
    ========================================================= */
 
 function parseCSV(text) {
@@ -146,27 +143,26 @@ function mapMT5Rows(rows) {
         r["Date"] ||
         ""
       ).slice(0, 10);
+
       const asset =
         r["Symbol"] ||
         r["Instrument"] ||
         r["Symbol name"] ||
         "UNKNOWN";
+
       const broker = r["Broker"] || "Unknown";
       const strategy = r["Strategy"] || "Unknown";
+
       const pnl = Number(
         r["Profit"] || r["PnL"] || r["PL"] || r["Net P/L"] || 0
       );
+
       const mfe = Number(
-        r["MFE"] ||
-          r["MFE Profit"] ||
-          r["Max Favorable Excursion"] ||
-          0
+        r["MFE"] || r["MFE Profit"] || r["Max Favorable Excursion"] || 0
       );
+
       const mae = Number(
-        r["MAE"] ||
-          r["MAE Profit"] ||
-          r["Max Adverse Excursion"] ||
-          0
+        r["MAE"] || r["MAE Profit"] || r["Max Adverse Excursion"] || 0
       );
 
       return {
@@ -191,25 +187,30 @@ function genDemoTrades() {
   const ASSETS = ["XAUUSD", "DAX", "US500", "USTEC", "US30"];
   const BROKERS = ["Darwinex", "Axi Select"];
   const STRATS = ["Breakout", "MeanRevert", "Momentum"];
+
   const rows = [];
   const today = new Date();
+
   for (let i = 90; i >= 1; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const date = d.toISOString().slice(0, 10);
+
     for (let k = 0; k < 5; k++) {
       const asset = ASSETS[(i + k) % ASSETS.length];
       const broker = BROKERS[(i + k * 2) % BROKERS.length];
       const strategy = STRATS[(i + k * 3) % STRATS.length];
-      let pnl =
-        (Math.random() - 0.5) * (Math.random() < 0.15 ? 2600 : 900);
+
+      let pnl = (Math.random() - 0.5) * (Math.random() < 0.15 ? 2600 : 900);
       pnl = Number(pnl.toFixed(2));
+
       const mfe = Number(
         (Math.abs(pnl) * (0.8 + Math.random() * 0.8)).toFixed(2)
       );
       const mae = Number(
         (Math.abs(pnl) * (0.6 + Math.random() * 0.8)).toFixed(2)
       );
+
       rows.push({
         date,
         asset,
@@ -226,529 +227,7 @@ function genDemoTrades() {
 }
 
 /* =========================================================
-   Modales génériques / formulaires flux & capital
-   ========================================================= */
-
-function Modal({ open, onClose, title, actions, children, inline = false }) {
-  if (!open) return null;
-  if (inline) {
-    return (
-      <div className="modal-card" style={{ marginTop: 8 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 8,
-          }}
-        >
-          <div className="kpi-title" style={{ fontSize: 16 }}>
-            {title}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {actions}
-            <button className="btn ghost sm" onClick={onClose}>
-              fermer
-            </button>
-          </div>
-        </div>
-        {children}
-      </div>
-    );
-  }
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-card"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 8,
-          }}
-        >
-          <div className="kpi-title" style={{ fontSize: 16 }}>
-            {title}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {actions}
-            <button className="btn ghost sm" onClick={onClose}>
-              fermer
-            </button>
-          </div>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function AboutModal({ openHook }) {
-  const [open, setOpen] = openHook || [false, () => {}];
-  return (
-    <Modal open={open} onClose={() => setOpen(false)} title="À Propos">
-      <div
-        style={{
-          fontSize: 14,
-          color: "var(--text)",
-          lineHeight: 1.6,
-        }}
-      >
-        <div className="kpi-title">ZooProjectVision</div>
-        <div style={{ marginTop: 6 }}>
-          <div>
-            Version : <b>V{APP_VERSION}</b>
-          </div>
-          <div style={{ opacity: 0.85, marginTop: 6 }}>
-            Consulte le changelog pour les nouveautés et correctifs.
-          </div>
-          <div style={{ marginTop: 10 }}>
-            <a
-              href="/CHANGELOG.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn ghost sm"
-            >
-              Ouvrir le changelog
-            </a>
-          </div>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-function FlowModal({ openHook, onSave, ccy, inline = false }) {
-  const [open, setOpen] = openHook || [false, () => {}];
-  const [flow, setFlow] = React.useState({
-    date: new Date().toISOString().slice(0, 10),
-    type: "deposit",
-    amount: "",
-    ccy,
-    note: "",
-  });
-
-  const types = [
-    { value: "deposit", label: "dépôt" },
-    { value: "withdrawal", label: "retrait" },
-    { value: "prop_payout", label: "payout prop" },
-    { value: "prop_fee", label: "frais challenge prop" },
-    { value: "darwin_mgmt_fee", label: "darwinex – management fee" },
-    { value: "business_expense", label: "charge business" },
-    { value: "other_income", label: "autre revenu" },
-  ];
-
-  const submit = (e) => {
-    e.preventDefault();
-    const amt = Number(flow.amount);
-    if (!flow.date || !flow.type || !Number.isFinite(amt)) {
-      alert("date/type/montant requis");
-      return;
-    }
-    onSave?.({ ...flow, amount: amt });
-    setOpen(false);
-    setFlow({
-      date: new Date().toISOString().slice(0, 10),
-      type: "deposit",
-      amount: "",
-      ccy,
-      note: "",
-    });
-  };
-
-  return (
-    <Modal
-      open={open}
-      onClose={() => setOpen(false)}
-      title="Ajouter un flux"
-      inline={inline}
-    >
-      <form
-        onSubmit={submit}
-        style={{
-          display: "grid",
-          gap: 10,
-          gridTemplateColumns: "repeat(2,1fr)",
-        }}
-      >
-        <label className="form-label">
-          <span>type</span>
-          <select
-            className="sel"
-            value={flow.type}
-            onChange={(e) =>
-              setFlow((f) => ({ ...f, type: e.target.value }))
-            }
-          >
-            {types.map((t) => (
-              <option
-                key={t.value}
-                value={t.value}
-              >
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="form-label">
-          <span>date</span>
-          <input
-            className="sel"
-            type="date"
-            value={flow.date}
-            onChange={(e) =>
-              setFlow((f) => ({ ...f, date: e.target.value }))
-            }
-          />
-        </label>
-
-        <label className="form-label">
-          <span>devise</span>
-          <select
-            className="sel"
-            value={flow.ccy}
-            onChange={(e) =>
-              setFlow((f) => ({ ...f, ccy: e.target.value }))
-            }
-          >
-            {["USD", "EUR", "CHF"].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="form-label">
-          <span>montant</span>
-          <input
-            className="sel"
-            type="number"
-            step="0.01"
-            value={flow.amount}
-            onChange={(e) =>
-              setFlow((f) => ({ ...f, amount: e.target.value }))
-            }
-          />
-        </label>
-
-        <label
-          className="form-label"
-          style={{ gridColumn: "1 / -1" }}
-        >
-          <span>note</span>
-          <input
-            className="sel"
-            placeholder="optionnel"
-            value={flow.note}
-            onChange={(e) =>
-              setFlow((f) => ({ ...f, note: e.target.value }))
-            }
-          />
-        </label>
-
-        <div
-          style={{
-            gridColumn: "1 / -1",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-          }}
-        >
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => setOpen(false)}
-          >
-            annuler
-          </button>
-          <button
-            type="submit"
-            className="btn"
-          >
-            enregistrer
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-function CapitalTiersModal({
-  openHook,
-  onAdd,
-  displayCcy,
-  inline = false,
-}) {
-  const [open, setOpen] = openHook || [false, () => {}];
-  const [form, setForm] = React.useState({
-    date: new Date().toISOString().slice(0, 10),
-    source: "Prop firm",
-    amount: "",
-    ccy: displayCcy,
-    note: "",
-  });
-
-  const sources = [
-    "Prop firm",
-    "Darwinex invest",
-    "Axi Select",
-    "Investisseur",
-    "Autre",
-  ];
-
-  const submit = (e) => {
-    e.preventDefault();
-    const amt = Number(form.amount);
-    if (!form.date || !form.source || !Number.isFinite(amt)) {
-      alert("date/source/montant requis");
-      return;
-    }
-    onAdd?.({ ...form, amount: amt });
-    setOpen(false);
-  };
-
-  return (
-    <Modal
-      open={open}
-      onClose={() => setOpen(false)}
-      title="Capital tiers"
-      inline={inline}
-    >
-      <form
-        onSubmit={submit}
-        style={{
-          display: "grid",
-          gap: 10,
-          gridTemplateColumns: "repeat(2,1fr)",
-        }}
-      >
-        <label className="form-label">
-          <span>source</span>
-          <select
-            className="sel"
-            value={form.source}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                source: e.target.value,
-              }))
-            }
-          >
-            {sources.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="form-label">
-          <span>date</span>
-          <input
-            className="sel"
-            type="date"
-            value={form.date}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                date: e.target.value,
-              }))
-            }
-          />
-        </label>
-
-        <label className="form-label">
-          <span>devise</span>
-          <select
-            className="sel"
-            value={form.ccy}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                ccy: e.target.value,
-              }))
-            }
-          >
-            {["USD", "EUR", "CHF"].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="form-label">
-          <span>montant</span>
-          <input
-            className="sel"
-            type="number"
-            step="0.01"
-            value={form.amount}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                amount: e.target.value,
-              }))
-            }
-          />
-        </label>
-
-        <label
-          className="form-label"
-          style={{ gridColumn: "1 / -1" }}
-        >
-          <span>note</span>
-          <input
-            className="sel"
-            placeholder="optionnel"
-            value={form.note}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                note: e.target.value,
-              }))
-            }
-          />
-        </label>
-
-        <div
-          style={{
-            gridColumn: "1 / -1",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-          }}
-        >
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => setOpen(false)}
-          >
-            annuler
-          </button>
-          <button
-            type="submit"
-            className="btn"
-          >
-            enregistrer
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-function CashflowsModal({ openHook, rows, inline = false }) {
-  const [open, setOpen] = openHook || [false, () => {}];
-
-  const exportCSV = () => {
-    const headers = [
-      "Date",
-      "Type",
-      "Montant",
-      "Devise",
-      "Note",
-    ];
-    const lines = rows.map((c) => [
-      c.date,
-      c.type,
-      c.amount,
-      c.ccy || "USD",
-      c.note || "",
-    ]);
-    const csv = [headers, ...lines]
-      .map((r) =>
-        r
-          .map((x) => {
-            const s = String(x ?? "");
-            return /[",;\n]/.test(s)
-              ? `"${s.replace(/"/g, '""')}"`
-              : s;
-          })
-          .join(",")
-      )
-      .join("\n");
-
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download =
-      "cashflows_" +
-      new Date().toISOString().slice(0, 10) +
-      ".csv";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <Modal
-      open={open}
-      onClose={() => setOpen(false)}
-      title="Cashflows (récapitulatif)"
-      actions={
-        <button
-          className="btn ghost sm"
-          onClick={exportCSV}
-        >
-          exporter
-        </button>
-      }
-      inline={inline}
-    >
-      <table className="table">
-        <thead>
-          <tr>
-            <th>date</th>
-            <th>type</th>
-            <th style={{ textAlign: "right" }}>
-              montant
-            </th>
-            <th>devise</th>
-            <th>note</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              <td>{r.date}</td>
-              <td>{r.type}</td>
-              <td style={{ textAlign: "right" }}>
-                <span
-                  className="val"
-                  style={styleNum(r.amount)}
-                >
-                  {Number(r.amount).toFixed(2)}
-                </span>
-              </td>
-              <td>{r.ccy || "USD"}</td>
-              <td>{r.note || ""}</td>
-            </tr>
-          ))}
-          {!rows.length && (
-            <tr>
-              <td
-                colSpan="5"
-                style={{
-                  textAlign: "center",
-                  opacity: 0.8,
-                }}
-              >
-                aucun flux
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </Modal>
-  );
-}
-
-/* =========================================================
-   Blocs d'analyse (WinRate, Ratios, Corrélation, etc.)
+   BLOCS D’AFFICHAGE ANALYTIQUE
    ========================================================= */
 
 function WinRateBlock({ rows }) {
@@ -770,14 +249,8 @@ function WinRateBlock({ rows }) {
   ];
 
   return (
-    <div
-      className="wr-donut"
-      style={{ height: 220 }}
-    >
-      <ResponsiveContainer
-        width="100%"
-        height="100%"
-      >
+    <div className="wr-donut" style={{ height: 220 }}>
+      <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
             data={donut}
@@ -797,12 +270,8 @@ function WinRateBlock({ rows }) {
       </ResponsiveContainer>
 
       <div className="wr-center">
-        <div className="wr-pct">
-          {counts.wr.toFixed(1)}%
-        </div>
-        <div className="wr-sub">
-          sur {counts.total} trades
-        </div>
+        <div className="wr-pct">{counts.wr.toFixed(1)}%</div>
+        <div className="wr-sub">sur {counts.total} trades</div>
       </div>
     </div>
   );
@@ -812,20 +281,10 @@ function RatiosBlock({ rows, convert, ccy }) {
   const byDate = React.useMemo(() => {
     const m = new Map();
     rows.forEach((t) => {
-      const v = convert(
-        t.pnl,
-        t.ccy || "USD",
-        ccy
-      );
-      m.set(
-        t.date,
-        (m.get(t.date) || 0) + v
-      );
+      const v = convert(t.pnl, t.ccy || "USD", ccy);
+      m.set(t.date, (m.get(t.date) || 0) + v);
     });
-    return Array.from(
-      m,
-      ([date, pnl]) => ({ date, pnl })
-    ).sort((a, b) =>
+    return Array.from(m, ([date, pnl]) => ({ date, pnl })).sort((a, b) =>
       a.date.localeCompare(b.date)
     );
   }, [rows, ccy, convert]);
@@ -838,129 +297,64 @@ function RatiosBlock({ rows, convert, ccy }) {
 
   const wins = rows
     .filter((t) => t.pnl > 0)
-    .map((t) =>
-      convert(
-        t.pnl,
-        t.ccy || "USD",
-        ccy
-      )
-    );
+    .map((t) => convert(t.pnl, t.ccy || "USD", ccy));
   const loss = rows
     .filter((t) => t.pnl < 0)
-    .map((t) =>
-      Math.abs(
-        convert(
-          t.pnl,
-          t.ccy || "USD",
-          ccy
-        )
-      )
-    );
+    .map((t) => Math.abs(convert(t.pnl, t.ccy || "USD", ccy)));
 
-  const p = rows.length
-    ? wins.length / rows.length
-    : 0;
+  const p = rows.length ? wins.length / rows.length : 0;
   const q = 1 - p;
 
-  const avgW = wins.length
-    ? mean(wins)
-    : 0;
-  const avgL = loss.length
-    ? mean(loss)
-    : 0;
+  const avgW = wins.length ? mean(wins) : 0;
+  const avgL = loss.length ? mean(loss) : 0;
 
   const RR = avgL > 0 ? avgW / avgL : 0;
-  const expectancy = rows.length
-    ? sum(daily) / rows.length
-    : 0;
-  const sharpe =
-    sd > 0 ? (avg / sd) * Math.sqrt(252) : 0;
-  const sortino =
-    dsd > 0
-      ? (avg / dsd) * Math.sqrt(252)
-      : 0;
-  const kelly =
-    avgL > 0
-      ? p - q / (RR || 1)
-      : 0;
-  const edge =
-    p * avgW - q * avgL;
+  const expectancy = rows.length ? sum(daily) / rows.length : 0;
+  const sharpe = sd > 0 ? (avg / sd) * Math.sqrt(252) : 0;
+  const sortino = dsd > 0 ? (avg / dsd) * Math.sqrt(252) : 0;
+  const kelly = avgL > 0 ? p - q / (RR || 1) : 0;
+  const edge = p * avgW - q * avgL;
   const ror =
     edge <= 0
       ? 1
-      : Math.max(
-          0,
-          Math.pow(
-            q / Math.max(p, 1e-6),
-            5
-          )
-        );
+      : Math.max(0, Math.pow(q / Math.max(p, 1e-6), 5)); // approx, indicatif
 
   const verdict = (s) =>
-    s >= 1
-      ? "halo-good"
-      : s >= 0.4
-      ? "halo-warn"
-      : "halo-bad";
+    s >= 1 ? "halo-good" : s >= 0.4 ? "halo-warn" : "halo-bad";
 
   const V = ({ v, suffix = "" }) => (
-    <span
-      className="val"
-      style={styleNum(v)}
-    >
-      {Number.isFinite(v)
-        ? v.toFixed(2) + suffix
-        : "—"}
+    <span className="val" style={styleNum(v)}>
+      {Number.isFinite(v) ? v.toFixed(2) + suffix : "—"}
     </span>
   );
 
   return (
-    <div
-      className={`card ${verdict(
-        sharpe
-      )}`}
-    >
+    <div className={`card ${verdict(sharpe)}`}>
       <div className="grid-3">
         <div className="card halo-neutral tinted">
-          <div className="kpi-title">
-            Expectancy par Trade
-          </div>
+          <div className="kpi-title">Expectancy par Trade</div>
           <V v={expectancy} />
         </div>
 
         <div className="card halo-neutral tinted">
-          <div className="kpi-title">
-            Sharpe (Ann.)
-          </div>
+          <div className="kpi-title">Sharpe (Ann.)</div>
           <V v={sharpe} />
-
-          <div
-            className="kpi-title"
-            style={{ marginTop: 8 }}
-          >
+          <div className="kpi-title" style={{ marginTop: 8 }}>
             Sortino (Ann.)
           </div>
           <V v={sortino} />
         </div>
 
         <div className="card halo-neutral tinted">
-          <div className="kpi-title">
-            Risk / Reward
-          </div>
+          <div className="kpi-title">Risk / Reward</div>
           <V v={RR} />
 
-          <div
-            className="kpi-title"
-            style={{ marginTop: 8 }}
-          >
+          <div className="kpi-title" style={{ marginTop: 8 }}>
             Kelly (Indicatif)
           </div>
           <V v={kelly} />
 
-          <div
-            className="kpi-title"
-            style={{ marginTop: 8 }}
-          >
+          <div className="kpi-title" style={{ marginTop: 8 }}>
             Risque de Ruine (≈)
           </div>
           <V v={ror * 100} suffix="%" />
@@ -971,22 +365,17 @@ function RatiosBlock({ rows, convert, ccy }) {
 }
 
 function CorrelationBlock({ rows, convert, ccy }) {
-  const strats = React.useMemo(() => {
-    return Array.from(
-      new Set(rows.map((r) => r.strategy))
-    ).sort();
-  }, [rows]);
+  const strats = React.useMemo(
+    () => Array.from(new Set(rows.map((r) => r.strategy))).sort(),
+    [rows]
+  );
 
   const byDateStrat = React.useMemo(() => {
     const m = new Map();
     rows.forEach((t) => {
       const d = t.date;
       const s = t.strategy;
-      const v = convert(
-        t.pnl,
-        t.ccy || "USD",
-        ccy
-      );
+      const v = convert(t.pnl, t.ccy || "USD", ccy);
       if (!m.has(d)) m.set(d, new Map());
       const mm = m.get(d);
       mm.set(s, (mm.get(s) || 0) + v);
@@ -994,41 +383,29 @@ function CorrelationBlock({ rows, convert, ccy }) {
     return m;
   }, [rows, ccy, convert]);
 
-  const dates = React.useMemo(() => {
-    return Array.from(byDateStrat.keys()).sort();
-  }, [byDateStrat]);
+  const dates = React.useMemo(
+    () => Array.from(byDateStrat.keys()).sort(),
+    [byDateStrat]
+  );
 
   const series = React.useMemo(() => {
     const s = {};
     strats.forEach((st) => {
       s[st] = dates.map((d) => {
-        const mm =
-          byDateStrat.get(d) ||
-          new Map();
+        const mm = byDateStrat.get(d) || new Map();
         return mm.get(st) || 0;
       });
     });
     return s;
   }, [strats, dates, byDateStrat]);
 
-  const meanArr = (a) =>
-    a.length
-      ? a.reduce(
-          (sum, x) => sum + x,
-          0
-        ) / a.length
-      : 0;
-
   const corr = (a, b) => {
-    const n = Math.min(
-      a.length,
-      b.length
-    );
+    const n = Math.min(a.length, b.length);
     if (!n) return 0;
     const ax = a.slice(0, n);
     const bx = b.slice(0, n);
-    const ma = meanArr(ax);
-    const mb = meanArr(bx);
+    const ma = mean(ax);
+    const mb = mean(bx);
     let num = 0,
       da = 0,
       db = 0;
@@ -1039,9 +416,7 @@ function CorrelationBlock({ rows, convert, ccy }) {
       da += x * x;
       db += y * y;
     }
-    const den = Math.sqrt(
-      da * db
-    );
+    const den = Math.sqrt(da * db);
     return den > 0 ? num / den : 0;
   };
 
@@ -1052,18 +427,13 @@ function CorrelationBlock({ rows, convert, ccy }) {
     return "halo-bad";
   };
 
-  const matrix = React.useMemo(() => {
-    return strats.map((s1, i) =>
-      strats.map((s2, j) =>
-        i === j
-          ? 1
-          : corr(
-              series[s1] || [],
-              series[s2] || []
-            )
-      )
-    );
-  }, [strats, series]);
+  const matrix = React.useMemo(
+    () =>
+      strats.map((s1, i) =>
+        strats.map((s2, j) => (i === j ? 1 : corr(series[s1] || [], series[s2] || [])))
+      ),
+    [strats, series]
+  );
 
   if (strats.length < 2) {
     return (
@@ -1075,20 +445,13 @@ function CorrelationBlock({ rows, convert, ccy }) {
           padding: "8px 0",
         }}
       >
-        Pas assez de stratégies
-        pour calculer une
-        corrélation.
+        Pas assez de stratégies pour calculer une corrélation.
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        overflowX: "auto",
-        marginTop: 8,
-      }}
-    >
+    <div style={{ overflowX: "auto", marginTop: 8 }}>
       <table className="table">
         <thead>
           <tr>
@@ -1107,22 +470,15 @@ function CorrelationBlock({ rows, convert, ccy }) {
                   <div
                     className="card halo-neutral"
                     style={{
-                      padding:
-                        "8px 10px",
-                      textAlign:
-                        "center",
+                      padding: "8px 10px",
+                      textAlign: "center",
                       borderRadius: 12,
-                      border:
-                        "1px solid var(--border)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <div
-                      className={`val ${verdict(
-                        c
-                      )}`}
-                      style={{
-                        border: "none",
-                      }}
+                      className={`val ${verdict(c)}`}
+                      style={{ border: "none" }}
                     >
                       {c.toFixed(2)}
                     </div>
@@ -1141,81 +497,39 @@ function MappingTable({ rows, convert, ccy }) {
   const map = new Map();
   rows.forEach((r) => {
     const k = `${r.strategy}||${r.broker}`;
-    const v = convert(
-      r.pnl,
-      r.ccy || "USD",
-      ccy
-    );
-    const o =
-      map.get(k) || {
-        pnl: 0,
-        n: 0,
-      };
+    const v = convert(r.pnl, r.ccy || "USD", ccy);
+    const o = map.get(k) || { pnl: 0, n: 0 };
     o.pnl += v;
     o.n += 1;
     map.set(k, o);
   });
 
-  const items = Array.from(
-    map.entries()
-  )
+  const items = Array.from(map.entries())
     .map(([k, v]) => {
-      const [strategy, broker] = k.split(
-        "||"
-      );
+      const [strategy, broker] = k.split("||");
       return {
         strategy,
         broker,
         pnl: v.pnl,
         n: v.n,
-        expectancy: v.n
-          ? v.pnl / v.n
-          : 0,
+        expectancy: v.n ? v.pnl / v.n : 0,
       };
     })
     .sort(
       (a, b) =>
-        a.strategy.localeCompare(
-          b.strategy
-        ) ||
-        a.broker.localeCompare(
-          b.broker
-        )
+        a.strategy.localeCompare(b.strategy) ||
+        a.broker.localeCompare(b.broker)
     );
 
   return (
-    <table
-      className="table"
-      style={{ marginTop: 6 }}
-    >
+    <table className="table" style={{ marginTop: 6 }}>
       <thead>
         <tr>
           <th>Stratégie</th>
           <th>Broker</th>
-          <th
-            style={{
-              textAlign:
-                "right",
-            }}
-          >
-            Pnl
-          </th>
-          <th
-            style={{
-              textAlign:
-                "right",
-            }}
-          >
-            Trades
-          </th>
-          <th
-            style={{
-              textAlign:
-                "right",
-            }}
-          >
-            Expectancy
-          </th>
+          <th style={{ textAlign: "right" }}>Pnl</th>
+          <th style={{ textAlign: "right" }}>Trades</th>
+          <th style={{ textAlign: "right" }}>Expectancy</th>
         </tr>
       </thead>
       <tbody>
@@ -1223,44 +537,15 @@ function MappingTable({ rows, convert, ccy }) {
           <tr key={i}>
             <td>{r.strategy}</td>
             <td>{r.broker}</td>
-            <td
-              style={{
-                textAlign:
-                  "right",
-              }}
-            >
-              <span
-                className="val"
-                style={styleNum(
-                  r.pnl
-                )}
-              >
+            <td style={{ textAlign: "right" }}>
+              <span className="val" style={styleNum(r.pnl)}>
                 {r.pnl.toFixed(2)}
               </span>
             </td>
-            <td
-              style={{
-                textAlign:
-                  "right",
-              }}
-            >
-              {r.n}
-            </td>
-            <td
-              style={{
-                textAlign:
-                  "right",
-              }}
-            >
-              <span
-                className="val"
-                style={styleNum(
-                  r.expectancy
-                )}
-              >
-                {r.expectancy.toFixed(
-                  2
-                )}
+            <td style={{ textAlign: "right" }}>{r.n}</td>
+            <td style={{ textAlign: "right" }}>
+              <span className="val" style={styleNum(r.expectancy)}>
+                {r.expectancy.toFixed(2)}
               </span>
             </td>
           </tr>
@@ -1271,35 +556,14 @@ function MappingTable({ rows, convert, ccy }) {
 }
 
 function ActivityBlocks({ rows }) {
-  const hour = new Array(24)
-    .fill(0)
-    .map((_, h) => ({
-      h,
-      win: 0,
-      loss: 0,
-    }));
-  const dow = new Array(7)
-    .fill(0)
-    .map((_, d) => ({
-      d,
-      win: 0,
-      loss: 0,
-    }));
-  const mon = new Array(12)
-    .fill(0)
-    .map((_, m) => ({
-      m,
-      win: 0,
-      loss: 0,
-    }));
+  const hour = new Array(24).fill(0).map((_, h) => ({ h, win: 0, loss: 0 }));
+  const dow = new Array(7).fill(0).map((_, d) => ({ d, win: 0, loss: 0 }));
+  const mon = new Array(12).fill(0).map((_, m) => ({ m, win: 0, loss: 0 }));
 
   rows.forEach((t) => {
     const rndH = (Math.random() * 24) | 0;
-    const dt = new Date(
-      t.date + "T12:00:00Z"
-    );
-    const d =
-      (dt.getUTCDay() + 6) % 7;
+    const dt = new Date(t.date + "T12:00:00Z");
+    const d = (dt.getUTCDay() + 6) % 7;
     const m = dt.getUTCMonth();
     if (t.pnl > 0) {
       hour[rndH].win++;
@@ -1312,54 +576,7 @@ function ActivityBlocks({ rows }) {
     }
   });
 
-  const bar = (data, xKey) => (
-    <ResponsiveContainer
-      width="100%"
-      height={260}
-    >
-      <BarChart data={data}>
-        <CartesianGrid stroke="#2b2b2b" />
-        <XAxis
-          dataKey={xKey}
-          stroke={C.axis}
-          tickLine={false}
-          axisLine={{
-            stroke: C.axis,
-          }}
-        />
-        <YAxis
-          allowDecimals={false}
-          stroke={C.axis}
-          tickLine={false}
-          axisLine={{
-            stroke: C.axis,
-          }}
-        />
-        <Tooltip />
-        <Legend />
-        <Bar
-          dataKey="win"
-          name="Gagnants"
-          fill="var(--green)"
-        />
-        <Bar
-          dataKey="loss"
-          name="Perdants"
-          fill="var(--pink)"
-        />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-
-  const dowLabel = [
-    "Lun",
-    "Mar",
-    "Mer",
-    "Jeu",
-    "Ven",
-    "Sam",
-    "Dim",
-  ];
+  const dowLabel = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
   const monLabel = [
     "Jan",
     "Fév",
@@ -1375,39 +592,49 @@ function ActivityBlocks({ rows }) {
     "Déc",
   ];
 
+  const bar = (data, xKey) => (
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart data={data}>
+        <CartesianGrid stroke="#2b2b2b" />
+        <XAxis
+          dataKey={xKey}
+          stroke="var(--axis-text)"
+          tickLine={false}
+          axisLine={{ stroke: "var(--axis-text)" }}
+        />
+        <YAxis
+          allowDecimals={false}
+          stroke="var(--axis-text)"
+          tickLine={false}
+          axisLine={{ stroke: "var(--axis-text)" }}
+        />
+        <Tooltip />
+        <Legend />
+        <Bar dataKey="win" name="Gagnants" fill="var(--green)" />
+        <Bar dataKey="loss" name="Perdants" fill="var(--pink)" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+
   return (
     <div className="grid-3">
       <div className="card">
-        <div className="kpi-title">
-          Activité par Heure
-        </div>
+        <div className="kpi-title">Activité par Heure</div>
         {bar(hour, "h")}
       </div>
 
       <div className="card">
-        <div className="kpi-title">
-          Activité par Jour
-          (Lundi…Dimanche)
-        </div>
+        <div className="kpi-title">Activité par Jour (Lundi…Dimanche)</div>
         {bar(
-          dow.map((x, i) => ({
-            ...x,
-            d: dowLabel[i],
-          })),
+          dow.map((x, i) => ({ ...x, d: dowLabel[i] })),
           "d"
         )}
       </div>
 
       <div className="card">
-        <div className="kpi-title">
-          Activité par Mois
-          (Janvier…Décembre)
-        </div>
+        <div className="kpi-title">Activité par Mois (Janvier…Décembre)</div>
         {bar(
-          mon.map((x, i) => ({
-            ...x,
-            m: monLabel[i],
-          })),
+          mon.map((x, i) => ({ ...x, m: monLabel[i] })),
           "m"
         )}
       </div>
@@ -1415,28 +642,11 @@ function ActivityBlocks({ rows }) {
   );
 }
 
-/* =========================================================
-   Calendrier Mensuel
-   ========================================================= */
-
-function CalendarMonthly({
-  rows,
-  convert,
-  ccy,
-  startEquity,
-}) {
+function CalendarMonthly({ rows, convert, ccy, startEquity }) {
   const map = new Map();
   rows.forEach((t) => {
-    const v = convert(
-      t.pnl,
-      t.ccy || "USD",
-      ccy
-    );
-    const o =
-      map.get(t.date) || {
-        pnl: 0,
-        n: 0,
-      };
+    const v = convert(t.pnl, t.ccy || "USD", ccy);
+    const o = map.get(t.date) || { pnl: 0, n: 0 };
     o.pnl += v;
     o.n++;
     map.set(t.date, o);
@@ -1444,88 +654,47 @@ function CalendarMonthly({
 
   const lastDateStr = rows.length
     ? rows[rows.length - 1].date
-    : new Date()
-        .toISOString()
-        .slice(0, 10);
+    : new Date().toISOString().slice(0, 10);
 
-  const base = new Date(
-    lastDateStr + "T12:00:00Z"
-  );
+  const base = new Date(lastDateStr + "T12:00:00Z");
   const year = base.getUTCFullYear();
   const month = base.getUTCMonth(); // 0..11
 
-  const firstOfMonth = new Date(
-    Date.UTC(year, month, 1)
-  );
-  const lastOfMonth = new Date(
-    Date.UTC(year, month + 1, 0)
-  );
+  const firstOfMonth = new Date(Date.UTC(year, month, 1));
+  const lastOfMonth = new Date(Date.UTC(year, month + 1, 0));
 
-  // grille Lundi -> Dimanche
+  // Commencer le calendrier un lundi
   const start = new Date(firstOfMonth);
-  const startDow =
-    (start.getUTCDay() + 6) % 7;
-  start.setUTCDate(
-    start.getUTCDate() - startDow
-  );
+  const startDow = (start.getUTCDay() + 6) % 7;
+  start.setUTCDate(start.getUTCDate() - startDow);
 
+  // Finir le calendrier un dimanche
   const end = new Date(lastOfMonth);
-  const endDow =
-    (end.getUTCDay() + 6) % 7;
-  end.setUTCDate(
-    end.getUTCDate() + (6 - endDow)
-  );
+  const endDow = (end.getUTCDay() + 6) % 7;
+  end.setUTCDate(end.getUTCDate() + (6 - endDow));
 
   const days = [];
   let eq = startEquity,
     peak = eq;
-  for (
-    let d = new Date(start);
-    d <= end;
-    d.setUTCDate(
-      d.getUTCDate() + 1
-    )
-  ) {
-    const date = d
-      .toISOString()
-      .slice(0, 10);
-    const isInMonth =
-      d.getUTCMonth() === month;
-    const dayData =
-      map.get(date) || {
-        pnl: 0,
-        n: 0,
-      };
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    const date = d.toISOString().slice(0, 10);
+    const isInMonth = d.getUTCMonth() === month;
+    const dayData = map.get(date) || { pnl: 0, n: 0 };
 
     const prev = eq;
     eq += isInMonth ? dayData.pnl : 0;
     peak = Math.max(peak, eq);
 
-    const ddAbs = Math.max(
-      0,
-      peak - eq
-    );
-    const retPct =
-      prev > 0
-        ? (dayData.pnl / prev) *
-          100
-        : 0;
+    const ddAbs = Math.max(0, peak - eq);
+    const retPct = prev > 0 ? (dayData.pnl / prev) * 100 : 0;
 
     days.push({
       date,
       inMonth: isInMonth,
-      pnl: isInMonth
-        ? dayData.pnl
-        : null,
-      n: isInMonth
-        ? dayData.n
-        : 0,
-      retPct: isInMonth
-        ? retPct
-        : null,
-      ddAbs: isInMonth
-        ? ddAbs
-        : null,
+      pnl: isInMonth ? dayData.pnl : null,
+      n: isInMonth ? dayData.n : 0,
+      retPct: isInMonth ? retPct : null,
+      ddAbs: isInMonth ? ddAbs : null,
     });
   }
 
@@ -1538,15 +707,7 @@ function CalendarMonthly({
       ? "halo-warn"
       : "halo-bad";
 
-  const weekDays = [
-    "Lun",
-    "Mar",
-    "Mer",
-    "Jeu",
-    "Ven",
-    "Sam",
-    "Dim",
-  ];
+  const weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
   return (
     <div className="card">
@@ -1554,97 +715,42 @@ function CalendarMonthly({
         {/* En-têtes des jours */}
         <div className="month-head">
           {weekDays.map((d) => (
-            <div
-              key={d}
-              className="cap"
-            >
+            <div key={d} className="cap">
               {d}
             </div>
           ))}
         </div>
 
-        {/* Jours */}
+        {/* Cases du calendrier */}
         {days.map((d) => (
-          <div
-            key={d.date}
-            className={`day-cell ${verdict(
-              d.pnl
-            )}`}
-          >
+          <div key={d.date} className={`day-cell ${verdict(d.pnl)}`}>
             <div className="day-top">
-              <span
-                className={
-                  d.inMonth
-                    ? ""
-                    : "day-muted"
-                }
-              >
-                {d.date.slice(
-                  8,
-                  10
-                )}
-                /
-                {d.date.slice(
-                  5,
-                  7
-                )}
+              <span className={d.inMonth ? "" : "day-muted"}>
+                {d.date.slice(8, 10)}/{d.date.slice(5, 7)}
               </span>
-              <span className="day-muted">
-                {d.n
-                  ? `${d.n} t.`
-                  : ""}
-              </span>
+              <span className="day-muted">{d.n ? `${d.n} t.` : ""}</span>
             </div>
 
             {d.inMonth ? (
               <>
                 <div className="day-metric">
-                  <span className="cap">
-                    PnL
-                  </span>
-                  <span
-                    className="val"
-                    style={styleNum(
-                      d.pnl
-                    )}
-                  >
-                    {(d.pnl ??
-                      0
-                    ).toFixed(2)}
+                  <span className="cap">PnL</span>
+                  <span className="val" style={styleNum(d.pnl)}>
+                    {(d.pnl ?? 0).toFixed(2)}
                   </span>
                 </div>
 
                 <div className="day-metric">
-                  <span className="cap">
-                    Rentabilité
-                  </span>
-                  <span
-                    className="val"
-                    style={styleNum(
-                      d.retPct
-                    )}
-                  >
-                    {Number(
-                      d.retPct ??
-                        0
-                    ).toFixed(
-                      2
-                    )}
-                    %
+                  <span className="cap">Rentabilité</span>
+                  <span className="val" style={styleNum(d.retPct)}>
+                    {Number(d.retPct ?? 0).toFixed(2)}%
                   </span>
                 </div>
 
                 <div className="day-metric">
-                  <span className="cap">
-                    DD Abs
-                  </span>
+                  <span className="cap">DD Abs</span>
                   <span className="val">
-                    {Number(
-                      d.ddAbs ??
-                        0
-                    ).toFixed(
-                      2
-                    )}
+                    {Number(d.ddAbs ?? 0).toFixed(2)}
                   </span>
                 </div>
               </>
@@ -1665,241 +771,114 @@ function CalendarMonthly({
   );
 }
 
-/* =========================================================
-   Courbe d’Équité
-   ========================================================= */
-
-function EquityBlock({
-  rows,
-  cashflows,
-  initial,
-  convert,
-  ccy,
-}) {
-  const [mode, setMode] =
-    React.useState("global"); // 'global' | 'strat'
+function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
+  const [mode, setMode] = React.useState("global"); // 'global' | 'strat'
 
   // agrégation PnL par date
   const byDate = React.useMemo(() => {
     const m = new Map();
     rows.forEach((r) => {
-      const v = convert(
-        r.pnl,
-        r.ccy || "USD",
-        ccy
-      );
-      m.set(
-        r.date,
-        (m.get(r.date) || 0) + v
-      );
+      const v = convert(r.pnl, r.ccy || "USD", ccy);
+      m.set(r.date, (m.get(r.date) || 0) + v);
     });
     return [...m.entries()]
-      .map(([date, pnl]) => ({
-        date,
-        pnl,
-      }))
-      .sort((a, b) =>
-        a.date.localeCompare(
-          b.date
-        )
-      );
+      .map(([date, pnl]) => ({ date, pnl }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [rows, ccy, convert]);
 
-  // equity cumulée + peak + drawdown abs
-  let eq = convert(
-    initial,
-    "USD",
-    ccy
-  );
+  // equity cumulée globale
+  let eq = convert(initial, "USD", ccy);
   let peak = eq;
-  const globalSeries = byDate.map(
-    (d) => {
-      eq += d.pnl;
-      peak = Math.max(
-        peak,
-        eq
-      );
-      const drawdownAbs =
-        Math.max(
-          0,
-          peak - eq
-        );
-      return {
-        date: d.date,
-        equity: eq,
-        pnl: d.pnl,
-        peakEquity: peak,
-        drawdownAbs,
-      };
-    }
-  );
+  const globalSeries = byDate.map((d) => {
+    eq += d.pnl;
+    peak = Math.max(peak, eq);
+    const drawdownAbs = Math.max(0, peak - eq);
+    return {
+      date: d.date,
+      equity: eq,
+      pnl: d.pnl,
+      peakEquity: peak,
+      drawdownAbs,
+    };
+  });
 
-  // scatter points
-  const fluxDates = new Set(
-    cashflows.map((c) => c.date)
-  );
-  const scatterFlux =
-    globalSeries
-      .filter((x) =>
-        fluxDates.has(x.date)
-      )
-      .map((x) => ({
-        date: x.date,
-        equity: x.equity,
-      }));
-  const scatterLoss =
-    globalSeries
-      .filter((x) => x.pnl < 0)
-      .map((x) => ({
-        date: x.date,
-        equity: x.equity,
-      }));
+  // points spéciaux
+  const fluxDates = new Set(cashflows.map((c) => c.date));
+  const scatterFlux = globalSeries
+    .filter((x) => fluxDates.has(x.date))
+    .map((x) => ({ date: x.date, equity: x.equity }));
+  const scatterLoss = globalSeries
+    .filter((x) => x.pnl < 0)
+    .map((x) => ({ date: x.date, equity: x.equity }));
 
-  // equity cumulée par stratégie
+  // equity par stratégie
   const strats = React.useMemo(
-    () =>
-      Array.from(
-        new Set(
-          rows.map(
-            (r) =>
-              r.strategy
-          )
-        )
-      ).sort(),
+    () => Array.from(new Set(rows.map((r) => r.strategy))).sort(),
     [rows]
   );
 
-  const byDateStrat =
-    React.useMemo(() => {
-      const m = new Map();
-      rows.forEach((r) => {
-        const v = convert(
-          r.pnl,
-          r.ccy || "USD",
-          ccy
-        );
-        if (!m.has(r.date))
-          m.set(
-            r.date,
-            new Map()
-          );
-        const mm = m.get(
-          r.date
-        );
-        mm.set(
-          r.strategy,
-          (mm.get(
-            r.strategy
-          ) || 0) + v
-        );
-      });
-      return m;
-    }, [rows, ccy, convert]);
+  const byDateStrat = React.useMemo(() => {
+    const m = new Map();
+    rows.forEach((r) => {
+      const v = convert(r.pnl, r.ccy || "USD", ccy);
+      if (!m.has(r.date)) m.set(r.date, new Map());
+      const mm = m.get(r.date);
+      mm.set(r.strategy, (mm.get(r.strategy) || 0) + v);
+    });
+    return m;
+  }, [rows, ccy, convert]);
 
   const dates = React.useMemo(
-    () =>
-      Array.from(
-        new Set(
-          globalSeries.map(
-            (d) =>
-              d.date
-          )
-        )
-      ).sort(),
+    () => Array.from(new Set(globalSeries.map((d) => d.date))).sort(),
     [globalSeries]
   );
 
-  const stratSeries =
-    React.useMemo(() => {
-      const acc = {};
-      strats.forEach(
-        (s) => (acc[s] = 0)
-      );
-      const out = dates.map(
-        (date) => {
-          const mm =
-            byDateStrat.get(
-              date
-            ) || new Map();
-          const row = {
-            date,
-          };
-          strats.forEach(
-            (s) => {
-              acc[s] +=
-                mm.get(s) ||
-                0;
-              row[s] = acc[s];
-            }
-          );
-          return row;
-        }
-      );
-      return out;
-    }, [
-      strats,
-      dates,
-      byDateStrat,
-    ]);
+  const stratSeries = React.useMemo(() => {
+    const acc = {};
+    strats.forEach((s) => (acc[s] = 0));
+    const out = dates.map((date) => {
+      const mm = byDateStrat.get(date) || new Map();
+      const row = { date };
+      strats.forEach((s) => {
+        acc[s] += mm.get(s) || 0;
+        row[s] = acc[s];
+      });
+      return row;
+    });
+    return out;
+  }, [strats, dates, byDateStrat]);
 
   return (
     <div className="card">
       <div className="block-head">
-        <div className="block-title cap">
-          Courbe d’Équité
-        </div>
+        <div className="block-title cap">Courbe d’Équité</div>
         <div className="block-tools">
-          <span
-            className="kpi-sub"
-            style={{
-              opacity: 0.85,
-            }}
-          >
+          <span className="kpi-sub" style={{ opacity: 0.85 }}>
             Vue
           </span>
           <select
             className="sel"
             value={mode}
-            onChange={(e) =>
-              setMode(
-                e.target.value
-              )
-            }
+            onChange={(e) => setMode(e.target.value)}
           >
-            <option value="global">
-              Global (PnL cumulé)
-            </option>
-            <option value="strat">
-              Par Stratégie
-              (PnL cumulé)
-            </option>
+            <option value="global">Global (PnL cumulé)</option>
+            <option value="strat">Par Stratégie (PnL cumulé)</option>
           </select>
         </div>
       </div>
 
-      <ResponsiveContainer
-        width="100%"
-        height={420}
-      >
+      <ResponsiveContainer width="100%" height={420}>
         {mode === "global" ? (
           <ComposedChart
             data={globalSeries}
-            margin={{
-              left: 8,
-              right: 8,
-              top: 8,
-              bottom: 8,
-            }}
+            margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
           >
             <CartesianGrid stroke="#2b2b2b" />
             <XAxis
               dataKey="date"
               stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{
-                stroke:
-                  "var(--axis-text)",
-              }}
+              axisLine={{ stroke: "var(--axis-text)" }}
               tick={{
                 fontSize: 11,
                 fill: "var(--axis-text)",
@@ -1908,10 +887,7 @@ function EquityBlock({
             <YAxis
               stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{
-                stroke:
-                  "var(--axis-text)",
-              }}
+              axisLine={{ stroke: "var(--axis-text)" }}
               tick={{
                 fontSize: 11,
                 fill: "var(--axis-text)",
@@ -1920,7 +896,6 @@ function EquityBlock({
             <Tooltip />
             <Legend />
 
-            {/* Équité */}
             <Line
               type="monotone"
               dataKey="equity"
@@ -1930,7 +905,6 @@ function EquityBlock({
               strokeWidth={1.8}
             />
 
-            {/* Peak */}
             <Line
               type="monotone"
               dataKey="peakEquity"
@@ -1941,7 +915,6 @@ function EquityBlock({
               strokeDasharray="4 4"
             />
 
-            {/* Drawdown absolu */}
             <Line
               type="monotone"
               dataKey="drawdownAbs"
@@ -1952,7 +925,6 @@ function EquityBlock({
               strokeDasharray="3 3"
             />
 
-            {/* Points: pertes */}
             <Scatter
               data={scatterLoss}
               dataKey="equity"
@@ -1960,7 +932,6 @@ function EquityBlock({
               fill="var(--pink)"
             />
 
-            {/* Points: flux */}
             <Scatter
               data={scatterFlux}
               dataKey="equity"
@@ -1969,24 +940,13 @@ function EquityBlock({
             />
           </ComposedChart>
         ) : (
-          <LineChart
-            data={stratSeries}
-            margin={{
-              left: 8,
-              right: 8,
-              top: 8,
-              bottom: 8,
-            }}
-          >
+          <LineChart data={stratSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
             <CartesianGrid stroke="#2b2b2b" />
             <XAxis
               dataKey="date"
               stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{
-                stroke:
-                  "var(--axis-text)",
-              }}
+              axisLine={{ stroke: "var(--axis-text)" }}
               tick={{
                 fontSize: 11,
                 fill: "var(--axis-text)",
@@ -1995,10 +955,7 @@ function EquityBlock({
             <YAxis
               stroke="var(--axis-text)"
               tickLine={false}
-              axisLine={{
-                stroke:
-                  "var(--axis-text)",
-              }}
+              axisLine={{ stroke: "var(--axis-text)" }}
               tick={{
                 fontSize: 11,
                 fill: "var(--axis-text)",
@@ -2044,53 +1001,23 @@ function EquityBlock({
 }
 
 /* =========================================================
-   APP (main)
+   APP (MAIN)
    ========================================================= */
 
 export default function App() {
-  /* ------------------------------
-     Navigation simple
-     ------------------------------ */
+  /* -------- Navigation entre pages -------- */
+  const [view, setView] = React.useState("home"); // 'home' | 'control' | 'compta' | 'risk'
 
-  const [viewRaw, setViewRaw] = React.useState("home");
-
-  // Canonicalisation de la vue (très important)
-  const view = React.useMemo(() => {
-    if (!viewRaw) return "home";
-    const v = String(viewRaw).trim().toLowerCase();
-    if (v === "control") return "control";
-    if (v === "compta") return "compta";
-    if (v === "risk") return "risk";
-    return v; // fallback
-  }, [viewRaw]);
-
-  // On passe **navigate** à HomeHub au lieu de setView brut
-  const navigate = React.useCallback((next) => {
-    if (!next) return;
-    const clean = String(next).trim().toLowerCase();
-    if (clean === "control") return setViewRaw("control");
-    if (clean === "compta") return setViewRaw("compta");
-    if (clean === "risk") return setViewRaw("risk");
-    if (clean === "home") return setViewRaw("home");
-    // fallback si jamais
-    setViewRaw(clean);
-  }, []);
-
-  /* ------------------------------
-     Langue + i18n
-     ------------------------------ */
+  /* -------- Langue / i18n -------- */
   const [lang, setLang] = React.useState("fr");
-  const t = React.useMemo(
-    () => deepMerge(I18N_DEFAULTS, dict[lang] || {}),
-    [lang]
-  );
+  const t = React.useMemo(() => deepMerge(I18N_DEFAULTS, dict[lang] || {}), [
+    lang,
+  ]);
 
-  /* ------------------------------
-     Devise d’affichage
-     ------------------------------ */
+  /* -------- Devise d'affichage -------- */
   const [displayCcy, setDisplayCcy] = React.useState("USD");
 
-  // fallback si pas d'API FX
+  // fallback en cas d'échec API fx
   const fallback = {
     USD: { USD: 1, EUR: 0.93, CHF: 0.88 },
     EUR: { USD: 1 / 0.93, EUR: 1, CHF: 0.88 / 0.93 },
@@ -2119,7 +1046,11 @@ export default function App() {
       .then((r) => r.json())
       .then((j) => {
         const data = {
-          USD: { USD: 1, EUR: j.rates.EUR, CHF: j.rates.CHF },
+          USD: {
+            USD: 1,
+            EUR: j.rates.EUR,
+            CHF: j.rates.CHF,
+          },
           EUR: {
             USD: 1 / j.rates.EUR,
             EUR: 1,
@@ -2140,54 +1071,36 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  const convert = (
-    val,
-    from = "USD",
-    to = displayCcy
-  ) => {
+  const convert = (val, from = "USD", to = displayCcy) => {
     if (val == null) return 0;
-    if (from === to)
-      return Number(Number(val).toFixed(2));
+    if (from === to) return Number(Number(val).toFixed(2));
     const tab = rates || fallback;
-    const r =
-      tab[from] && tab[from][to]
-        ? tab[from][to]
-        : 1;
-    return Number(
-      (Number(val) * r).toFixed(2)
-    );
+    const r = tab[from] && tab[from][to] ? tab[from][to] : 1;
+    return Number((Number(val) * r).toFixed(2));
   };
 
   const fmt = (v, ccy = displayCcy) => {
     try {
-      return new Intl.NumberFormat(
-        undefined,
-        {
-          style: "currency",
-          currency: ccy,
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }
-      ).format(v ?? 0);
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: ccy,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(v ?? 0);
     } catch {
       return `${(v ?? 0).toFixed(2)} ${ccy}`;
     }
   };
 
-  /* ------------------------------
-     Données trades (démo + import user)
-     ------------------------------ */
+  /* -------- Données trades -------- */
   const demo = React.useMemo(() => genDemoTrades(), []);
   const [userTrades, setUserTrades] = React.useState([]);
+  const tradesAll = React.useMemo(() => demo.concat(userTrades), [
+    demo,
+    userTrades,
+  ]);
 
-  const tradesAll = React.useMemo(
-    () => demo.concat(userTrades),
-    [demo, userTrades]
-  );
-
-  /* ------------------------------
-     Capital & flux & capital tiers
-     ------------------------------ */
+  /* -------- Capital initial & flux & capital tiers -------- */
   const CAPITAL_INITIAL_USD = 100000;
 
   const [flows, setFlows] = React.useState(() => {
@@ -2218,9 +1131,7 @@ export default function App() {
     } catch {}
   }, [tiers]);
 
-  /* ------------------------------
-     Filtres
-     ------------------------------ */
+  /* -------- Filtres -------- */
   const [asset, setAsset] = React.useState("All");
   const [broker, setBroker] = React.useState("All");
   const [strategy, setStrategy] = React.useState("All");
@@ -2236,18 +1147,15 @@ export default function App() {
   };
 
   const assets = React.useMemo(
-    () =>
-      Array.from(new Set(tradesAll.map((t) => t.asset))),
+    () => Array.from(new Set(tradesAll.map((t) => t.asset))),
     [tradesAll]
   );
   const brokers = React.useMemo(
-    () =>
-      Array.from(new Set(tradesAll.map((t) => t.broker))),
+    () => Array.from(new Set(tradesAll.map((t) => t.broker))),
     [tradesAll]
   );
   const strategies = React.useMemo(
-    () =>
-      Array.from(new Set(tradesAll.map((t) => t.strategy))),
+    () => Array.from(new Set(tradesAll.map((t) => t.strategy))),
     [tradesAll]
   );
 
@@ -2256,30 +1164,16 @@ export default function App() {
       tradesAll.filter((t) => {
         if (asset !== "All" && t.asset !== asset) return false;
         if (broker !== "All" && t.broker !== broker) return false;
-        if (
-          strategy !== "All" &&
-          t.strategy !== strategy
-        )
-          return false;
+        if (strategy !== "All" && t.strategy !== strategy) return false;
         if (dateFrom && t.date < dateFrom) return false;
         if (dateTo && t.date > dateTo) return false;
         return true;
       }),
-    [
-      tradesAll,
-      asset,
-      broker,
-      strategy,
-      dateFrom,
-      dateTo,
-    ]
+    [tradesAll, asset, broker, strategy, dateFrom, dateTo]
   );
 
-  /* ------------------------------
-     Cashflows filtrés par période
-     ------------------------------ */
+  /* -------- Cashflows filtrés par période -------- */
   const cashflowsAll = flows;
-
   const cashflowsInRange = React.useMemo(
     () =>
       cashflowsAll.filter(
@@ -2290,16 +1184,9 @@ export default function App() {
     [cashflowsAll, dateFrom, dateTo]
   );
 
-  /* ------------------------------
-     KPI Capital / PnL / DD
-     ------------------------------ */
+  /* -------- KPIs Capital / PnL / DD -------- */
   const capitalInitialDisp = React.useMemo(
-    () =>
-      convert(
-        CAPITAL_INITIAL_USD,
-        "USD",
-        displayCcy
-      ),
+    () => convert(CAPITAL_INITIAL_USD, "USD", displayCcy),
     [displayCcy, rates]
   );
 
@@ -2307,12 +1194,7 @@ export default function App() {
     () =>
       cashflowsInRange.reduce(
         (acc, c) =>
-          acc +
-          convert(
-            c.amount,
-            c.ccy || "USD",
-            displayCcy
-          ),
+          acc + convert(c.amount, c.ccy || "USD", displayCcy),
         0
       ),
     [cashflowsInRange, displayCcy, rates]
@@ -2322,27 +1204,17 @@ export default function App() {
     () =>
       filtered.reduce(
         (acc, t) =>
-          acc +
-          convert(
-            t.pnl,
-            t.ccy || "USD",
-            displayCcy
-          ),
+          acc + convert(t.pnl, t.ccy || "USD", displayCcy),
         0
       ),
     [filtered, displayCcy, rates]
   );
 
-  const capitalBase =
-    capitalInitialDisp + cashFlowTotal;
-  const capitalGlobal =
-    capitalBase + pnlFiltered;
+  const capitalBase = capitalInitialDisp + cashFlowTotal;
+  const capitalGlobal = capitalBase + pnlFiltered;
 
   const returnPct = React.useMemo(
-    () =>
-      capitalBase > 0
-        ? (pnlFiltered / capitalBase) * 100
-        : 0,
+    () => (capitalBase > 0 ? (pnlFiltered / capitalBase) * 100 : 0),
     [capitalBase, pnlFiltered]
   );
 
@@ -2350,36 +1222,26 @@ export default function App() {
   const byDate = React.useMemo(() => {
     const m = new Map();
     filtered.forEach((t) => {
-      const v = convert(
-        t.pnl,
-        t.ccy || "USD",
-        displayCcy
-      );
-      m.set(
-        t.date,
-        (m.get(t.date) || 0) + v
-      );
+      const v = convert(t.pnl, t.ccy || "USD", displayCcy);
+      m.set(t.date, (m.get(t.date) || 0) + v);
     });
     return [...m.entries()]
       .map(([date, pnl]) => ({ date, pnl }))
-      .sort((a, b) =>
-        a.date.localeCompare(b.date)
-      );
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [filtered, displayCcy, rates]);
 
-  let eq = capitalInitialDisp;
-  let peak = eq;
+  let eqDD = capitalInitialDisp;
+  let peak = eqDD;
   let maxDrop = 0;
   byDate.forEach((p) => {
-    eq += p.pnl;
-    peak = Math.max(peak, eq);
-    maxDrop = Math.max(maxDrop, peak - eq);
+    eqDD += p.pnl;
+    peak = Math.max(peak, eqDD);
+    maxDrop = Math.max(maxDrop, peak - eqDD);
   });
   const maxDDAbs = maxDrop;
-  const maxDDPct =
-    peak > 0 ? (maxDrop / peak) * 100 : 0;
+  const maxDDPct = peak > 0 ? (maxDrop / peak) * 100 : 0;
 
-  // Capital Tiers
+  // Capital Tiers total converti
   const tiersTotal = React.useMemo(
     () =>
       tiers.reduce(
@@ -2395,21 +1257,13 @@ export default function App() {
     [tiers, displayCcy, rates]
   );
 
-  /* ------------------------------
-     États modales (flux, tiers, recap, about)
-     ------------------------------ */
-  const [openFlow, setOpenFlow] =
-    React.useState(false);
-  const [openTiers, setOpenTiers] =
-    React.useState(false);
-  const [openRecap, setOpenRecap] =
-    React.useState(false);
-  const [openAbout, setOpenAbout] =
-    React.useState(false);
+  /* -------- États modales -------- */
+  const [openFlow, setOpenFlow] = React.useState(false);
+  const [openTiers, setOpenTiers] = React.useState(false);
+  const [openRecap, setOpenRecap] = React.useState(false);
+  const [openAbout, setOpenAbout] = React.useState(false);
 
-  /* ------------------------------
-     Sous-titre éditable (texte sous le brand)
-     ------------------------------ */
+  /* -------- Sous-titre éditable sous le brand -------- */
   const [subtitle, setSubtitle] = React.useState(() => {
     try {
       return (
@@ -2420,23 +1274,17 @@ export default function App() {
       return t.subtitle_default;
     }
   });
-  const [editSub, setEditSub] =
-    React.useState(false);
+  const [editSub, setEditSub] = React.useState(false);
 
   React.useEffect(() => {
     try {
       if (!editSub) {
-        localStorage.setItem(
-          "zpv_subtitle",
-          subtitle
-        );
+        localStorage.setItem("zpv_subtitle", subtitle);
       }
     } catch {}
   }, [subtitle, editSub, t]);
 
-  /* ------------------------------
-     noData (si pas de trades filtrés)
-     ------------------------------ */
+  /* -------- noData -------- */
   const noData = filtered.length === 0;
 
   /* =====================================================
@@ -2446,14 +1294,15 @@ export default function App() {
   return (
     <div className="wrap">
       {view === "home" ? (
+        /* ===================== PAGE ACCUEIL ===================== */
         <HomeHub
-          setView={navigate}
+          setView={setView}
           t={t}
           subtitle={subtitle}
         />
       ) : (
         <>
-          {/* Barre de navigation haute interne */}
+          {/* Barre top interne pour les pages autres que home */}
           <div
             className="header"
             style={{
@@ -2464,7 +1313,7 @@ export default function App() {
           >
             <button
               className="btn ghost"
-              onClick={() => navigate("home")}
+              onClick={() => setView("home")}
             >
               ← Accueil
             </button>
@@ -2481,12 +1330,21 @@ export default function App() {
                 ? "Comptabilité entreprise"
                 : "Gestion du risque"}
             </div>
+
+            <div
+              style={{
+                opacity: 0.7,
+                fontSize: 12,
+              }}
+            >
+              ZooProjectVision • v{APP_VERSION} • 2025
+            </div>
           </div>
 
-          {/* ===== PAGE CONTROL ===== */}
+          {/* ================== PAGE CONTROL ================== */}
           {view === "control" && (
             <div className="control-page">
-              {/* Bandeau haut */}
+              {/* Bandeau haut : brand + sous-titre + actions */}
               <div className="card">
                 <div className="block-head">
                   <div>
@@ -2526,9 +1384,7 @@ export default function App() {
                           className="sel"
                           value={subtitle}
                           onChange={(e) =>
-                            setSubtitle(
-                              e.target.value
-                            )
+                            setSubtitle(e.target.value)
                           }
                         />
                         <button
@@ -2567,21 +1423,15 @@ export default function App() {
                           if (!f) return;
                           const fr = new FileReader();
                           fr.onload = () => {
-                            const rows = parseCSV(
-                              String(fr.result)
-                            );
-                            const mapped = mapMT5Rows(
-                              rows
-                            );
+                            const rows = parseCSV(String(fr.result));
+                            const mapped = mapMT5Rows(rows);
                             if (!mapped.length) {
                               alert(
                                 "CSV non reconnu. (Time/Symbol/Profit requis)"
                               );
                               return;
                             }
-                            setUserTrades((prev) =>
-                              prev.concat(mapped)
-                            );
+                            setUserTrades((prev) => prev.concat(mapped));
                           };
                           fr.readAsText(f);
                         }}
@@ -2591,9 +1441,7 @@ export default function App() {
                     {/* Ajouter Flux */}
                     <button
                       className="btn"
-                      onClick={() =>
-                        setOpenFlow(true)
-                      }
+                      onClick={() => setOpenFlow(true)}
                     >
                       {t.actions?.Add_Flow ||
                         I18N_DEFAULTS.actions.Add_Flow}
@@ -2602,9 +1450,7 @@ export default function App() {
                     {/* Capital Tiers */}
                     <button
                       className="btn"
-                      onClick={() =>
-                        setOpenTiers(true)
-                      }
+                      onClick={() => setOpenTiers(true)}
                     >
                       {t.actions?.Third_Capital ||
                         I18N_DEFAULTS.actions.Third_Capital}
@@ -2613,9 +1459,7 @@ export default function App() {
                     {/* Récap flux */}
                     <button
                       className="btn ghost"
-                      onClick={() =>
-                        setOpenRecap(true)
-                      }
+                      onClick={() => setOpenRecap(true)}
                     >
                       {t.actions?.Recap ||
                         I18N_DEFAULTS.actions.Recap}
@@ -2633,9 +1477,7 @@ export default function App() {
                     {/* À propos */}
                     <button
                       className="btn ghost"
-                      onClick={() =>
-                        setOpenAbout(true)
-                      }
+                      onClick={() => setOpenAbout(true)}
                     >
                       {t.actions?.About ||
                         I18N_DEFAULTS.actions.About}
@@ -2644,9 +1486,7 @@ export default function App() {
                     {/* Devise */}
                     <div
                       className="kpi-title cap"
-                      style={{
-                        marginLeft: 10,
-                      }}
+                      style={{ marginLeft: 10 }}
                     >
                       Devise
                     </div>
@@ -2655,26 +1495,18 @@ export default function App() {
                       style={{ width: 110 }}
                       value={displayCcy}
                       onChange={(e) =>
-                        setDisplayCcy(
-                          e.target.value
-                        )
+                        setDisplayCcy(e.target.value)
                       }
                     >
-                      {["USD", "EUR", "CHF"].map(
-                        (c) => (
-                          <option key={c}>
-                            {c}
-                          </option>
-                        )
-                      )}
+                      {["USD", "EUR", "CHF"].map((c) => (
+                        <option key={c}>{c}</option>
+                      ))}
                     </select>
 
                     {/* Langue */}
                     <div
                       className="kpi-title cap"
-                      style={{
-                        marginLeft: 10,
-                      }}
+                      style={{ marginLeft: 10 }}
                     >
                       Langue
                     </div>
@@ -2683,21 +1515,14 @@ export default function App() {
                       style={{ width: 150 }}
                       value={lang}
                       onChange={(e) =>
-                        setLang(
-                          e.target.value
-                        )
+                        setLang(e.target.value)
                       }
                     >
-                      {LOCALES.map(
-                        (l) => (
-                          <option
-                            key={l}
-                            value={l}
-                          >
-                            {l}
-                          </option>
-                        )
-                      )}
+                      {LOCALES.map((l) => (
+                        <option key={l} value={l}>
+                          {l}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -2706,9 +1531,7 @@ export default function App() {
                 <FlowModal
                   openHook={[openFlow, setOpenFlow]}
                   onSave={(row) =>
-                    setFlows((p) =>
-                      p.concat([row])
-                    )
+                    setFlows((p) => p.concat([row]))
                   }
                   ccy={displayCcy}
                   inline
@@ -2717,9 +1540,7 @@ export default function App() {
                 <CapitalTiersModal
                   openHook={[openTiers, setOpenTiers]}
                   onAdd={(row) =>
-                    setTiers((p) =>
-                      p.concat([row])
-                    )
+                    setTiers((p) => p.concat([row]))
                   }
                   displayCcy={displayCcy}
                   inline
@@ -2733,6 +1554,7 @@ export default function App() {
 
                 <AboutModal
                   openHook={[openAbout, setOpenAbout]}
+                  inline
                 />
               </div>
 
@@ -2742,139 +1564,85 @@ export default function App() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns:
-                        "repeat(7,1fr)",
+                      gridTemplateColumns: "repeat(7,1fr)",
                       gap: 10,
                     }}
                   >
                     <div>
-                      <div className="kpi-title cap">
-                        Actif
-                      </div>
+                      <div className="kpi-title cap">Actif</div>
                       <select
                         className="sel"
                         value={asset}
                         onChange={(e) =>
-                          setAsset(
-                            e.target
-                              .value
-                          )
+                          setAsset(e.target.value)
                         }
                       >
-                        <option>
-                          All
-                        </option>
+                        <option>All</option>
                         {assets.map((a) => (
-                          <option
-                            key={a}
-                          >
-                            {a}
-                          </option>
+                          <option key={a}>{a}</option>
                         ))}
                       </select>
                     </div>
 
                     <div>
-                      <div className="kpi-title cap">
-                        Broker
-                      </div>
+                      <div className="kpi-title cap">Broker</div>
                       <select
                         className="sel"
                         value={broker}
                         onChange={(e) =>
-                          setBroker(
-                            e.target
-                              .value
-                          )
+                          setBroker(e.target.value)
                         }
                       >
-                        <option>
-                          All
-                        </option>
-                        {brokers.map(
-                          (b) => (
-                            <option
-                              key={
-                                b
-                              }
-                            >
-                              {b}
-                            </option>
-                          )
-                        )}
+                        <option>All</option>
+                        {brokers.map((b) => (
+                          <option key={b}>{b}</option>
+                        ))}
                       </select>
                     </div>
 
                     <div>
-                      <div className="kpi-title cap">
-                        Stratégie
-                      </div>
+                      <div className="kpi-title cap">Stratégie</div>
                       <select
                         className="sel"
                         value={strategy}
                         onChange={(e) =>
-                          setStrategy(
-                            e.target
-                              .value
-                          )
+                          setStrategy(e.target.value)
                         }
                       >
-                        <option>
-                          All
-                        </option>
-                        {strategies.map(
-                          (s) => (
-                            <option
-                              key={
-                                s
-                              }
-                            >
-                              {s}
-                            </option>
-                          )
-                        )}
+                        <option>All</option>
+                        {strategies.map((s) => (
+                          <option key={s}>{s}</option>
+                        ))}
                       </select>
                     </div>
 
                     <div>
-                      <div className="kpi-title cap">
-                        Du
-                      </div>
+                      <div className="kpi-title cap">Du</div>
                       <input
                         className="sel"
                         type="date"
                         value={dateFrom}
                         onChange={(e) =>
-                          setDateFrom(
-                            e.target
-                              .value
-                          )
+                          setDateFrom(e.target.value)
                         }
                         style={{
-                          fontFamily:
-                            "inherit",
+                          fontFamily: "inherit",
                           fontSize: 14,
                         }}
                       />
                     </div>
 
                     <div>
-                      <div className="kpi-title cap">
-                        Au
-                      </div>
+                      <div className="kpi-title cap">Au</div>
                       <input
                         className="sel"
                         type="date"
                         value={dateTo}
                         onChange={(e) =>
-                          setDateTo(
-                            e.target
-                              .value
-                          )
+                          setDateTo(e.target.value)
                         }
                         style={{
-                          fontFamily:
-                            "inherit",
+                          fontFamily: "inherit",
                           fontSize: 14,
                         }}
                       />
@@ -2903,9 +1671,7 @@ export default function App() {
                       Capital Initial
                     </div>
                     <div className="val val-main">
-                      {fmt(
-                        capitalInitialDisp
-                      )}
+                      {fmt(capitalInitialDisp)}
                     </div>
                   </div>
 
@@ -2920,9 +1686,7 @@ export default function App() {
                           : "pos"
                       }`}
                     >
-                      {fmt(
-                        cashFlowTotal
-                      )}
+                      {fmt(cashFlowTotal)}
                     </div>
                   </div>
 
@@ -2937,9 +1701,7 @@ export default function App() {
                           : "pos"
                       }`}
                     >
-                      {fmt(
-                        pnlFiltered
-                      )}
+                      {fmt(pnlFiltered)}
                     </div>
                   </div>
 
@@ -2954,9 +1716,7 @@ export default function App() {
                           : "pos"
                       }`}
                     >
-                      {fmt(
-                        capitalGlobal
-                      )}
+                      {fmt(capitalGlobal)}
                     </div>
                   </div>
 
@@ -3004,12 +1764,14 @@ export default function App() {
                       Jours Actifs
                     </div>
                     <div className="val val-main">
-                      {new Set(
-                        filtered.map(
-                          (t) =>
-                            t.date
-                        )
-                      ).size}
+                      {
+                        new Set(
+                          filtered.map(
+                            (t) =>
+                              t.date
+                          )
+                        ).size
+                      }
                     </div>
                   </div>
 
@@ -3033,16 +1795,14 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Grille principale */}
+              {/* Grille principale (équité + ratios) */}
               <div className="control-section control-grid">
                 {/* Courbe d’équité (col-8) */}
                 <div className="col-8">
                   <EquityBlock
                     rows={filtered}
                     cashflows={cashflowsAll}
-                    initial={
-                      CAPITAL_INITIAL_USD
-                    }
+                    initial={CAPITAL_INITIAL_USD}
                     convert={convert}
                     ccy={displayCcy}
                   />
@@ -3057,9 +1817,7 @@ export default function App() {
                           Taux de Réussite
                         </div>
                       </div>
-                      <WinRateBlock
-                        rows={filtered}
-                      />
+                      <WinRateBlock rows={filtered} />
                     </div>
 
                     <div className="card">
@@ -3136,20 +1894,17 @@ export default function App() {
                     </div>
                   </div>
 
-                  <ActivityBlocks
-                    rows={filtered}
-                  />
+                  <ActivityBlocks rows={filtered} />
                 </div>
               </div>
 
-              {/* Alerte si aucune donnée */}
+              {/* Message si pas de données */}
               {noData && (
                 <div
                   className="card halo-warn"
                   style={{
                     marginTop: 20,
-                    textAlign:
-                      "center",
+                    textAlign: "center",
                   }}
                 >
                   <div className="kpi-title cap">
@@ -3162,25 +1917,18 @@ export default function App() {
                       marginTop: 6,
                     }}
                   >
-                    Ajuste les
-                    filtres ou
-                    importe un
-                    CSV pour voir
-                    les stats.
+                    Ajuste les filtres ou importe un CSV pour voir les stats.
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* ===== PAGE COMPTA ===== */}
+          {/* ================== PAGE COMPTA ================== */}
           {view === "compta" && (
             <div className="page-outer">
               <div className="page-content">
-                <div
-                  className="card"
-                  style={{ padding: 16 }}
-                >
+                <div className="card" style={{ padding: 16 }}>
                   <div
                     className="kpi-title"
                     style={{
@@ -3189,16 +1937,9 @@ export default function App() {
                       gap: 6,
                     }}
                   >
-                    <span>
-                      Vue Comptable
-                    </span>
+                    <span>Vue Comptable</span>
                   </div>
-                  <p
-                    style={{
-                      marginTop: 8,
-                      opacity: 0.8,
-                    }}
-                  >
+                  <p style={{ marginTop: 8, opacity: 0.8 }}>
                     À venir…
                   </p>
                 </div>
@@ -3206,14 +1947,11 @@ export default function App() {
             </div>
           )}
 
-          {/* ===== PAGE RISK ===== */}
+          {/* ================== PAGE RISK ================== */}
           {view === "risk" && (
             <div className="page-outer">
               <div className="page-content">
-                <div
-                  className="card"
-                  style={{ padding: 16 }}
-                >
+                <div className="card" style={{ padding: 16 }}>
                   <div
                     className="kpi-title"
                     style={{
@@ -3222,17 +1960,9 @@ export default function App() {
                       gap: 6,
                     }}
                   >
-                    <span>
-                      Analyse de
-                      Risque
-                    </span>
+                    <span>Analyse de Risque</span>
                   </div>
-                  <p
-                    style={{
-                      marginTop: 8,
-                      opacity: 0.8,
-                    }}
-                  >
+                  <p style={{ marginTop: 8, opacity: 0.8 }}>
                     À venir…
                   </p>
                 </div>
@@ -3242,10 +1972,8 @@ export default function App() {
         </>
       )}
 
-      {/* Footer global (toutes pages) */}
-      <Footer
-        year={new Date().getFullYear()}
-      />
+      {/* Footer global */}
+      <Footer year={new Date().getFullYear()} />
     </div>
   );
 }
