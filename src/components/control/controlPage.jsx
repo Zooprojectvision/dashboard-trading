@@ -36,12 +36,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
 // On les importe depuis App PLUS TARD, on va les déplacer proprement ensuite.
 // Pour l’instant, on les redéclare ici en inline pour que ça marche tout de suite.
 
-// ================= Helpers visuels simples =================
-
-const styleNum = (v) => ({
-  color: Number(v) < 0 ? "var(--pink, #ff5fa2)" : "var(--text, #c5ccd3)",
-});
-
 // ================= Composants KPI / Stats =================
 
 // WinRateBlock
