@@ -1,3 +1,6 @@
+import EquityBlock from "../components/control/EquityBlock.jsx";
+import WinRateBlock from "../components/control/WinRateBlock.jsx";
+import RatiosBlock from "../components/control/RatiosBlock.jsx";
 import React from "react";
 
 // On a besoin de ces sous-composants/utilitaires qui existent déjà dans App.jsx.
