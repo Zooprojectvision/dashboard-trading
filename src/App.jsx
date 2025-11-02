@@ -1,11 +1,16 @@
 import React from "react";
 
-/* ===== Composants internes ===== */
+/* ===== Composants Home / Footer ===== */
 import HomeHub from "./components/home/HomeHub.jsx";
 import Footer from "./components/common/Footer.jsx";
-import ControlPage from "./pages/ControlPage.jsx";
 
-/* ===== Imports externes utilisés dans les sous-blocs ===== */
+/* ===== Modales (fichiers séparés que tu as créés) ===== */
+import FlowModal from "./components/control/FlowModal.jsx";
+import CapitalTiersModal from "./components/control/CapitalTiersModal.jsx";
+import CashflowsModal from "./components/control/CashflowsModal.jsx";
+import AboutModal from "./components/control/AboutModal.jsx";
+
+/* ===== Recharts / charts ===== */
 import {
   ResponsiveContainer,
   LineChart,
@@ -24,11 +29,12 @@ import {
   ComposedChart,
 } from "recharts";
 
+/* ===== i18n / version ===== */
 import { dict, LOCALES } from "./i18n";
 import { APP_VERSION } from "./version";
 
 /* =========================================================
-   i18n & helpers
+   i18n defaults + merge
    ========================================================= */
 
 const I18N_DEFAULTS = {
@@ -65,7 +71,6 @@ const I18N_DEFAULTS = {
   },
 };
 
-/** Fusion profonde : b écrase a pour les valeurs simples, objets fusionnés */
 function deepMerge(a, b) {
   if (b == null) return a;
   if (
@@ -73,35 +78,23 @@ function deepMerge(a, b) {
     Array.isArray(b) ||
     typeof a !== "object" ||
     typeof b !== "object"
-  ) {
+  )
     return b ?? a;
-  }
   const out = { ...a };
   for (const k of Object.keys(b)) out[k] = deepMerge(a[k], b[k]);
   return out;
 }
 
 /* =========================================================
-   maths & style helpers
+   maths helpers
    ========================================================= */
 
-const C = {
-  axis: "#c9cdd1",
-  white: "#ffffff",
-  green: "#20e3d6",
-  pink: "#ff5fa2",
-  orange: "#ffb347",
-  blue: "#4da3ff",
-};
-
 const mean = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0);
-
 const std = (a) => {
   if (!a.length) return 0;
   const m = mean(a);
   return Math.sqrt(mean(a.map((x) => (x - m) * (x - m))));
 };
-
 const downsideStd = (a) => {
   if (!a.length) return 0;
   const m = mean(a);
@@ -109,7 +102,6 @@ const downsideStd = (a) => {
   if (!n.length) return 0;
   return Math.sqrt(mean(n.map((x) => (x - m) * (x - m))));
 };
-
 const sum = (a) => a.reduce((s, x) => s + x, 0);
 
 const styleNum = (v) => ({
@@ -117,7 +109,7 @@ const styleNum = (v) => ({
 });
 
 /* =========================================================
-   CSV utils (MQL4/MQL5 exports)
+   CSV utils
    ========================================================= */
 
 function parseCSV(text) {
@@ -164,17 +156,13 @@ function mapMT5Rows(rows) {
       const pnl = Number(
         r["Profit"] || r["PnL"] || r["PL"] || r["Net P/L"] || 0
       );
+
       const mfe = Number(
-        r["MFE"] ||
-          r["MFE Profit"] ||
-          r["Max Favorable Excursion"] ||
-          0
+        r["MFE"] || r["MFE Profit"] || r["Max Favorable Excursion"] || 0
       );
+
       const mae = Number(
-        r["MAE"] ||
-          r["MAE Profit"] ||
-          r["Max Adverse Excursion"] ||
-          0
+        r["MAE"] || r["MAE Profit"] || r["Max Adverse Excursion"] || 0
       );
 
       return {
@@ -213,8 +201,7 @@ function genDemoTrades() {
       const broker = BROKERS[(i + k * 2) % BROKERS.length];
       const strategy = STRATS[(i + k * 3) % STRATS.length];
 
-      let pnl =
-        (Math.random() - 0.5) * (Math.random() < 0.15 ? 2600 : 900);
+      let pnl = (Math.random() - 0.5) * (Math.random() < 0.15 ? 2600 : 900);
       pnl = Number(pnl.toFixed(2));
 
       const mfe = Number(
@@ -236,437 +223,17 @@ function genDemoTrades() {
       });
     }
   }
-
   return rows;
 }
 
 /* =========================================================
-   Modale générique & sous-modales
-   ========================================================= */
-
-function Modal({ open, onClose, title, actions, children, inline = false }) {
-  if (!open) return null;
-
-  if (inline) {
-    return (
-      <div className="modal-card" style={{ marginTop: 8 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 8,
-          }}
-        >
-          <div className="kpi-title" style={{ fontSize: 16 }}>
-            {title}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {actions}
-            <button className="btn ghost sm" onClick={onClose}>
-              fermer
-            </button>
-          </div>
-        </div>
-        {children}
-      </div>
-    );
-  }
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 8,
-          }}
-        >
-          <div className="kpi-title" style={{ fontSize: 16 }}>
-            {title}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {actions}
-            <button className="btn ghost sm" onClick={onClose}>
-              fermer
-            </button>
-          </div>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function AboutModal({ openHook }) {
-  const [open, setOpen] = openHook || [false, () => {}];
-  return (
-    <Modal open={open} onClose={() => setOpen(false)} title="À Propos">
-      <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.6 }}>
-        <div className="kpi-title">ZooProjectVision</div>
-        <div style={{ marginTop: 6 }}>
-          <div>
-            Version : <b>V{APP_VERSION}</b>
-          </div>
-          <div style={{ opacity: 0.85, marginTop: 6 }}>
-            Consulte le changelog pour les nouveautés et correctifs.
-          </div>
-          <div style={{ marginTop: 10 }}>
-            <a
-              href="/CHANGELOG.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn ghost sm"
-            >
-              Ouvrir le changelog
-            </a>
-          </div>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-function FlowModal({ openHook, onSave, ccy, inline = false }) {
-  const [open, setOpen] = openHook || [false, () => {}];
-  const [flow, setFlow] = React.useState({
-    date: new Date().toISOString().slice(0, 10),
-    type: "deposit",
-    amount: "",
-    ccy,
-    note: "",
-  });
-
-  const types = [
-    { value: "deposit", label: "dépôt" },
-    { value: "withdrawal", label: "retrait" },
-    { value: "prop_payout", label: "payout prop" },
-    { value: "prop_fee", label: "frais challenge prop" },
-    { value: "darwin_mgmt_fee", label: "darwinex – management fee" },
-    { value: "business_expense", label: "charge business" },
-    { value: "other_income", label: "autre revenu" },
-  ];
-
-  const submit = (e) => {
-    e.preventDefault();
-    const amt = Number(flow.amount);
-    if (!flow.date || !flow.type || !Number.isFinite(amt)) {
-      alert("date/type/montant requis");
-      return;
-    }
-    onSave?.({ ...flow, amount: amt });
-    setOpen(false);
-    setFlow({
-      date: new Date().toISOString().slice(0, 10),
-      type: "deposit",
-      amount: "",
-      ccy,
-      note: "",
-    });
-  };
-
-  return (
-    <Modal open={open} onClose={() => setOpen(false)} title="Ajouter un flux" inline={inline}>
-      <form
-        onSubmit={submit}
-        style={{
-          display: "grid",
-          gap: 10,
-          gridTemplateColumns: "repeat(2,1fr)",
-        }}
-      >
-        <label className="form-label">
-          <span>type</span>
-          <select
-            className="sel"
-            value={flow.type}
-            onChange={(e) => setFlow((f) => ({ ...f, type: e.target.value }))}
-          >
-            {types.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="form-label">
-          <span>date</span>
-          <input
-            className="sel"
-            type="date"
-            value={flow.date}
-            onChange={(e) => setFlow((f) => ({ ...f, date: e.target.value }))}
-          />
-        </label>
-
-        <label className="form-label">
-          <span>devise</span>
-          <select
-            className="sel"
-            value={flow.ccy}
-            onChange={(e) => setFlow((f) => ({ ...f, ccy: e.target.value }))}
-          >
-            {["USD", "EUR", "CHF"].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="form-label">
-          <span>montant</span>
-          <input
-            className="sel"
-            type="number"
-            step="0.01"
-            value={flow.amount}
-            onChange={(e) => setFlow((f) => ({ ...f, amount: e.target.value }))}
-          />
-        </label>
-
-        <label className="form-label" style={{ gridColumn: "1 / -1" }}>
-          <span>note</span>
-          <input
-            className="sel"
-            placeholder="optionnel"
-            value={flow.note}
-            onChange={(e) => setFlow((f) => ({ ...f, note: e.target.value }))}
-          />
-        </label>
-
-        <div
-          style={{
-            gridColumn: "1 / -1",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-          }}
-        >
-          <button type="button" className="btn ghost" onClick={() => setOpen(false)}>
-            annuler
-          </button>
-          <button type="submit" className="btn">
-            enregistrer
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-function CapitalTiersModal({ openHook, onAdd, displayCcy, inline = false }) {
-  const [open, setOpen] = openHook || [false, () => {}];
-  const [form, setForm] = React.useState({
-    date: new Date().toISOString().slice(0, 10),
-    source: "Prop firm",
-    amount: "",
-    ccy: displayCcy,
-    note: "",
-  });
-
-  const sources = [
-    "Prop firm",
-    "Darwinex invest",
-    "Axi Select",
-    "Investisseur",
-    "Autre",
-  ];
-
-  const submit = (e) => {
-    e.preventDefault();
-    const amt = Number(form.amount);
-    if (!form.date || !form.source || !Number.isFinite(amt)) {
-      alert("date/source/montant requis");
-      return;
-    }
-    onAdd?.({ ...form, amount: amt });
-    setOpen(false);
-  };
-
-  return (
-    <Modal open={open} onClose={() => setOpen(false)} title="Capital tiers" inline={inline}>
-      <form
-        onSubmit={submit}
-        style={{
-          display: "grid",
-          gap: 10,
-          gridTemplateColumns: "repeat(2,1fr)",
-        }}
-      >
-        <label className="form-label">
-          <span>source</span>
-          <select
-            className="sel"
-            value={form.source}
-            onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}
-          >
-            {sources.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="form-label">
-          <span>date</span>
-          <input
-            className="sel"
-            type="date"
-            value={form.date}
-            onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-          />
-        </label>
-
-        <label className="form-label">
-          <span>devise</span>
-          <select
-            className="sel"
-            value={form.ccy}
-            onChange={(e) => setForm((f) => ({ ...f, ccy: e.target.value }))}
-          >
-            {["USD", "EUR", "CHF"].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="form-label">
-          <span>montant</span>
-          <input
-            className="sel"
-            type="number"
-            step="0.01"
-            value={form.amount}
-            onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-          />
-        </label>
-
-        <label className="form-label" style={{ gridColumn: "1 / -1" }}>
-          <span>note</span>
-          <input
-            className="sel"
-            placeholder="optionnel"
-            value={form.note}
-            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-          />
-        </label>
-
-        <div
-          style={{
-            gridColumn: "1 / -1",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-          }}
-        >
-          <button type="button" className="btn ghost" onClick={() => setOpen(false)}>
-            annuler
-          </button>
-          <button type="submit" className="btn">
-            enregistrer
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-function CashflowsModal({ openHook, rows, inline = false }) {
-  const [open, setOpen] = openHook || [false, () => {}];
-
-  const exportCSV = () => {
-    const headers = ["Date", "Type", "Montant", "Devise", "Note"];
-    const lines = rows.map((c) => [
-      c.date,
-      c.type,
-      c.amount,
-      c.ccy || "USD",
-      c.note || "",
-    ]);
-
-    const csv = [headers, ...lines]
-      .map((r) =>
-        r
-          .map((x) => {
-            const s = String(x ?? "");
-            return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-          })
-          .join(",")
-      )
-      .join("\n");
-
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "cashflows_" + new Date().toISOString().slice(0, 10) + ".csv";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <Modal
-      open={open}
-      onClose={() => setOpen(false)}
-      title="Cashflows (récapitulatif)"
-      actions={
-        <button className="btn ghost sm" onClick={exportCSV}>
-          exporter
-        </button>
-      }
-      inline={inline}
-    >
-      <table className="table">
-        <thead>
-          <tr>
-            <th>date</th>
-            <th>type</th>
-            <th style={{ textAlign: "right" }}>montant</th>
-            <th>devise</th>
-            <th>note</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              <td>{r.date}</td>
-              <td>{r.type}</td>
-              <td style={{ textAlign: "right" }}>
-                <span className="val" style={styleNum(r.amount)}>
-                  {Number(r.amount).toFixed(2)}
-                </span>
-              </td>
-              <td>{r.ccy || "USD"}</td>
-              <td>{r.note || ""}</td>
-            </tr>
-          ))}
-
-          {!rows.length && (
-            <tr>
-              <td colSpan="5" style={{ textAlign: "center", opacity: 0.8 }}>
-                aucun flux
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </Modal>
-  );
-}
-
-/* =========================================================
-   Blocs d'analyse visuelle (WinRate, Ratios, Corrélation, etc.)
+   BLOCS D’AFFICHAGE ANALYTIQUE
    ========================================================= */
 
 function WinRateBlock({ rows }) {
   const counts = React.useMemo(() => {
-    let w = 0;
-    let l = 0;
+    let w = 0,
+      l = 0;
     rows.forEach((t) => {
       if (t.pnl > 0) w++;
       else if (t.pnl < 0) l++;
@@ -750,7 +317,7 @@ function RatiosBlock({ rows, convert, ccy }) {
   const ror =
     edge <= 0
       ? 1
-      : Math.max(0, Math.pow(q / Math.max(p, 1e-6), 5)); // approx
+      : Math.max(0, Math.pow(q / Math.max(p, 1e-6), 5)); // approx, indicatif
 
   const verdict = (s) =>
     s >= 1 ? "halo-good" : s >= 0.4 ? "halo-warn" : "halo-bad";
@@ -781,10 +348,12 @@ function RatiosBlock({ rows, convert, ccy }) {
         <div className="card halo-neutral tinted">
           <div className="kpi-title">Risk / Reward</div>
           <V v={RR} />
+
           <div className="kpi-title" style={{ marginTop: 8 }}>
             Kelly (Indicatif)
           </div>
           <V v={kelly} />
+
           <div className="kpi-title" style={{ marginTop: 8 }}>
             Risque de Ruine (≈)
           </div>
@@ -796,9 +365,10 @@ function RatiosBlock({ rows, convert, ccy }) {
 }
 
 function CorrelationBlock({ rows, convert, ccy }) {
-  const strats = React.useMemo(() => {
-    return Array.from(new Set(rows.map((r) => r.strategy))).sort();
-  }, [rows]);
+  const strats = React.useMemo(
+    () => Array.from(new Set(rows.map((r) => r.strategy))).sort(),
+    [rows]
+  );
 
   const byDateStrat = React.useMemo(() => {
     const m = new Map();
@@ -813,9 +383,10 @@ function CorrelationBlock({ rows, convert, ccy }) {
     return m;
   }, [rows, ccy, convert]);
 
-  const dates = React.useMemo(() => {
-    return Array.from(byDateStrat.keys()).sort();
-  }, [byDateStrat]);
+  const dates = React.useMemo(
+    () => Array.from(byDateStrat.keys()).sort(),
+    [byDateStrat]
+  );
 
   const series = React.useMemo(() => {
     const s = {};
@@ -828,15 +399,13 @@ function CorrelationBlock({ rows, convert, ccy }) {
     return s;
   }, [strats, dates, byDateStrat]);
 
-  const meanArr = (a) => (a.length ? a.reduce((sum, x) => sum + x, 0) / a.length : 0);
-
   const corr = (a, b) => {
     const n = Math.min(a.length, b.length);
     if (!n) return 0;
     const ax = a.slice(0, n);
     const bx = b.slice(0, n);
-    const ma = meanArr(ax);
-    const mb = meanArr(bx);
+    const ma = mean(ax);
+    const mb = mean(bx);
     let num = 0,
       da = 0,
       db = 0;
@@ -858,11 +427,13 @@ function CorrelationBlock({ rows, convert, ccy }) {
     return "halo-bad";
   };
 
-  const matrix = React.useMemo(() => {
-    return strats.map((s1, i) =>
-      strats.map((s2, j) => (i === j ? 1 : corr(series[s1] || [], series[s2] || [])))
-    );
-  }, [strats, series]);
+  const matrix = React.useMemo(
+    () =>
+      strats.map((s1, i) =>
+        strats.map((s2, j) => (i === j ? 1 : corr(series[s1] || [], series[s2] || [])))
+      ),
+    [strats, series]
+  );
 
   if (strats.length < 2) {
     return (
@@ -985,17 +556,15 @@ function MappingTable({ rows, convert, ccy }) {
 }
 
 function ActivityBlocks({ rows }) {
-  // distributions
   const hour = new Array(24).fill(0).map((_, h) => ({ h, win: 0, loss: 0 }));
   const dow = new Array(7).fill(0).map((_, d) => ({ d, win: 0, loss: 0 }));
   const mon = new Array(12).fill(0).map((_, m) => ({ m, win: 0, loss: 0 }));
 
   rows.forEach((t) => {
-    const rndH = (Math.random() * 24) | 0; // pas d'heure précise dispo
+    const rndH = (Math.random() * 24) | 0;
     const dt = new Date(t.date + "T12:00:00Z");
-    const d = (dt.getUTCDay() + 6) % 7; // lundi=0
+    const d = (dt.getUTCDay() + 6) % 7;
     const m = dt.getUTCMonth();
-
     if (t.pnl > 0) {
       hour[rndH].win++;
       dow[d].win++;
@@ -1006,30 +575,6 @@ function ActivityBlocks({ rows }) {
       mon[m].loss++;
     }
   });
-
-  const bar = (data, xKey) => (
-    <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={data}>
-        <CartesianGrid stroke="#2b2b2b" />
-        <XAxis
-          dataKey={xKey}
-          stroke={C.axis}
-          tickLine={false}
-          axisLine={{ stroke: C.axis }}
-        />
-        <YAxis
-          allowDecimals={false}
-          stroke={C.axis}
-          tickLine={false}
-          axisLine={{ stroke: C.axis }}
-        />
-        <Tooltip />
-        <Legend />
-        <Bar dataKey="win" name="Gagnants" fill="var(--green)" />
-        <Bar dataKey="loss" name="Perdants" fill="var(--pink)" />
-      </BarChart>
-    </ResponsiveContainer>
-  );
 
   const dowLabel = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
   const monLabel = [
@@ -1046,6 +591,30 @@ function ActivityBlocks({ rows }) {
     "Nov",
     "Déc",
   ];
+
+  const bar = (data, xKey) => (
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart data={data}>
+        <CartesianGrid stroke="#2b2b2b" />
+        <XAxis
+          dataKey={xKey}
+          stroke="var(--axis-text)"
+          tickLine={false}
+          axisLine={{ stroke: "var(--axis-text)" }}
+        />
+        <YAxis
+          allowDecimals={false}
+          stroke="var(--axis-text)"
+          tickLine={false}
+          axisLine={{ stroke: "var(--axis-text)" }}
+        />
+        <Tooltip />
+        <Legend />
+        <Bar dataKey="win" name="Gagnants" fill="var(--green)" />
+        <Bar dataKey="loss" name="Perdants" fill="var(--pink)" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
 
   return (
     <div className="grid-3">
@@ -1073,10 +642,6 @@ function ActivityBlocks({ rows }) {
   );
 }
 
-/* =========================================================
-   Calendrier Mensuel
-   ========================================================= */
-
 function CalendarMonthly({ rows, convert, ccy, startEquity }) {
   const map = new Map();
   rows.forEach((t) => {
@@ -1087,7 +652,6 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
     map.set(t.date, o);
   });
 
-  // mois cible = dernier trade filtré sinon aujourd'hui
   const lastDateStr = rows.length
     ? rows[rows.length - 1].date
     : new Date().toISOString().slice(0, 10);
@@ -1099,18 +663,19 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
   const firstOfMonth = new Date(Date.UTC(year, month, 1));
   const lastOfMonth = new Date(Date.UTC(year, month + 1, 0));
 
-  // grille Lundi -> Dimanche
+  // Commencer le calendrier un lundi
   const start = new Date(firstOfMonth);
-  const startDow = (start.getUTCDay() + 6) % 7; // lundi = 0
+  const startDow = (start.getUTCDay() + 6) % 7;
   start.setUTCDate(start.getUTCDate() - startDow);
 
+  // Finir le calendrier un dimanche
   const end = new Date(lastOfMonth);
   const endDow = (end.getUTCDay() + 6) % 7;
   end.setUTCDate(end.getUTCDate() + (6 - endDow));
 
   const days = [];
-  let eq = startEquity;
-  let peak = eq;
+  let eq = startEquity,
+    peak = eq;
   for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
     const date = d.toISOString().slice(0, 10);
     const isInMonth = d.getUTCMonth() === month;
@@ -1119,6 +684,7 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
     const prev = eq;
     eq += isInMonth ? dayData.pnl : 0;
     peak = Math.max(peak, eq);
+
     const ddAbs = Math.max(0, peak - eq);
     const retPct = prev > 0 ? (dayData.pnl / prev) * 100 : 0;
 
@@ -1155,7 +721,7 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
           ))}
         </div>
 
-        {/* Jours */}
+        {/* Cases du calendrier */}
         {days.map((d) => (
           <div key={d.date} className={`day-cell ${verdict(d.pnl)}`}>
             <div className="day-top">
@@ -1189,7 +755,12 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
                 </div>
               </>
             ) : (
-              <div className="day-muted" style={{ fontSize: 12 }}>
+              <div
+                className="day-muted"
+                style={{
+                  fontSize: 12,
+                }}
+              >
                 —
               </div>
             )}
@@ -1199,10 +770,6 @@ function CalendarMonthly({ rows, convert, ccy, startEquity }) {
     </div>
   );
 }
-
-/* =========================================================
-   Courbe d’Équité
-   ========================================================= */
 
 function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
   const [mode, setMode] = React.useState("global"); // 'global' | 'strat'
@@ -1219,7 +786,7 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [rows, ccy, convert]);
 
-  // equity cumulée + peak + drawdown abs
+  // equity cumulée globale
   let eq = convert(initial, "USD", ccy);
   let peak = eq;
   const globalSeries = byDate.map((d) => {
@@ -1235,7 +802,7 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
     };
   });
 
-  // scatter points (flux et pertes)
+  // points spéciaux
   const fluxDates = new Set(cashflows.map((c) => c.date));
   const scatterFlux = globalSeries
     .filter((x) => fluxDates.has(x.date))
@@ -1244,7 +811,7 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
     .filter((x) => x.pnl < 0)
     .map((x) => ({ date: x.date, equity: x.equity }));
 
-  // equity cumulée par stratégie
+  // equity par stratégie
   const strats = React.useMemo(
     () => Array.from(new Set(rows.map((r) => r.strategy))).sort(),
     [rows]
@@ -1312,18 +879,23 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
               stroke="var(--axis-text)"
               tickLine={false}
               axisLine={{ stroke: "var(--axis-text)" }}
-              tick={{ fontSize: 11, fill: "var(--axis-text)" }}
+              tick={{
+                fontSize: 11,
+                fill: "var(--axis-text)",
+              }}
             />
             <YAxis
               stroke="var(--axis-text)"
               tickLine={false}
               axisLine={{ stroke: "var(--axis-text)" }}
-              tick={{ fontSize: 11, fill: "var(--axis-text)" }}
+              tick={{
+                fontSize: 11,
+                fill: "var(--axis-text)",
+              }}
             />
             <Tooltip />
             <Legend />
 
-            {/* Équité */}
             <Line
               type="monotone"
               dataKey="equity"
@@ -1333,7 +905,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
               strokeWidth={1.8}
             />
 
-            {/* Peak */}
             <Line
               type="monotone"
               dataKey="peakEquity"
@@ -1344,7 +915,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
               strokeDasharray="4 4"
             />
 
-            {/* Drawdown absolu */}
             <Line
               type="monotone"
               dataKey="drawdownAbs"
@@ -1355,7 +925,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
               strokeDasharray="3 3"
             />
 
-            {/* Points: pertes */}
             <Scatter
               data={scatterLoss}
               dataKey="equity"
@@ -1363,7 +932,6 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
               fill="var(--pink)"
             />
 
-            {/* Points: flux */}
             <Scatter
               data={scatterFlux}
               dataKey="equity"
@@ -1372,23 +940,26 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
             />
           </ComposedChart>
         ) : (
-          <LineChart
-            data={stratSeries}
-            margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
-          >
+          <LineChart data={stratSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
             <CartesianGrid stroke="#2b2b2b" />
             <XAxis
               dataKey="date"
               stroke="var(--axis-text)"
               tickLine={false}
               axisLine={{ stroke: "var(--axis-text)" }}
-              tick={{ fontSize: 11, fill: "var(--axis-text)" }}
+              tick={{
+                fontSize: 11,
+                fill: "var(--axis-text)",
+              }}
             />
             <YAxis
               stroke="var(--axis-text)"
               tickLine={false}
               axisLine={{ stroke: "var(--axis-text)" }}
-              tick={{ fontSize: 11, fill: "var(--axis-text)" }}
+              tick={{
+                fontSize: 11,
+                fill: "var(--axis-text)",
+              }}
             />
             <Tooltip />
             <Legend />
@@ -1412,9 +983,15 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
         )}
       </ResponsiveContainer>
 
-      <div style={{ marginTop: 8, fontSize: 12, color: "var(--text)" }}>
-        <span style={{ opacity: 0.9 }}>Pointillés :</span> Peak (gris), DD
-        (rose). •{" "}
+      <div
+        style={{
+          marginTop: 8,
+          fontSize: 12,
+          color: "var(--text)",
+        }}
+      >
+        <span style={{ opacity: 0.9 }}>Pointillés :</span>{" "}
+        Peak (gris), DD (rose). •{" "}
         <span style={{ opacity: 0.85 }}>
           points bleus = flux, points roses = jours perdants
         </span>
@@ -1424,30 +1001,23 @@ function EquityBlock({ rows, cashflows, initial, convert, ccy }) {
 }
 
 /* =========================================================
-   APP (main)
+   APP (MAIN)
    ========================================================= */
 
 export default function App() {
-  /* ------------------------------
-     Navigation simple
-     ------------------------------ */
+  /* -------- Navigation entre pages -------- */
   const [view, setView] = React.useState("home"); // 'home' | 'control' | 'compta' | 'risk'
 
-  /* ------------------------------
-     Langue + i18n
-     ------------------------------ */
+  /* -------- Langue / i18n -------- */
   const [lang, setLang] = React.useState("fr");
-  const t = React.useMemo(
-    () => deepMerge(I18N_DEFAULTS, dict[lang] || {}),
-    [lang]
-  );
+  const t = React.useMemo(() => deepMerge(I18N_DEFAULTS, dict[lang] || {}), [
+    lang,
+  ]);
 
-  /* ------------------------------
-     Devise d’affichage
-     ------------------------------ */
+  /* -------- Devise d'affichage -------- */
   const [displayCcy, setDisplayCcy] = React.useState("USD");
 
-  // fallback si pas d'API FX
+  // fallback en cas d'échec API fx
   const fallback = {
     USD: { USD: 1, EUR: 0.93, CHF: 0.88 },
     EUR: { USD: 1 / 0.93, EUR: 1, CHF: 0.88 / 0.93 },
@@ -1476,7 +1046,11 @@ export default function App() {
       .then((r) => r.json())
       .then((j) => {
         const data = {
-          USD: { USD: 1, EUR: j.rates.EUR, CHF: j.rates.CHF },
+          USD: {
+            USD: 1,
+            EUR: j.rates.EUR,
+            CHF: j.rates.CHF,
+          },
           EUR: {
             USD: 1 / j.rates.EUR,
             EUR: 1,
@@ -1489,7 +1063,10 @@ export default function App() {
           },
         };
         setRates(data);
-        localStorage.setItem(key, JSON.stringify({ at: now, data }));
+        localStorage.setItem(
+          key,
+          JSON.stringify({ at: now, data })
+        );
       })
       .catch(() => {});
   }, []);
@@ -1515,20 +1092,15 @@ export default function App() {
     }
   };
 
-  /* ------------------------------
-     Données trades (démo + import user)
-     ------------------------------ */
+  /* -------- Données trades -------- */
   const demo = React.useMemo(() => genDemoTrades(), []);
   const [userTrades, setUserTrades] = React.useState([]);
+  const tradesAll = React.useMemo(() => demo.concat(userTrades), [
+    demo,
+    userTrades,
+  ]);
 
-  const tradesAll = React.useMemo(
-    () => demo.concat(userTrades),
-    [demo, userTrades]
-  );
-
-  /* ------------------------------
-     Capital & flux & capital tiers
-     ------------------------------ */
+  /* -------- Capital initial & flux & capital tiers -------- */
   const CAPITAL_INITIAL_USD = 100000;
 
   const [flows, setFlows] = React.useState(() => {
@@ -1559,9 +1131,7 @@ export default function App() {
     } catch {}
   }, [tiers]);
 
-  /* ------------------------------
-     Filtres
-     ------------------------------ */
+  /* -------- Filtres -------- */
   const [asset, setAsset] = React.useState("All");
   const [broker, setBroker] = React.useState("All");
   const [strategy, setStrategy] = React.useState("All");
@@ -1602,11 +1172,8 @@ export default function App() {
     [tradesAll, asset, broker, strategy, dateFrom, dateTo]
   );
 
-  /* ------------------------------
-     Cashflows filtrés par période
-     ------------------------------ */
+  /* -------- Cashflows filtrés par période -------- */
   const cashflowsAll = flows;
-
   const cashflowsInRange = React.useMemo(
     () =>
       cashflowsAll.filter(
@@ -1617,17 +1184,12 @@ export default function App() {
     [cashflowsAll, dateFrom, dateTo]
   );
 
-  /* ------------------------------
-     KPI Capital / PnL / DD
-     ------------------------------ */
+  /* -------- KPIs Capital / PnL / DD -------- */
   const capitalInitialDisp = React.useMemo(
     () => convert(CAPITAL_INITIAL_USD, "USD", displayCcy),
     [displayCcy, rates]
   );
 
-  // NOTE: ici cashFlowTotal inclut TOUS les flux (payouts, fee, etc.)
-  // → tu m'as dit plus tard qu'on va séparer "business income" vs "capital actif"
-  //   ça on le fera dans la future refactor Comptabilité Entreprise.
   const cashFlowTotal = React.useMemo(
     () =>
       cashflowsInRange.reduce(
@@ -1656,7 +1218,7 @@ export default function App() {
     [capitalBase, pnlFiltered]
   );
 
-  // courbe eq -> drawdown max
+  // Drawdown
   const byDate = React.useMemo(() => {
     const m = new Map();
     filtered.forEach((t) => {
@@ -1668,18 +1230,18 @@ export default function App() {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [filtered, displayCcy, rates]);
 
-  let eq = capitalInitialDisp;
-  let peak = eq;
+  let eqDD = capitalInitialDisp;
+  let peak = eqDD;
   let maxDrop = 0;
   byDate.forEach((p) => {
-    eq += p.pnl;
-    peak = Math.max(peak, eq);
-    maxDrop = Math.max(maxDrop, peak - eq);
+    eqDD += p.pnl;
+    peak = Math.max(peak, eqDD);
+    maxDrop = Math.max(maxDrop, peak - eqDD);
   });
   const maxDDAbs = maxDrop;
   const maxDDPct = peak > 0 ? (maxDrop / peak) * 100 : 0;
 
-  // Capital Tiers total
+  // Capital Tiers total converti
   const tiersTotal = React.useMemo(
     () =>
       tiers.reduce(
@@ -1695,17 +1257,13 @@ export default function App() {
     [tiers, displayCcy, rates]
   );
 
-  /* ------------------------------
-     États modales (flux, tiers, recap, about)
-     ------------------------------ */
+  /* -------- États modales -------- */
   const [openFlow, setOpenFlow] = React.useState(false);
   const [openTiers, setOpenTiers] = React.useState(false);
   const [openRecap, setOpenRecap] = React.useState(false);
   const [openAbout, setOpenAbout] = React.useState(false);
 
-  /* ------------------------------
-     Sous-titre éditable
-     ------------------------------ */
+  /* -------- Sous-titre éditable sous le brand -------- */
   const [subtitle, setSubtitle] = React.useState(() => {
     try {
       return (
@@ -1726,121 +1284,697 @@ export default function App() {
     } catch {}
   }, [subtitle, editSub, t]);
 
-  /* ------------------------------
-     noData
-     ------------------------------ */
+  /* -------- noData -------- */
   const noData = filtered.length === 0;
 
   /* =====================================================
      RENDER
      ===================================================== */
 
-return (
-  <div className="wrap">
-    {view === "home" ? (
-      <HomeHub
-        setView={setView}
-        t={t}
-        subtitle={subtitle}
-      />
-    ) : (
-      <>
-        {/* Barre du haut (bouton retour + titre contexte) */}
-        <div
-          className="header"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <button
-            className="btn ghost"
-            onClick={() => setView("home")}
-          >
-            ← Accueil
-          </button>
-
+  return (
+    <div className="wrap">
+      {view === "home" ? (
+        /* ===================== PAGE ACCUEIL ===================== */
+        <HomeHub
+          setView={setView}
+          t={t}
+          subtitle={subtitle}
+        />
+      ) : (
+        <>
+          {/* Barre top interne pour les pages autres que home */}
           <div
+            className="header"
             style={{
-              opacity: 0.8,
-              fontSize: 12,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            {view === "control"
-              ? "Centre de contrôle"
-              : view === "compta"
-              ? "Comptabilité entreprise"
-              : "Gestion du risque"}
-          </div>
-        </div>
+            <button
+              className="btn ghost"
+              onClick={() => setView("home")}
+            >
+              ← Accueil
+            </button>
 
-        {/* ===== PAGE CONTROL ===== */}
-        {view === "control" && (
-          <ControlPage
-            t={t}
-            lang={lang}
-            setLang={setLang}
-            LOCALES={LOCALES}
-            displayCcy={displayCcy}
-            setDisplayCcy={setDisplayCcy}
-            convert={convert}
-            fmt={fmt}
-            initialCapitalUSD={CAPITAL_INITIAL_USD}
-            tradesAll={tradesAll}
-            flows={flows}
-            setFlows={setFlows}
-            tiers={tiers}
-            setTiers={setTiers}
-          />
-        )}
+            <div
+              style={{
+                opacity: 0.8,
+                fontSize: 12,
+              }}
+            >
+              {view === "control"
+                ? "Centre de contrôle"
+                : view === "compta"
+                ? "Comptabilité entreprise"
+                : "Gestion du risque"}
+            </div>
 
-        {/* ===== PAGE COMPTA ===== */}
-        {view === "compta" && (
-          <div className="page-outer">
-            <div className="page-content">
-              <div className="card" style={{ padding: 16 }}>
-                <div
-                  className="kpi-title"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <span>Vue Comptable</span>
-                </div>
-                <p style={{ marginTop: 8, opacity: 0.8 }}>À venir…</p>
-              </div>
+            <div
+              style={{
+                opacity: 0.7,
+                fontSize: 12,
+              }}
+            >
+              ZooProjectVision • v{APP_VERSION} • 2025
             </div>
           </div>
-        )}
 
-        {/* ===== PAGE RISK ===== */}
-        {view === "risk" && (
-          <div className="page-outer">
-            <div className="page-content">
-              <div className="card" style={{ padding: 16 }}>
+          {/* ================== PAGE CONTROL ================== */}
+          {view === "control" && (
+            <div className="control-page">
+              {/* Bandeau haut : brand + sous-titre + actions */}
+              <div className="card">
+                <div className="block-head">
+                  <div>
+                    <h1
+                      className="brand"
+                      style={{
+                        fontSize: 28,
+                        margin: 0,
+                      }}
+                    >
+                      {t.brand}
+                    </h1>
+
+                    {!editSub ? (
+                      <p
+                        className="subtitle cap"
+                        style={{ marginTop: 6 }}
+                      >
+                        {subtitle}
+                        <button
+                          className="edit-pencil"
+                          onClick={() => setEditSub(true)}
+                        >
+                          ✏️
+                        </button>
+                      </p>
+                    ) : (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                          marginTop: 6,
+                        }}
+                      >
+                        <input
+                          className="sel"
+                          value={subtitle}
+                          onChange={(e) =>
+                            setSubtitle(e.target.value)
+                          }
+                        />
+                        <button
+                          className="btn sm"
+                          onClick={() => setEditSub(false)}
+                        >
+                          OK
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions principales */}
+                  <div
+                    className="block-tools"
+                    style={{
+                      flexWrap: "wrap",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    {/* Import CSV trades */}
+                    <label className="btn">
+                      {t.actions?.Import_csv ||
+                        I18N_DEFAULTS.actions.Import_csv}
+                      <input
+                        type="file"
+                        accept=".csv"
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          opacity: 0,
+                          cursor: "pointer",
+                        }}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          const fr = new FileReader();
+                          fr.onload = () => {
+                            const rows = parseCSV(String(fr.result));
+                            const mapped = mapMT5Rows(rows);
+                            if (!mapped.length) {
+                              alert(
+                                "CSV non reconnu. (Time/Symbol/Profit requis)"
+                              );
+                              return;
+                            }
+                            setUserTrades((prev) => prev.concat(mapped));
+                          };
+                          fr.readAsText(f);
+                        }}
+                      />
+                    </label>
+
+                    {/* Ajouter Flux */}
+                    <button
+                      className="btn"
+                      onClick={() => setOpenFlow(true)}
+                    >
+                      {t.actions?.Add_Flow ||
+                        I18N_DEFAULTS.actions.Add_Flow}
+                    </button>
+
+                    {/* Capital Tiers */}
+                    <button
+                      className="btn"
+                      onClick={() => setOpenTiers(true)}
+                    >
+                      {t.actions?.Third_Capital ||
+                        I18N_DEFAULTS.actions.Third_Capital}
+                    </button>
+
+                    {/* Récap flux */}
+                    <button
+                      className="btn ghost"
+                      onClick={() => setOpenRecap(true)}
+                    >
+                      {t.actions?.Recap ||
+                        I18N_DEFAULTS.actions.Recap}
+                    </button>
+
+                    {/* Reset filtres */}
+                    <button
+                      className="btn ghost"
+                      onClick={reset}
+                    >
+                      {t.actions?.Reset ||
+                        I18N_DEFAULTS.actions.Reset}
+                    </button>
+
+                    {/* À propos */}
+                    <button
+                      className="btn ghost"
+                      onClick={() => setOpenAbout(true)}
+                    >
+                      {t.actions?.About ||
+                        I18N_DEFAULTS.actions.About}
+                    </button>
+
+                    {/* Devise */}
+                    <div
+                      className="kpi-title cap"
+                      style={{ marginLeft: 10 }}
+                    >
+                      Devise
+                    </div>
+                    <select
+                      className="sel"
+                      style={{ width: 110 }}
+                      value={displayCcy}
+                      onChange={(e) =>
+                        setDisplayCcy(e.target.value)
+                      }
+                    >
+                      {["USD", "EUR", "CHF"].map((c) => (
+                        <option key={c}>{c}</option>
+                      ))}
+                    </select>
+
+                    {/* Langue */}
+                    <div
+                      className="kpi-title cap"
+                      style={{ marginLeft: 10 }}
+                    >
+                      Langue
+                    </div>
+                    <select
+                      className="sel"
+                      style={{ width: 150 }}
+                      value={lang}
+                      onChange={(e) =>
+                        setLang(e.target.value)
+                      }
+                    >
+                      {LOCALES.map((l) => (
+                        <option key={l} value={l}>
+                          {l}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Modales inline */}
+                <FlowModal
+                  openHook={[openFlow, setOpenFlow]}
+                  onSave={(row) =>
+                    setFlows((p) => p.concat([row]))
+                  }
+                  ccy={displayCcy}
+                  inline
+                />
+
+                <CapitalTiersModal
+                  openHook={[openTiers, setOpenTiers]}
+                  onAdd={(row) =>
+                    setTiers((p) => p.concat([row]))
+                  }
+                  displayCcy={displayCcy}
+                  inline
+                />
+
+                <CashflowsModal
+                  openHook={[openRecap, setOpenRecap]}
+                  rows={cashflowsAll}
+                  inline
+                />
+
+                <AboutModal
+                  openHook={[openAbout, setOpenAbout]}
+                  inline
+                />
+              </div>
+
+              {/* Filtres */}
+              <div className="control-section">
+                <div className="card">
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(7,1fr)",
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <div className="kpi-title cap">Actif</div>
+                      <select
+                        className="sel"
+                        value={asset}
+                        onChange={(e) =>
+                          setAsset(e.target.value)
+                        }
+                      >
+                        <option>All</option>
+                        {assets.map((a) => (
+                          <option key={a}>{a}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="kpi-title cap">Broker</div>
+                      <select
+                        className="sel"
+                        value={broker}
+                        onChange={(e) =>
+                          setBroker(e.target.value)
+                        }
+                      >
+                        <option>All</option>
+                        {brokers.map((b) => (
+                          <option key={b}>{b}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="kpi-title cap">Stratégie</div>
+                      <select
+                        className="sel"
+                        value={strategy}
+                        onChange={(e) =>
+                          setStrategy(e.target.value)
+                        }
+                      >
+                        <option>All</option>
+                        {strategies.map((s) => (
+                          <option key={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="kpi-title cap">Du</div>
+                      <input
+                        className="sel"
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) =>
+                          setDateFrom(e.target.value)
+                        }
+                        style={{
+                          fontFamily: "inherit",
+                          fontSize: 14,
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="kpi-title cap">Au</div>
+                      <input
+                        className="sel"
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) =>
+                          setDateTo(e.target.value)
+                        }
+                        style={{
+                          fontFamily: "inherit",
+                          fontSize: 14,
+                        }}
+                      />
+                    </div>
+
+                    <div />
+                    <div />
+                  </div>
+                </div>
+              </div>
+
+              {/* KPIs principaux */}
+              <div className="control-section">
                 <div
-                  className="kpi-title"
+                  className="block-head"
+                  style={{ marginBottom: 6 }}
+                >
+                  <div className="block-title cap">
+                    Indicateurs Principaux
+                  </div>
+                </div>
+
+                <div className="kpi-grid">
+                  <div className="card halo-neutral">
+                    <div className="kpi-title cap">
+                      Capital Initial
+                    </div>
+                    <div className="val val-main">
+                      {fmt(capitalInitialDisp)}
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="kpi-title cap">
+                      Cashflow
+                    </div>
+                    <div
+                      className={`val ${
+                        cashFlowTotal < 0
+                          ? "neg"
+                          : "pos"
+                      }`}
+                    >
+                      {fmt(cashFlowTotal)}
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="kpi-title cap">
+                      PnL (Filtré)
+                    </div>
+                    <div
+                      className={`val ${
+                        pnlFiltered < 0
+                          ? "neg"
+                          : "pos"
+                      }`}
+                    >
+                      {fmt(pnlFiltered)}
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="kpi-title cap">
+                      Capital Total
+                    </div>
+                    <div
+                      className={`val ${
+                        pnlFiltered < 0
+                          ? "neg"
+                          : "pos"
+                      }`}
+                    >
+                      {fmt(capitalGlobal)}
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="kpi-title cap">
+                      Rentabilité
+                    </div>
+                    <div
+                      className={`val ${
+                        returnPct < 0
+                          ? "neg"
+                          : "pos"
+                      }`}
+                    >
+                      {returnPct.toFixed(
+                        2
+                      )}
+                      %
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="kpi-title cap">
+                      Max DD %
+                    </div>
+                    <div className="val val-main">
+                      {maxDDPct.toFixed(
+                        2
+                      )}
+                      %
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="kpi-title cap">
+                      Max DD (Abs.)
+                    </div>
+                    <div className="val val-main">
+                      {fmt(maxDDAbs)}
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="kpi-title cap">
+                      Jours Actifs
+                    </div>
+                    <div className="val val-main">
+                      {
+                        new Set(
+                          filtered.map(
+                            (t) =>
+                              t.date
+                          )
+                        ).size
+                      }
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="kpi-title cap">
+                      Capital Tiers
+                    </div>
+                    <div className="val val-main">
+                      {fmt(tiersTotal)}
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="kpi-title cap">
+                      Trades Total
+                    </div>
+                    <div className="val val-main">
+                      {filtered.length}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grille principale (équité + ratios) */}
+              <div className="control-section control-grid">
+                {/* Courbe d’équité (col-8) */}
+                <div className="col-8">
+                  <EquityBlock
+                    rows={filtered}
+                    cashflows={cashflowsAll}
+                    initial={CAPITAL_INITIAL_USD}
+                    convert={convert}
+                    ccy={displayCcy}
+                  />
+                </div>
+
+                {/* Win rate + Ratios (col-4) */}
+                <div className="col-4">
+                  <div className="grid-2">
+                    <div className="card">
+                      <div className="block-head">
+                        <div className="block-title cap">
+                          Taux de Réussite
+                        </div>
+                      </div>
+                      <WinRateBlock rows={filtered} />
+                    </div>
+
+                    <div className="card">
+                      <div className="block-head">
+                        <div className="block-title cap">
+                          Ratios (Pro)
+                        </div>
+                      </div>
+                      <RatiosBlock
+                        rows={filtered}
+                        convert={convert}
+                        ccy={displayCcy}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Corrélation & Mapping */}
+              <div className="control-section control-grid">
+                <div className="col-6">
+                  <div className="card">
+                    <div className="block-head">
+                      <div className="block-title cap">
+                        Corrélation Entre Stratégies
+                      </div>
+                    </div>
+
+                    <CorrelationBlock
+                      rows={filtered}
+                      convert={convert}
+                      ccy={displayCcy}
+                    />
+                  </div>
+                </div>
+
+                <div className="col-6">
+                  <div className="card">
+                    <div className="block-head">
+                      <div className="block-title cap">
+                        Mapping Stratégie × Broker
+                      </div>
+                    </div>
+
+                    <MappingTable
+                      rows={filtered}
+                      convert={convert}
+                      ccy={displayCcy}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Calendrier mensuel */}
+              <div className="control-section">
+                <CalendarMonthly
+                  rows={filtered}
+                  convert={convert}
+                  ccy={displayCcy}
+                  startEquity={convert(
+                    CAPITAL_INITIAL_USD,
+                    "USD",
+                    displayCcy
+                  )}
+                />
+              </div>
+
+              {/* Activité */}
+              <div className="control-section">
+                <div className="card">
+                  <div className="block-head">
+                    <div className="block-title cap">
+                      Activité
+                    </div>
+                  </div>
+
+                  <ActivityBlocks rows={filtered} />
+                </div>
+              </div>
+
+              {/* Message si pas de données */}
+              {noData && (
+                <div
+                  className="card halo-warn"
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
+                    marginTop: 20,
+                    textAlign: "center",
                   }}
                 >
-                  <span>Analyse de Risque</span>
+                  <div className="kpi-title cap">
+                    Aucune Donnée
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      opacity: 0.8,
+                      marginTop: 6,
+                    }}
+                  >
+                    Ajuste les filtres ou importe un CSV pour voir les stats.
+                  </div>
                 </div>
-                <p style={{ marginTop: 8, opacity: 0.8 }}>À venir…</p>
+              )}
+            </div>
+          )}
+
+          {/* ================== PAGE COMPTA ================== */}
+          {view === "compta" && (
+            <div className="page-outer">
+              <div className="page-content">
+                <div className="card" style={{ padding: 16 }}>
+                  <div
+                    className="kpi-title"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span>Vue Comptable</span>
+                  </div>
+                  <p style={{ marginTop: 8, opacity: 0.8 }}>
+                    À venir…
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </>
-    )}
+          )}
 
-    {/* Footer global */}
-    <Footer year={new Date().getFullYear()} />
-  </div>
-);
+          {/* ================== PAGE RISK ================== */}
+          {view === "risk" && (
+            <div className="page-outer">
+              <div className="page-content">
+                <div className="card" style={{ padding: 16 }}>
+                  <div
+                    className="kpi-title"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span>Analyse de Risque</span>
+                  </div>
+                  <p style={{ marginTop: 8, opacity: 0.8 }}>
+                    À venir…
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Footer global */}
+      <Footer year={new Date().getFullYear()} />
+    </div>
+  );
 }
+
