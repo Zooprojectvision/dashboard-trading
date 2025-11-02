@@ -1,76 +1,64 @@
 import React from "react";
 
 export default function HubCard({ title, subtitle, goto, onNav }) {
-  // on garde un ref local pour pouvoir remettre les styles au mouseleave
-  const baseShadow =
-    "0 0 20px rgba(106,169,255,0.25), 0 30px 60px rgba(0,0,0,0.8)";
-  const hoverShadow =
-    "0 0 28px rgba(32,227,214,0.4), 0 40px 80px rgba(0,0,0,0.9)";
+  const [hover, setHover] = React.useState(false);
 
   return (
     <button
       onClick={() => onNav(goto)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         width: "100%",
         textAlign: "left",
-
-        /* --- nouveau look bloc --- */
         borderRadius: 20,
         padding: 16,
-        border: "1px solid rgba(106,169,255,0.4)",
-        background:
-          "radial-gradient(circle at 0% 0%, rgba(20,30,50,0.6) 0%, rgba(10,11,15,0.6) 60%)",
-        boxShadow: baseShadow,
-
         cursor: "pointer",
-        display: "block",
 
-        /* animations douces */
+        // background (radial avec halo bleu léger)
+        background: hover
+          ? "radial-gradient(circle at 0% 0%, rgba(32,227,214,0.12) 0%, rgba(10,11,15,0.8) 60%)"
+          : "radial-gradient(circle at 0% 0%, rgba(106,169,255,0.08) 0%, rgba(10,11,15,0.6) 60%)",
+
+        // bordure fine bleu clair
+        border: hover
+          ? "1px solid rgba(32,227,214,0.8)"
+          : "1px solid rgba(106,169,255,0.4)",
+
+        // ombres / glow
+        boxShadow: hover
+          ? "0 0 12px rgba(32,227,214,0.6), 0 30px 60px rgba(0,0,0,0.9)"
+          : "0 0 20px rgba(106,169,255,0.25), 0 30px 60px rgba(0,0,0,0.8)",
+
+        // scale léger au hover
+        transform: hover ? "scale(1.03)" : "scale(1)",
         transition:
-          "transform 0.18s ease-out, box-shadow 0.18s ease-out, border 0.18s ease-out",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "scale(1.03)";
-        e.currentTarget.style.boxShadow = hoverShadow;
-        e.currentTarget.style.border =
-          "1px solid rgba(32,227,214,0.6)"; // turquoise
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "scale(1)";
-        e.currentTarget.style.boxShadow = baseShadow;
-        e.currentTarget.style.border =
-          "1px solid rgba(106,169,255,0.4)"; // bleu back normal
+          "all 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s",
       }}
     >
-      {/* Titre */}
+      {/* TITRE */}
       <div
         style={{
           fontSize: 14,
           fontWeight: 600,
-          color: "#6aa9ff",
-          marginBottom: 6,
-
-          /* panneau pro */
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
           lineHeight: 1.2,
-          fontFamily:
-            "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Inter','Roboto','Segoe UI'",
+          marginBottom: 6,
+          color: hover ? "var(--green, #20e3d6)" : "var(--accent, #6aa9ff)",
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
         }}
       >
         {title}
       </div>
 
-      {/* Sous-texte */}
+      {/* DESCRIPTION */}
       <div
         style={{
           fontSize: 13,
           lineHeight: 1.4,
           color: "#c5ccd3",
           opacity: 0.9,
-          fontWeight: 400,
-          fontFamily:
-            "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Inter','Roboto','Segoe UI'",
+          textAlign: "left",
         }}
       >
         {subtitle}
