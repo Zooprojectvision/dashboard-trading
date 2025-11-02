@@ -1,3 +1,7 @@
+import CorrelationBlock from "../components/control/CorrelationBlock.jsx";
+import MappingTable from "../components/control/MappingTable.jsx";
+import CalendarMonthly from "../components/control/CalendarMonthly.jsx";
+import ActivityBlocks from "../components/control/ActivityBlocks.jsx";
 import EquityBlock from "../components/control/EquityBlock.jsx";
 import WinRateBlock from "../components/control/WinRateBlock.jsx";
 import RatiosBlock from "../components/control/RatiosBlock.jsx";
