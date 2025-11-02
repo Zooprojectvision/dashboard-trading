@@ -1,209 +1,186 @@
 import React from "react";
+import HubCard from "./HubCard.jsx";
 import DarwinWidget from "./DarwinWidget.jsx";
 
 export default function HomeHub({ setView, t, subtitle }) {
   return (
     <div
-      className="home-hero"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        textAlign: "center",
         width: "100%",
-        padding: "20px 16px",
+        maxWidth: 1400,
+        margin: "0 auto",
+        padding: "24px 24px 80px",
+        color: "var(--text)",
+        fontFamily:
+          "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Inter','Roboto','Segoe UI'",
       }}
     >
-      {/* Titre principal */}
-      <h1
-        className="brand"
+      {/* HEADER TOP */}
+      <header
         style={{
-          fontSize: 28,
-          fontWeight: 600,
-          color: "var(--white)",
-          margin: 0,
-          textAlign: "center",
+          display: "flex",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          rowGap: 8,
+          columnGap: 12,
+          marginBottom: 24,
+          alignItems: "flex-start",
         }}
       >
-        {t.brand} <span style={{ opacity: 0.6, fontSize: 14 }}>• v5.1.1 • 2025</span>
-      </h1>
-
-      {/* Sous-titre */}
-      <p
-        className="subtitle home-subtitle"
-        style={{
-          marginTop: 8,
-          color: "var(--text)",
-          opacity: 0.9,
-          fontSize: 14,
-          maxWidth: 600,
-          textAlign: "center",
-        }}
-      >
-        {subtitle ||
-          "Le tableau de bord de performance trading Edouard & Michel Jimenez"}
-      </p>
-
-      {/* GRID cartes + widget */}
-      <div
-        className="home-grid"
-        style={{
-          marginTop: 24,
-          width: "100%",
-          maxWidth: 1200,
-          display: "grid",
-          gap: 16,
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-        }}
-      >
-        {/* Carte Contrôle */}
-        <button
-          className="card"
-          onClick={() => setView("control")}
-          style={{
-            textAlign: "left",
-            padding: 18,
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            width: "100%",
-            cursor: "pointer",
-            background: "var(--panel)",
-          }}
-        >
-          <div
-            className="kpi-title"
-            style={{
-              color: "var(--accent)",
-              fontWeight: 500,
-              fontSize: 15,
-              marginBottom: 6,
-            }}
-          >
-            Centre de Contrôle
-          </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
           <div
             style={{
-              color: "var(--text)",
-              opacity: 0.85,
               fontSize: 13,
-              lineHeight: 1.4,
-            }}
-          >
-            Vue complète: filtres, equity, corrélation, calendrier, activité.
-          </div>
-        </button>
-
-        {/* Carte Comptabilité */}
-        <button
-          className="card"
-          onClick={() => setView("compta")}
-          style={{
-            textAlign: "left",
-            padding: 18,
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            width: "100%",
-            cursor: "pointer",
-            background: "var(--panel)",
-          }}
-        >
-          <div
-            className="kpi-title"
-            style={{
-              color: "var(--accent)",
               fontWeight: 500,
-              fontSize: 15,
-              marginBottom: 6,
+              color: "var(--accent, #6aa9ff)",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              lineHeight: 1.2,
             }}
           >
-            Comptabilité d’Entreprise
+            {t?.brand || "ZooProjectVision"}
           </div>
-          <div
-            style={{
-              color: "var(--text)",
-              opacity: 0.85,
-              fontSize: 13,
-              lineHeight: 1.4,
-            }}
-          >
-            Suivi des flux (payouts, frais, dépôts), catégories et exports.
-          </div>
-        </button>
 
-        {/* Carte Gestion du Risque */}
-        <button
-          className="card"
-          onClick={() => setView("risk")}
-          style={{
-            textAlign: "left",
-            padding: 18,
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            width: "100%",
-            cursor: "pointer",
-            background: "var(--panel)",
-          }}
-        >
-          <div
-            className="kpi-title"
-            style={{
-              color: "var(--accent)",
-              fontWeight: 500,
-              fontSize: 15,
-              marginBottom: 6,
-            }}
-          >
-            Gestion du Risque
-          </div>
           <div
             style={{
-              color: "var(--text)",
-              opacity: 0.85,
-              fontSize: 13,
-              lineHeight: 1.4,
+              fontSize: 20,
+              fontWeight: 600,
+              color: "var(--white,#fff)",
+              lineHeight: 1.3,
+              marginTop: 4,
             }}
           >
-            Seuils, limites et recommandations d’ajustement.
+            {subtitle || "Centre d’observation global"}
           </div>
-        </button>
 
-        {/* Widget Darwinex */}
+          <div
+            style={{
+              fontSize: 12,
+              lineHeight: 1.4,
+              opacity: 0.6,
+              color: "var(--text,#c5ccd3)",
+              marginTop: 6,
+            }}
+          >
+            ZooProjectVision • v5.1.1 • 2025
+          </div>
+        </div>
+
         <div
-          className="card"
           style={{
-            padding: 18,
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            background: "var(--panel)",
+            minWidth: 220,
+            fontSize: 12,
+            lineHeight: 1.4,
+            color: "var(--text,#c5ccd3)",
+            opacity: 0.75,
+            textAlign: "right",
+          }}
+        >
+          Designed & Built by ZooProjectVision V5.1.1 @ 2025
+        </div>
+      </header>
+
+      {/* GRID HAUT : 4 CARTES ACTION */}
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(min(260px,100%),1fr))",
+          gap: 16,
+          marginBottom: 24,
+        }}
+      >
+        <HubCard
+          title="Centre de contrôle"
+          subtitle="Vue complète: filtres, equity, corrélation, calendrier, activité."
+          goto="control"
+          onNav={(v) => setView(v)}
+        />
+
+        <HubCard
+          title="Comptabilité d’entreprise"
+          subtitle="Suivi des flux (payouts, frais, dépôts), catégories et exports."
+          goto="compta"
+          onNav={(v) => setView(v)}
+        />
+
+        <HubCard
+          title="Gestion du risque"
+          subtitle="Seuils, limites et recommandations d’ajustement."
+          goto="risk"
+          onNav={(v) => setView(v)}
+        />
+
+        <HubCard
+          title="Darwin VYU"
+          subtitle="Performance live du Darwin."
+          goto="darwin"
+          onNav={(v) => setView(v)}
+        />
+      </section>
+
+      {/* BLOC DARWIN WIDGET PLEINE LARGEUR */}
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr",
+          gap: 16,
+          marginBottom: 40,
+        }}
+      >
+        <div
+          style={{
+            borderRadius: 20,
+            padding: 16,
+            border: "1px solid rgba(106,169,255,0.4)",
+            background:
+              "radial-gradient(circle at 0% 0%, rgba(20,30,50,0.6) 0%, rgba(10,11,15,0.6) 60%)",
+            boxShadow:
+              "0 0 20px rgba(106,169,255,0.25), 0 30px 60px rgba(0,0,0,0.8)",
           }}
         >
           <div
-            className="kpi-title"
             style={{
-              color: "var(--accent)",
-              fontWeight: 500,
-              fontSize: 15,
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#6aa9ff",
               marginBottom: 6,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              lineHeight: 1.2,
             }}
           >
-            Darwin VYU
+            Darwin vyu
           </div>
 
           <div
             style={{
-              color: "var(--text)",
-              opacity: 0.85,
               fontSize: 13,
               lineHeight: 1.4,
+              color: "#c5ccd3",
+              opacity: 0.9,
               marginBottom: 12,
             }}
           >
-            Performance live du Darwin.
+            Widget Darwinex intégré ici
           </div>
 
           <DarwinWidget />
         </div>
-      </div>
+      </section>
+
+      {/* FOOTER LOCAL PAGE ACCUEIL */}
+      <footer
+        style={{
+          fontSize: 11,
+          lineHeight: 1.4,
+          textAlign: "center",
+          color: "var(--text,#c5ccd3)",
+          opacity: 0.5,
+          marginTop: 40,
+        }}
+      >
+        Designed & Built by ZooProjectVision V5.1.1 @ 2025
+      </footer>
     </div>
   );
 }
