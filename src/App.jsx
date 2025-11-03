@@ -1,5 +1,32 @@
 import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+// Pages
+import HomeHubPage from "./pages/HomeHubPage.jsx";
+import ControlPage from "./pages/ControlPage.jsx";
+import TradingPage from "./pages/TradingPage.jsx";
+import DarwinexPage from "./pages/DarwinexPage.jsx";
+import ComptaPage from "./pages/ComptaPage.jsx";
+import PropFirmsPage from "./pages/PropFirmsPage.jsx";
+
+// Layout commun (footer, etc. si besoin)
+import Footer from "./components/common/Footer.jsx";
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomeHubPage />} />
+        <Route path="/control" element={<ControlPage />} />
+        <Route path="/trading" element={<TradingPage />} />
+        <Route path="/darwinex" element={<DarwinexPage />} />
+        <Route path="/compta" element={<ComptaPage />} />
+        <Route path="/prop" element={<PropFirmsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Footer />
+    </BrowserRouter>
+  );
 /* ===========================
    Utils math / couleurs
    =========================== */
