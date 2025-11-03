@@ -26,4 +26,76 @@ body {
 }
 
 h1 { color: var(--white); margin: 0 0 12px; }
+/* ----- CONTROL PAGE ----- */
+.control-root {
+  --gap: 16px;
+  padding: 20px clamp(16px, 2.5vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 100vh;
+}
+
+.control-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: var(--gap);
+}
+.control-header h1 { margin: 0; color: var(--white); letter-spacing: .2px; }
+.subtitle { margin: 6px 0 0; opacity: .85; }
+
+.control-actions { display:flex; gap:10px; }
+.btn {
+  background: #1a2130; color: var(--white);
+  border: 1px solid #2a3142; border-radius: 10px;
+  padding: 8px 12px; cursor: pointer;
+}
+.btn.ghost { background: transparent; }
+
+.control-kpis {
+  display: grid; gap: var(--gap);
+  grid-template-columns: repeat(12, 1fr);
+}
+.kpi { grid-column: span 4; }
+.kpi-title { opacity:.85; font-size:.9rem; }
+.kpi-value { font-size: 1.6rem; color: var(--white); margin-top: 6px; }
+.kpi-note { opacity:.7; font-size:.85rem; margin-top: 6px; }
+
+.control-main {
+  display: grid; gap: var(--gap);
+  grid-template-columns: 1.7fr 1fr;
+}
+.right-col { display: grid; gap: var(--gap); grid-auto-rows: minmax(180px, auto); }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid #1a1f2a;
+  border-radius: 14px;
+  padding: 14px;
+}
+.panel-title { margin: 0 0 10px; color: var(--white); }
+
+.placeholder {
+  height: 220px; border: 1px dashed #2a3142; border-radius: 10px;
+  display:flex; align-items:center; justify-content:center; opacity:.7;
+}
+
+.control-table .table {
+  width: 100%; border-collapse: collapse; margin-top: 6px; font-size: .95rem;
+}
+.control-table th, .control-table td {
+  padding: 10px 12px; border-top: 1px solid #1a1f2a;
+}
+.control-table thead th { text-align: left; opacity: .85; }
+
+/* responsive */
+@media (max-width: 1200px) {
+  .kpi { grid-column: span 6; }
+  .control-main { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .kpi { grid-column: span 12; }
+  .control-actions { flex-wrap: wrap; }
+}
 
