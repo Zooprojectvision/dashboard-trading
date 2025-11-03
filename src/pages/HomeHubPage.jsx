@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 export default function HomeHubPage() {
   return (
     <main style={{ padding: 24 }}>
-      <h1 style={{ margin: "0 0 8px" }}>🏠 Home Hub</h1>
+      <h1 style={{ margin: "0 0 8px" }}>🐾 ZOOPROJECTVISION</h1>
       <p>Projet neuf opérationnel. On va réintégrer tes pages étape par étape.</p>
 
       <div style={{
