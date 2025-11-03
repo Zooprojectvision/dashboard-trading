@@ -1,3 +1,5 @@
+import React from "react";
+
 export default function Footer() {
   return (
     <footer style={{
@@ -10,5 +12,3 @@ export default function Footer() {
     </footer>
   );
 }
-
-
