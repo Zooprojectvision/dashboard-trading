@@ -106,3 +106,31 @@ h1 { color: var(--white); margin: 0 0 12px; }
   .kpi { grid-column: span 12; }
   .control-actions { flex-wrap: wrap; }
 }
+
+/* --- correctifs contraste sombre --- */
+main { color: var(--text); }
+
+.panel {
+  background: #0f1115;            /* un peu plus clair que le fond noir */
+  border: 1px solid #2a3142;      /* bord visible */
+}
+
+.placeholder {
+  background: rgba(255,255,255,0.03);
+  border: 1px dashed #3a4460;
+}
+
+.btn {
+  background: #1c2333;
+  color: #ffffff;
+  border-color: #2d3650;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: #e5e7eb;
+  border-color: #2d3650;
+}
+
+h1, .panel-title, .kpi-value { color: #ffffff; }
+.kpi-title, .kpi-note, .subtitle { color: #c5ccd3; }
