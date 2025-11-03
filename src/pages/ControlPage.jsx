@@ -70,4 +70,3 @@ function Kpi({ title, value, note }) {
     </div>
   );
 }
-
