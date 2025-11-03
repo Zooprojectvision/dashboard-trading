@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export default function HomeHubPage() {
   return (
@@ -12,11 +13,11 @@ export default function HomeHubPage() {
         gap: 16,
         gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))"
       }}>
-        <a href="/control" style={cardStyle}>Aller à Control</a>
-        <a href="/trading" style={cardStyle}>Aller à Trading</a>
-        <a href="/darwinex" style={cardStyle}>Aller à Darwinex</a>
-        <a href="/compta" style={cardStyle}>Aller à Compta</a>
-        <a href="/prop" style={cardStyle}>Aller à Prop Firms</a>
+        <Link to="/control" style={cardStyle}>Aller à Control</Link>
+        <Link to="/trading" style={cardStyle}>Aller à Trading</Link>
+        <Link to="/darwinex" style={cardStyle}>Aller à Darwinex</Link>
+        <Link to="/compta" style={cardStyle}>Aller à Compta</Link>
+        <Link to="/prop" style={cardStyle}>Aller à Prop Firms</Link>
       </div>
     </main>
   );
@@ -32,4 +33,3 @@ const cardStyle = {
   textDecoration: "none",
   textAlign: "center"
 };
-
