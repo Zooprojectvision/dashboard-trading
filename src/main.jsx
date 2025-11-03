@@ -1,11 +1,11 @@
-import React from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App.jsx'
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
 
-import './styles.css'        // thème sombre d’origine
+import "./styles.css";
+import "./theme-muso.css";
+import "./light-override.css";
 
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-)
+const root = createRoot(document.getElementById("root"));
+root.render(<App />);
+
