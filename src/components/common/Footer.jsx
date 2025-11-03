@@ -1,5 +1,3 @@
-import React from "react";
-
 export default function Footer() {
   return (
     <footer style={{
@@ -8,8 +6,9 @@ export default function Footer() {
       borderTop: "1px solid #1a1f2a",
       opacity: 0.8
     }}>
-      <small>© {new Date().getFullYear()} — Dashboard</small>
+      <small>© {new Date().getFullYear()} — ZOOPROJECTVISION</small>
     </footer>
   );
 }
+
 
