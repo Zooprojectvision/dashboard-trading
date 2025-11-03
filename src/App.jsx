@@ -1,40 +1,18 @@
 import React from "react";
-import { HashRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
-
-import ControlPage from "./pages/ControlPage.jsx";
-import Footer from "./components/common/Footer.jsx";
-
-function Home() {
-  return (
-    <main style={{ padding: 24 }}>
-      <h1 style={{ margin: "0 0 8px", color: "#fff" }}>🐾 ZOOPROJECTVISION</h1>
-      <p>Accueil ok. Test navigation :</p>
-      <div style={{ marginTop: 16 }}>
-        <Link to="/control" style={linkStyle}>Aller à Control</Link>
-      </div>
-    </main>
-  );
-}
-
-const linkStyle = {
-  display: "inline-block",
-  padding: "8px 12px",
-  borderRadius: 8,
-  border: "1px solid #2a3142",
-  background: "#111318",
-  color: "#fff",
-  textDecoration: "none"
-};
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/control" element={<ControlPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <Footer />
-    </Router>
+    <div style={{
+      padding: 24,
+      margin: 24,
+      background: "#111",
+      color: "#00FF88",
+      border: "3px solid #FF00FF",
+      borderRadius: 12,
+      fontSize: 20
+    }}>
+      <h1>🔎 DIAGNOSTIC</h1>
+      <p>Si tu vois ce bloc vert fluo, React fonctionne. Le souci venait du Router ou du CSS.</p>
+    </div>
   );
 }
