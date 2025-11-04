@@ -1,51 +1,41 @@
 import { useEffect, useState } from 'react'
 import { fetchSummary, fetchRevenues, fetchExpenses } from './api/apiClient'
+import Layout from './components/Layout'
+import Dashboard from './pages/Dashboard'
+import Revenues from './pages/Revenues'
+import Expenses from './pages/Expenses'
 
 export default function App(){
+  const [route, setRoute] = useState(window.location.hash || '#/')
   const [summary, setSummary] = useState<any>(null)
   const [revenues, setRevenues] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
-  const [err, setErr] = useState<string>('')
+
+  useEffect(() => {
+    const onHash = () => setRoute(window.location.hash || '#/')
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
 
   useEffect(() => {
     Promise.all([fetchSummary(), fetchRevenues(), fetchExpenses()])
       .then(([s, r, e]) => {
-        setSummary(s)
+        setSummary(s || {})
         setRevenues(Array.isArray(r) ? r : [])
         setExpenses(Array.isArray(e) ? e : [])
       })
-      .catch(ex => setErr(String(ex)))
+      .catch(() => {
+        setSummary({ total_revenue:0, total_expense:0, net_profit:0, by_revenue_type:{}, by_expense_category:{} })
+        setRevenues([])
+        setExpenses([])
+      })
   }, [])
 
-  if (err) return <pre style={{color:'red', padding:16}}>{err}</pre>
-  if (!summary) return <div style={{padding:16}}>Chargement…</div>
+  let page = <Dashboard summary={summary} revenues={revenues} expenses={expenses} />
+  if (route.startsWith('#/revenues')) page = <Revenues rows={revenues} />
+  if (route.startsWith('#/expenses')) page = <Expenses rows={expenses} />
 
-  return (
-    <div style={{ fontFamily:'system-ui, sans-serif', padding:16, lineHeight:1.5 }}>
-      <h1>ZooProjectVision — démo stable</h1>
-
-      <h2>Résumé</h2>
-      <ul>
-        <li><b>Revenu total:</b> {summary.total_revenue}</li>
-        <li><b>Charges:</b> {summary.total_expense}</li>
-        <li><b>Bénéfice net:</b> {summary.net_profit}</li>
-      </ul>
-
-      <h2>Revenus ({revenues.length})</h2>
-      <ul>
-        {(Array.isArray(revenues) ? revenues : []).map(r =>
-          <li key={r.id}>{r.date} · {r.source} · {r.type} · {r.amount}</li>
-        )}
-      </ul>
-
-      <h2>Dépenses ({expenses.length})</h2>
-      <ul>
-        {(Array.isArray(expenses) ? expenses : []).map(e =>
-          <li key={e.id}>{e.date} · {e.vendor} · {e.category} · {e.amount}</li>
-        )}
-      </ul>
-    </div>
-  )
+  return <Layout>{page}</Layout>
 }
 
 
