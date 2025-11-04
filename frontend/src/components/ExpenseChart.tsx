@@ -3,11 +3,10 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 export default function ExpenseChart({ data }:{ data?: Record<string, number> }) {
   const obj = data && typeof data === 'object' ? data : {}
   const items = Object.entries(obj).map(([name, value]) => ({ name, value }))
-  if (!items.length) return <div>Aucune donnée dépenses.</div>
   return (
-    <div style={{ border:'1px solid #eee', borderRadius:12, padding:12, background:'#fff' }}>
-      <h3>Dépenses par catégorie</h3>
-      <div style={{ height:260 }}>
+    <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <h3 className="font-semibold mb-2">Dépenses par catégorie</h3>
+      <div className="h-64">
         <ResponsiveContainer>
           <BarChart data={items}>
             <CartesianGrid strokeDasharray="3 3" />
