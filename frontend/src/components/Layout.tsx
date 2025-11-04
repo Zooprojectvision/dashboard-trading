@@ -1,18 +1,21 @@
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif' }}>
-      <header style={{
-        position:'sticky', top:0, background:'#fff', borderBottom:'1px solid #eee',
-        display:'flex', justifyContent:'space-between', padding:'12px 16px'
-      }}>
-        <strong>ZooProjectVision</strong>
-        <nav style={{display:'flex', gap:12}}>
-          <a href="#/">Dashboard</a>
-          <a href="#/revenues">Revenus</a>
-          <a href="#/expenses">Dépenses</a>
-        </nav>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <h1 className="text-xl font-extrabold tracking-tight">
+            <span className="text-emerald-600">Zoo</span>Project<span className="text-emerald-600">Vision</span>
+          </h1>
+          <nav className="text-sm text-slate-600 space-x-4">
+            <a href="#/" className="hover:text-emerald-600">Dashboard</a>
+            <a href="#/revenues" className="hover:text-emerald-600">Revenus</a>
+            <a href="#/expenses" className="hover:text-emerald-600">Dépenses</a>
+          </nav>
+        </div>
       </header>
-      <main style={{ padding:16 }}>{children}</main>
+      <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
+      <footer className="text-center text-xs text-slate-500 py-6">© {new Date().getFullYear()} ZooProjectVision</footer>
     </div>
   )
 }
+
