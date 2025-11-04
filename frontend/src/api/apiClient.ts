@@ -1,8 +1,7 @@
 // frontend/src/api/apiClient.ts
 import axios from 'axios'
 
-const baseURL = import.meta.env.VITE_API_BASE || '' // si vide: même origine (sur Vercel ce sera statique)
-
+const baseURL = import.meta.env.VITE_API_BASE || '' // si vide: mode démo
 export const api = axios.create({ baseURL })
 
 export type RevenueType = 'PNL' | 'MANAGEMENT_FEE' | 'PROP_PAYOUT'
@@ -11,7 +10,7 @@ export type ExpenseCategory = 'CHALLENGE' | 'COMMISSION' | 'TOOLS' | 'VPS' | 'OT
 export interface Revenue { id:number; date:string; source:string; type:RevenueType; amount:number; currency:string; note:string }
 export interface Expense { id:number; date:string; category:ExpenseCategory; vendor:string; amount:number; currency:string; note:string }
 
-// Fallback démo si l'API est indisponible
+// Données de démonstration (fallback)
 const demo = {
   summary: {
     period: 'demo',
@@ -39,7 +38,7 @@ async function getOrDemo<T>(path: string, fallback: T): Promise<T> {
   try {
     if (!baseURL) throw new Error('No API baseURL (demo mode)')
     const res = await api.get<T>(path)
-    return res.data
+    return res.data as T
   } catch {
     return fallback
   }
