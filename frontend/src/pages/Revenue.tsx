@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { fetchRevenues } from '@/api/apiClient'
-import DataTable from '@/components/DataTable'
+import { fetchRevenues } from './api/apiClient'
+import DataTable from './components/DataTable'
 
 export default function Revenues(){
   const [rows, setRows] = useState<any[]>([])
