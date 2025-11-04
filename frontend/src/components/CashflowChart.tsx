@@ -9,11 +9,10 @@ export default function CashflowChart({ revenues, expenses }:{
   r.forEach((x:any)=> { if (x?.date && typeof x.amount==='number') map[x.date]=(map[x.date]||0)+x.amount })
   e.forEach((x:any)=> { if (x?.date && typeof x.amount==='number') map[x.date]=(map[x.date]||0)-x.amount })
   const series = Object.entries(map).sort(([a],[b])=>a.localeCompare(b)).map(([date, value])=>({ date, value }))
-  if (!series.length) return <div>Aucun flux de trésorerie.</div>
   return (
-    <div style={{ border:'1px solid #eee', borderRadius:12, padding:12, background:'#fff' }}>
-      <h3>Flux de trésorerie (net par date)</h3>
-      <div style={{ height:260 }}>
+    <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <h3 className="font-semibold mb-2">Flux de trésorerie (net par date)</h3>
+      <div className="h-64">
         <ResponsiveContainer>
           <LineChart data={series}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -27,3 +26,4 @@ export default function CashflowChart({ revenues, expenses }:{
     </div>
   )
 }
+
