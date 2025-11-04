@@ -1,15 +1,19 @@
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
-import type { Revenue, Expense } from '../api/apiClient'
 
-export default function CashflowChart({ revenues, expenses }:{ revenues:Revenue[]; expenses:Expense[] }){
+export default function CashflowChart({ revenues, expenses }:{
+  revenues?: any[]; expenses?: any[]
+}) {
+  const r = Array.isArray(revenues) ? revenues : []
+  const e = Array.isArray(expenses) ? expenses : []
   const map: Record<string, number> = {}
-  revenues.forEach(r => { map[r.date] = (map[r.date]||0) + r.amount })
-  expenses.forEach(e => { map[e.date] = (map[e.date]||0) - e.amount })
-  const series = Object.entries(map).sort(([a],[b])=>a.localeCompare(b)).map(([date, val])=>({ date, value: val }))
+  r.forEach((x:any)=> { if (x?.date && typeof x.amount==='number') map[x.date]=(map[x.date]||0)+x.amount })
+  e.forEach((x:any)=> { if (x?.date && typeof x.amount==='number') map[x.date]=(map[x.date]||0)-x.amount })
+  const series = Object.entries(map).sort(([a],[b])=>a.localeCompare(b)).map(([date, value])=>({ date, value }))
+  if (!series.length) return <div>Aucun flux de trésorerie.</div>
   return (
-    <div className="rounded-2xl border bg-white p-4 shadow-sm">
-      <h3 className="font-semibold mb-2">Flux de trésorerie (net par date)</h3>
-      <div className="h-64">
+    <div style={{ border:'1px solid #eee', borderRadius:12, padding:12, background:'#fff' }}>
+      <h3>Flux de trésorerie (net par date)</h3>
+      <div style={{ height:260 }}>
         <ResponsiveContainer>
           <LineChart data={series}>
             <CartesianGrid strokeDasharray="3 3" />
