@@ -1,4 +1,3 @@
-// frontend/src/api/apiClient.ts
 import axios from 'axios'
 
 const baseURL = import.meta.env.VITE_API_BASE || '' // si vide: mode démo
@@ -10,7 +9,6 @@ export type ExpenseCategory = 'CHALLENGE' | 'COMMISSION' | 'TOOLS' | 'VPS' | 'OT
 export interface Revenue { id:number; date:string; source:string; type:RevenueType; amount:number; currency:string; note:string }
 export interface Expense { id:number; date:string; category:ExpenseCategory; vendor:string; amount:number; currency:string; note:string }
 
-// Données de démonstration (fallback)
 const demo = {
   summary: {
     period: 'demo',
