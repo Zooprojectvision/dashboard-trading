@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchExpenses } from '../api/apiClient'
 import DataTable from '../components/DataTable'
+
 export default function Expenses(){
   const [rows, setRows] = useState<any[]>([])
   useEffect(()=>{ fetchExpenses().then(setRows) },[])
