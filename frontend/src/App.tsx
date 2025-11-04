@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import Layout from '@/components/Layout'
-import Dashboard from '@/pages/Dashboard'
-import Revenues from '@/pages/Revenues'
-import Expenses from '@/pages/Expenses'
+import Layout from './components/Layout'
+import Dashboard from './pages/Dashboard'
+import Revenues from './pages/Revenues'
+import Expenses from './pages/Expenses'
 
 export default function App(){
   const [route, setRoute] = useState(window.location.hash)
