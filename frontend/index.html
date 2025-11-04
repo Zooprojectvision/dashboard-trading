@@ -5,8 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ZooProjectVision</title>
   </head>
-  <body class="bg-slate-50">
-    <div id="root"></div>
-   <script type="module" src="./src/main.tsx"></script>
+  <body class="bg-white">
+    <!-- Si vous voyez ce texte en prod, ça veut dire que React n'a pas encore pris la main -->
+    <div id="root">[loading React…]</div>
+
+    <script>
+      // Affiche les erreurs runtime directement dans la page (évite écran blanc silencieux)
+      window.addEventListener('error', e => {
+        const root = document.getElementById('root');
+        if (root) root.innerHTML = '<pre style="color:red;white-space:pre-wrap;">JS Error: ' + (e.error?.stack || e.message) + '</pre>';
+      });
+      window.addEventListener('unhandledrejection', e => {
+        const root = document.getElementById('root');
+        if (root) root.innerHTML = '<pre style="color:red;white-space:pre-wrap;">Promise Error: ' + (e.reason?.stack || e.reason) + '</pre>';
+      });
+    </script>
+
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
