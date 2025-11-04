@@ -5,12 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ZooProjectVision</title>
   </head>
-  <body class="bg-white">
-    <!-- Si vous voyez ce texte en prod, ça veut dire que React n'a pas encore pris la main -->
+  <body>
     <div id="root">[loading React…]</div>
 
     <script>
-      // Affiche les erreurs runtime directement dans la page (évite écran blanc silencieux)
+      // Affiche toute erreur JS directement dans la page (anti-écran blanc)
       window.addEventListener('error', e => {
         const root = document.getElementById('root');
         if (root) root.innerHTML = '<pre style="color:red;white-space:pre-wrap;">JS Error: ' + (e.error?.stack || e.message) + '</pre>';
