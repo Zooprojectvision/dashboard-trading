@@ -1,5 +1,5 @@
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
-import type { Revenue, Expense } from '@/api/apiClient'
+import type { Revenue, Expense } from '../api/apiClient'
 
 export default function CashflowChart({ revenues, expenses }:{ revenues:Revenue[]; expenses:Expense[] }){
   const map: Record<string, number> = {}
