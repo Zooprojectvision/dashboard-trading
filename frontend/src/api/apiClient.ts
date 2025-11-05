@@ -43,3 +43,20 @@ export const exportExpensesCsvUrl = `${baseURL?.replace(/\/+$/,'')}/export/csv/e
 export async function fetchMonthReport(year: number, month: number) {
   return getOrDemo(`/report/month?year=${year}&month=${month}`, demo.summary)
 }
+// --- Upload CSV (nécessite VITE_API_BASE pointant vers ton backend) ---
+export async function uploadRevenuesCsv(file: File, source = 'CSV') {
+  if (!baseURL) throw new Error('Pas d’API en ligne: configure VITE_API_BASE')
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('source', source)
+  const { data } = await api.post('/import/csv/revenues', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+  return data
+}
+
+export async function uploadExpensesCsv(file: File) {
+  if (!baseURL) throw new Error('Pas d’API en ligne: configure VITE_API_BASE')
+  const fd = new FormData()
+  fd.append('file', file)
+  const { data } = await api.post('/import/csv/expenses', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+  return data
+}
