@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from . import models, schemas
-from datetime import date
+from import models, schemas
+datetime import date
 
 # Revenues
 def create_revenue(db: Session, r: schemas.RevenueCreate):
