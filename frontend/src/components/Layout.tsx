@@ -1,3 +1,4 @@
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -19,3 +20,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   )
 }
 
+// …
+<nav className="text-sm text-slate-600 space-x-4">
+  <a href="#/" className="hover:text-emerald-600">Dashboard</a>
+  <a href="#/revenues" className="hover:text-emerald-600">Revenus</a>
+  <a href="#/expenses" className="hover:text-emerald-600">Dépenses</a>
+  <a href="#/new" className="hover:text-emerald-600">Saisir</a>
+  <a href="#/report" className="hover:text-emerald-600">Rapport</a>
+</nav>
+// …
