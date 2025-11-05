@@ -11,6 +11,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <a href="#/" className="hover:text-emerald-600">Dashboard</a>
             <a href="#/revenues" className="hover:text-emerald-600">Revenus</a>
             <a href="#/expenses" className="hover:text-emerald-600">Dépenses</a>
+            <a href="#/import" className="hover:text-emerald-600">Importer</a>
           </nav>
         </div>
       </header>
