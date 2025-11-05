@@ -69,38 +69,46 @@ async def import_darwinex_demo(db: Session = Depends(get_db)):
 
 # --- AJOUTS: exports CSV + rapport periodique ---
 
-from fastapi.responses import StreamingResponse
-import io, csv
-from sqlalchemy import extract
+from fastapi import UploadFile, File, Form
+import csv, io
 
-@app.get("/export/csv/revenues")
-async def export_revenues_csv(start: date | None = None, end: date | None = None, db: Session = Depends(get_db)):
-    rows = crud.list_revenues(db, start, end)
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(["id","date","source","type","amount","currency","note"])
-    for r in rows:
-        w.writerow([r.id, r.date.isoformat(), r.source, r.type.value, r.amount, r.currency, r.note])
-    buf.seek(0)
-    return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv",
-                             headers={"Content-Disposition":"attachment; filename=revenues.csv"})
+@app.post("/import/csv/revenues")
+async def import_revenues_csv(file: UploadFile = File(...), source: str = Form("CSV"), db: Session = Depends(get_db)):
+    content = await file.read()
+    reader = csv.DictReader(io.StringIO(content.decode("utf-8")))
+    count = 0
+    for row in reader:
+        try:
+            payload = schemas.RevenueCreate(
+                date=row["date"],
+                source=row.get("source", source),
+                type=schemas.RevenueType(row["type"]),
+                amount=float(row["amount"]),
+                currency=row.get("currency","EUR"),
+                note=row.get("note","")
+            )
+            crud.create_revenue(db, payload); count += 1
+        except Exception:
+            continue
+    return {"status":"ok","imported":count}
 
-@app.get("/export/csv/expenses")
-async def export_expenses_csv(start: date | None = None, end: date | None = None, db: Session = Depends(get_db)):
-    rows = crud.list_expenses(db, start, end)
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(["id","date","vendor","category","amount","currency","note"])
-    for e in rows:
-        w.writerow([e.id, e.date.isoformat(), e.vendor, e.category.value, e.amount, e.currency, e.note])
-    buf.seek(0)
-    return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv",
-                             headers={"Content-Disposition":"attachment; filename=expenses.csv"})
+@app.post("/import/csv/expenses")
+async def import_expenses_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    content = await file.read()
+    reader = csv.DictReader(io.StringIO(content.decode("utf-8")))
+    count = 0
+    for row in reader:
+        try:
+            payload = schemas.ExpenseCreate(
+                date=row["date"],
+                category=schemas.ExpenseCategory(row["category"]),
+                vendor=row["vendor"],
+                amount=float(row["amount"]),
+                currency=row.get("currency","EUR"),
+                note=row.get("note","")
+            )
+            crud.create_expense(db, payload); count += 1
+        except Exception:
+            continue
+    return {"status":"ok","imported":count}
 
-@app.get("/report/month")
-async def report_month(year: int, month: int, db: Session = Depends(get_db)):
-    # filtre sur un mois
-    revs = [r for r in crud.list_revenues(db) if r.date.year==year and r.date.month==month]
-    exps = [e for e in crud.list_expenses(db) if e.date.year==year and e.date.month==month]
-    s = summarize(revs, exps)
-    return {"period": f"{year}-{month:02d}", **s}
