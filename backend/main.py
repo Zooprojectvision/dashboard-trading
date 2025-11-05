@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 from datetime import date
 from typing import Optional
 
-from .database import Base, engine, get_db
-from . import schemas, crud
-from .services.accounting import summarize
-from .services import darwinex_api as dx
+from database import Base, engine, get_db
+import schemas, crud
+from services.accounting import summarize
+from services import darwinex_api as dx
 
 Base.metadata.create_all(bind=engine)
 
