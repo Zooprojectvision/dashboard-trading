@@ -67,3 +67,40 @@ async def import_darwinex_demo(db: Session = Depends(get_db)):
         ))
     return {"status": "ok", "imported": len(pnl) + len(fees)}
 
+# --- AJOUTS: exports CSV + rapport periodique ---
+
+from fastapi.responses import StreamingResponse
+import io, csv
+from sqlalchemy import extract
+
+@app.get("/export/csv/revenues")
+async def export_revenues_csv(start: date | None = None, end: date | None = None, db: Session = Depends(get_db)):
+    rows = crud.list_revenues(db, start, end)
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["id","date","source","type","amount","currency","note"])
+    for r in rows:
+        w.writerow([r.id, r.date.isoformat(), r.source, r.type.value, r.amount, r.currency, r.note])
+    buf.seek(0)
+    return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv",
+                             headers={"Content-Disposition":"attachment; filename=revenues.csv"})
+
+@app.get("/export/csv/expenses")
+async def export_expenses_csv(start: date | None = None, end: date | None = None, db: Session = Depends(get_db)):
+    rows = crud.list_expenses(db, start, end)
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["id","date","vendor","category","amount","currency","note"])
+    for e in rows:
+        w.writerow([e.id, e.date.isoformat(), e.vendor, e.category.value, e.amount, e.currency, e.note])
+    buf.seek(0)
+    return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv",
+                             headers={"Content-Disposition":"attachment; filename=expenses.csv"})
+
+@app.get("/report/month")
+async def report_month(year: int, month: int, db: Session = Depends(get_db)):
+    # filtre sur un mois
+    revs = [r for r in crud.list_revenues(db) if r.date.year==year and r.date.month==month]
+    exps = [e for e in crud.list_expenses(db) if e.date.year==year and e.date.month==month]
+    s = summarize(revs, exps)
+    return {"period": f"{year}-{month:02d}", **s}
