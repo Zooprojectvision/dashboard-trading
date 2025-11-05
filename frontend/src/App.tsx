@@ -6,6 +6,7 @@ import NewEntries from './pages/NewEntries'
 import Report from './pages/Report'
 import Revenues from './pages/Revenues'
 import Expenses from './pages/Expenses'
+import ImportPage from './pages/Import'
 
 export default function App(){
   const [route, setRoute] = useState(window.location.hash || '#/')
@@ -32,11 +33,12 @@ export default function App(){
       })
   }, [])
 
-  let page = <Dashboard summary={summary} revenues={revenues} expenses={expenses} />
-  if (route.startsWith('#/new')) page = <NewEntries />
-  if (route.startsWith('#/report')) page = <Report />
-  if (route.startsWith('#/revenues')) page = <Revenues rows={revenues} />
-  if (route.startsWith('#/expenses')) page = <Expenses rows={expenses} />
+let page = <Dashboard summary={summary} revenues={revenues} expenses={expenses} />
+if (route.startsWith('#/new')) page = <NewEntries />
+if (route.startsWith('#/report')) page = <Report />
+if (route.startsWith('#/import')) page = <ImportPage />   // <-- ajout
+if (route.startsWith('#/revenues')) page = <Revenues rows={revenues} />
+if (route.startsWith('#/expenses')) page = <Expenses rows={expenses} />
 
   return <Layout>{page}</Layout>
 }
