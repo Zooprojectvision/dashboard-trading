@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, Date, Enum
 from enum import Enum as PyEnum
-from .database import Base
+from database import Base
 
 class RevenueType(str, PyEnum):
     PNL = "PNL"
